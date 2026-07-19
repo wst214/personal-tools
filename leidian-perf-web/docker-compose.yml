@@ -1,0 +1,45 @@
+# PERF 压测操作台（Web + run_load.py）
+#
+# 连 dbserver 压测库（默认 PostgreSQL）：
+#   docker compose up -d --build
+#
+# 达梦（需先将 Linux DM 客户端放入 dm-client/，见 scripts/pack-dm-client.ps1）：
+#   .\docker-start.ps1 --dameng
+#
+# 连本机 Docker PostgreSQL：
+#   PGHOST=host.docker.internal docker compose up -d --build
+
+name: leidian-tools
+
+services:
+  perf-web:
+    build: .
+    image: leidian-perf-tool:latest
+    container_name: leidian-perf-web
+    ports:
+      - "${PERF_WEB_PORT:-8100}:8100"
+    environment:
+      PERF_WEB_HOST: 0.0.0.0
+      PERF_WEB_PORT: 8100
+      PERF_DB_DIALECT: ${PERF_DB_DIALECT:-postgres}
+      PGHOST: ${PGHOST:-192.168.1.41}
+      PGPORT: ${PGPORT:-5432}
+      PGDATABASE: ${PGDATABASE:-leidian_perf}
+      PGUSER: ${PGUSER:-leidian}
+      PGPASSWORD: ${PGPASSWORD:-leidian}
+      DMHOST: ${DMHOST:-192.168.1.41}
+      DMPORT: ${DMPORT:-5236}
+      DMSERVICE: ${DMSERVICE:-LEIDIAN_PERF}
+      DMUSER: ${DMUSER:-LEIDIAN_APP}
+      DMPASSWORD: ${DMPASSWORD:-Leidian@2026!}
+      DMSCHEMA: ${DMSCHEMA:-PERF}
+      PROMETHEUS_URL: ${PROMETHEUS_URL:-http://host.docker.internal:9090}
+      PROMETHEUS_INSTANCE: ${PROMETHEUS_INSTANCE:-192.168.1.41:9100}
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    volumes:
+      - ./data:/app/data
+      - ./web:/app/web
+      - ./python:/app/python
+      - ./sql-dameng:/app/sql-dameng
+    restart: unless-stopped

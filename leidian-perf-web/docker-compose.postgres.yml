@@ -1,0 +1,33 @@
+# PERF 专用 PostGIS（与宿主机 5432 的 leidian-postgres 隔离，避免缺 PostGIS 扩展）
+# 用法：.\docker-start.ps1 --with-postgres
+
+services:
+  perf-postgres:
+    image: postgis/postgis:16-3.4
+    container_name: leidian-perf-postgres
+    environment:
+      POSTGRES_USER: leidian
+      POSTGRES_PASSWORD: leidian
+      POSTGRES_DB: leidian
+    ports:
+      - "${PERF_PG_PORT:-5433}:5432"
+    volumes:
+      - perf-postgres-data:/var/lib/postgresql/data
+      - ./postgres-init:/docker-entrypoint-initdb.d:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U leidian -d leidian"]
+      interval: 5s
+      timeout: 5s
+      retries: 12
+      start_period: 20s
+
+  perf-web:
+    depends_on:
+      perf-postgres:
+        condition: service_healthy
+    environment:
+      PGHOST: perf-postgres
+      PGPORT: 5432
+
+volumes:
+  perf-postgres-data:

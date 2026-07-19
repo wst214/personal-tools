@@ -1,0 +1,85 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>内网穿透面板 · mytools</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600&family=Sora:wght@600;700&family=Noto+Sans+SC:wght@400;500;600&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="/static/css/style.css" />
+</head>
+<body>
+  <div class="page-bg"></div>
+  <main class="app">
+    <header class="topbar">
+      <div>
+        <p class="eyebrow">mytools</p>
+        <h1>内网穿透面板</h1>
+      </div>
+      <div id="envBadge" class="badge badge-warn">检测中…</div>
+    </header>
+
+    <section class="card input-card">
+      <label class="field-label">穿透方式</label>
+      <div class="provider-row" role="radiogroup" aria-label="穿透方式">
+        <label class="provider-option">
+          <input type="radio" name="provider" value="cloudflare" checked />
+          <span>Cloudflare</span>
+          <small>免注册，国外节点</small>
+        </label>
+        <label class="provider-option">
+          <input type="radio" name="provider" value="cpolar" />
+          <span>cpolar</span>
+          <small>国内快，需 Token</small>
+        </label>
+      </div>
+
+      <p id="providerLockHint" class="hint hidden">隧道运行中，穿透方式已锁定。请先点「停止」再切换。</p>
+
+      <label class="field-label" for="targetInput">本地地址</label>
+      <div class="input-row">
+        <input
+          id="targetInput"
+          type="text"
+          placeholder="http://localhost:8080 或 localhost:52262"
+          spellcheck="false"
+          autocomplete="off"
+        />
+        <button id="startBtn" class="btn btn-primary" type="button">开始映射</button>
+        <button id="stopBtn" class="btn btn-ghost" type="button" disabled>停止</button>
+      </div>
+      <p class="hint">输入<strong>宿主机</strong>上能打开的地址（如本机浏览器访问的 <code>http://localhost:52262</code>）。面板跑在 Docker 里时，会自动用 <code>host.docker.internal</code> 访问宿主机，等价于你的 localhost。</p>
+    </section>
+
+    <section id="resultCard" class="card result-card hidden">
+      <p class="field-label">公网映射地址</p>
+      <div class="url-box">
+        <a id="publicUrl" href="#" target="_blank" rel="noopener noreferrer"></a>
+        <button id="copyBtn" class="btn btn-small" type="button">复制</button>
+      </div>
+      <p id="targetEcho" class="hint"></p>
+    </section>
+
+    <section id="errorCard" class="card error-card hidden">
+      <p class="field-label">错误</p>
+      <p id="errorText"></p>
+      <ul class="tips">
+        <li id="tipCloudflare">若使用 Clash 等代理，请关闭 TUN 模式或把 <code>trycloudflare.com</code> 设为直连</li>
+        <li id="tipCpolar" class="hidden">cpolar 需在 <code>tunnel-panel/.env</code> 配置 <code>CPOLAR_AUTHTOKEN</code>（<a href="https://dashboard.cpolar.com" target="_blank" rel="noopener">控制台获取</a>）</li>
+        <li>确认本地服务已启动，且浏览器能打开输入的地址</li>
+        <li>API 类服务需在客户端配置 Base URL，浏览器打开根路径可能报错</li>
+      </ul>
+    </section>
+
+    <section class="card log-card">
+      <div class="log-head">
+        <p class="field-label">运行日志</p>
+        <span id="statusText" class="status-pill">空闲</span>
+      </div>
+      <pre id="logBox" class="log-box">等待开始映射…</pre>
+    </section>
+  </main>
+  <script src="/static/js/app.js"></script>
+</body>
+</html>

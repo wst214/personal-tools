@@ -1,0 +1,118 @@
+{
+  "ok": true,
+  "traceId": "trace-20260716085439-c161a7",
+  "caseId": "minio-radar-frame-full-link",
+  "caseName": "MinIO 雷达帧上传全链路",
+  "envName": "本地环境",
+  "startedAt": "2026-07-16T08:54:47.980Z",
+  "steps": [
+    {
+      "name": "Environment precheck",
+      "ok": true,
+      "detail": "all dependencies reachable",
+      "elapsedMs": 0,
+      "evidence": {
+        "checks": [
+          {
+            "name": "gateway",
+            "ok": true,
+            "detail": "HTTP 404",
+            "elapsedMs": 87,
+            "evidence": {}
+          },
+          {
+            "name": "data-service",
+            "ok": true,
+            "detail": "HTTP 404",
+            "elapsedMs": 29,
+            "evidence": {}
+          },
+          {
+            "name": "biz-service",
+            "ok": true,
+            "detail": "HTTP 404",
+            "elapsedMs": 30,
+            "evidence": {}
+          },
+          {
+            "name": "kafka",
+            "ok": true,
+            "detail": "host.docker.internal:9092 connected",
+            "elapsedMs": 14,
+            "evidence": {}
+          },
+          {
+            "name": "database",
+            "ok": true,
+            "detail": "host.docker.internal:5432 connected",
+            "elapsedMs": 14,
+            "evidence": {}
+          },
+          {
+            "name": "minio",
+            "ok": true,
+            "detail": "HTTP 403",
+            "elapsedMs": 30,
+            "evidence": {}
+          },
+          {
+            "name": "websocket",
+            "ok": true,
+            "detail": "host.docker.internal:8080 connected",
+            "elapsedMs": 14,
+            "evidence": {}
+          }
+        ]
+      }
+    },
+    {
+      "name": "Upload MinIO object",
+      "ok": true,
+      "detail": "upstream/radar/realtime/2026/07/16/08/radar_20260716085439.json",
+      "elapsedMs": 39,
+      "evidence": {
+        "bucket": "leidian-frame",
+        "objectKey": "upstream/radar/realtime/2026/07/16/08/radar_20260716085439.json",
+        "traceId": "trace-20260716085439-c161a7"
+      }
+    },
+    {
+      "name": "Check radar-frame-upstream",
+      "ok": true,
+      "detail": "not observed directly; downstream checks will confirm",
+      "elapsedMs": 0,
+      "evidence": {}
+    },
+    {
+      "name": "Check file_frame_index",
+      "ok": true,
+      "detail": "rows=1",
+      "elapsedMs": 0,
+      "evidence": {
+        "rows": [
+          {
+            "count": "1"
+          }
+        ]
+      }
+    },
+    {
+      "name": "WebSocket push",
+      "ok": true,
+      "detail": "message received",
+      "elapsedMs": 1135,
+      "evidence": {
+        "message": "{\"type\":\"RADAR_FRAME_READY\",\"timestamp\":1784192080994,\"data\":{\"frameId\":\"radar-20260716085439\",\"traceId\":\"trace-20260716085439-c161a7\",\"eventTime\":1784192079000,\"objectKey\":\"upstream/radar/realtime/2026/07/16/08/radar_20260716085439.json\",\"downloadUrl\":\"http://minio:9000/leidian-frame/upstream/radar/realtime/2026/07/16/08/radar_20260716085439.json?X-Amz-Algorithm=AWS4-HMAC-SHA256&X-Amz-Credential=minioadmin%2F20260716%2Fus-east-1%2Fs3%2Faws4_request&X-Amz-Date=20260716T085440Z&X-Amz-Expires=3600"
+      }
+    },
+    {
+      "name": "Query radar frames recent API",
+      "ok": true,
+      "detail": "HTTP 401",
+      "elapsedMs": 16,
+      "evidence": {
+        "body": "{\"traceId\":\"0fe08cd3cb664df7813de309dd23b343\",\"code\":401,\"data\":null,\"message\":\"缺少 Authorization header\",\"timestamp\":1784192087974}"
+      }
+    }
+  ]
+}

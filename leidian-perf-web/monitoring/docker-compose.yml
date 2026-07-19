@@ -1,0 +1,52 @@
+# 本机监控栈：Prometheus + Grafana，抓取 dbserver node_exporter
+#
+# 启动（默认只起 Prometheus，约 115MB；Grafana 可选）：
+#   cd ../tools/leidian-perf-web/monitoring   # 从 leidian-backend 根目录
+#   docker compose up -d
+#   docker compose --profile grafana up -d   # 需要看图时再装 Grafana
+#
+# 访问：Prometheus http://localhost:9090  Grafana http://localhost:3000
+
+name: leidian-tools
+
+services:
+  prometheus:
+    # 默认官方名 → 走 Docker Desktop registry-mirrors；直连慢时在 .env 覆盖
+    image: ${PROMETHEUS_IMAGE:-prom/prometheus:v3.2.1}
+    container_name: leidian-perf-prometheus
+    ports:
+      - "${PROMETHEUS_PORT:-9090}:9090"
+    volumes:
+      - ./prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - prometheus-data:/prometheus
+    command:
+      - --config.file=/etc/prometheus/prometheus.yml
+      - --storage.tsdb.path=/prometheus
+      - --storage.tsdb.retention.time=15d
+      - --web.enable-lifecycle
+    restart: unless-stopped
+
+  grafana:
+    profiles: ["grafana"]
+    image: ${GRAFANA_IMAGE:-grafana/grafana:11.5.2}
+    container_name: leidian-perf-grafana
+    ports:
+      - "${GRAFANA_PORT:-3000}:3000"
+    environment:
+      GF_SECURITY_ADMIN_USER: "${GRAFANA_ADMIN_USER:-admin}"
+      GF_SECURITY_ADMIN_PASSWORD: "${GRAFANA_ADMIN_PASSWORD:-admin}"
+      GF_USERS_ALLOW_SIGN_UP: "false"
+    volumes:
+      - grafana-data:/var/lib/grafana
+      - ./grafana/provisioning:/etc/grafana/provisioning:ro
+    depends_on:
+      - prometheus
+    restart: unless-stopped
+
+volumes:
+  prometheus-data:
+    name: leidian-perf-tool_prometheus-data
+    external: true
+  grafana-data:
+    name: leidian-perf-tool_grafana-data
+    external: true

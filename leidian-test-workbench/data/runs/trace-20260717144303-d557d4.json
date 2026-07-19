@@ -1,0 +1,31 @@
+{
+  "ok": true,
+  "traceId": "trace-20260717144303-d557d4",
+  "caseId": "local-service-health",
+  "caseName": "服务连通性检查",
+  "envName": "本地环境",
+  "startedAt": "2026-07-17T14:43:03.693Z",
+  "steps": [
+    {
+      "name": "gateway",
+      "ok": true,
+      "detail": "HTTP 200",
+      "elapsedMs": 19,
+      "evidence": {}
+    },
+    {
+      "name": "data-service",
+      "ok": true,
+      "detail": "HTTP 404",
+      "elapsedMs": 8,
+      "evidence": {}
+    },
+    {
+      "name": "biz-service",
+      "ok": true,
+      "detail": "HTTP 200",
+      "elapsedMs": 10,
+      "evidence": {}
+    }
+  ]
+}

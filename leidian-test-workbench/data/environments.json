@@ -1,0 +1,156 @@
+﻿{
+  "environments": {
+    "local": {
+      "name": "Local",
+      "desc": "localhost stack",
+      "base": {
+        "gatewayUrl": "http://localhost:8080",
+        "gatewayHealthPath": "/actuator/health",
+        "dataServiceUrl": "http://localhost:8082",
+        "dataServiceHealthPath": "/actuator/health",
+        "bizServiceUrl": "http://localhost:8083",
+        "bizServiceHealthPath": "/actuator/health",
+        "taskServiceUrl": "http://localhost:8084",
+        "taskServiceHealthPath": "/actuator/health"
+      },
+      "capabilities": {
+        "kafka": {
+          "enabled": true,
+          "bootstrapServers": "localhost:9092",
+          "upstreamTopic": "radar-frame-upstream",
+          "standardTopic": "leidian.realtime.standard"
+        },
+        "database": {
+          "enabled": true,
+          "jdbcUrl": "jdbc:postgresql://localhost:5432/leidian",
+          "username": "leidian",
+          "passwordRef": "leidian"
+        },
+        "minio": {
+          "enabled": true,
+          "endpoint": "http://localhost:19000",
+          "accessKey": "minioadmin",
+          "secretKeyRef": "minioadmin",
+          "bucket": "leidian-frame"
+        },
+        "websocket": {
+          "enabled": true,
+          "url": "ws://localhost:8080/api/biz/realtime/ws"
+        },
+        "deviceIngest": {
+          "enabled": true,
+          "rawTopic": "device-raw-data",
+          "standardTopic": "leidian.realtime.standard",
+          "defaultMonitorType": "GROUNDING_RESISTANCE"
+        },
+        "tunnel": {
+          "enabled": false,
+          "publicUrl": "",
+          "provider": "cloudflare"
+        }
+      }
+    },
+    "dev": {
+      "name": "Dev",
+      "desc": "integration env",
+      "base": {
+        "gatewayUrl": "http://dev-gateway:8080",
+        "gatewayHealthPath": "/actuator/health",
+        "dataServiceUrl": "http://dev-data:8082",
+        "dataServiceHealthPath": "/actuator/health",
+        "bizServiceUrl": "http://dev-biz:8083",
+        "bizServiceHealthPath": "/actuator/health",
+        "taskServiceUrl": "http://dev-task:8084",
+        "taskServiceHealthPath": "/actuator/health"
+      },
+      "capabilities": {
+        "kafka": {
+          "enabled": true,
+          "bootstrapServers": "dev-kafka:9092",
+          "upstreamTopic": "radar-frame-upstream",
+          "standardTopic": "leidian.realtime.standard"
+        },
+        "database": {
+          "enabled": true,
+          "jdbcUrl": "jdbc:mysql://dev-mysql:3306/leidian",
+          "username": "leidian",
+          "passwordRef": "dev.mysql.password"
+        },
+        "minio": {
+          "enabled": true,
+          "endpoint": "http://dev-minio:9000",
+          "accessKey": "leidian_upstream",
+          "secretKeyRef": "dev.minio.secretKey",
+          "bucket": "leidian-frame"
+        },
+        "websocket": {
+          "enabled": true,
+          "url": "ws://dev-biz:8083/realtime/ws"
+        },
+        "deviceIngest": {
+          "enabled": true,
+          "rawTopic": "device-raw-data",
+          "standardTopic": "leidian.realtime.standard",
+          "defaultMonitorType": "GROUNDING_RESISTANCE"
+        },
+        "tunnel": {
+          "enabled": true,
+          "publicUrl": "https://dev-tunnel.example.com",
+          "provider": "cloudflare"
+        }
+      }
+    },
+    "test": {
+      "name": "Test",
+      "desc": "test env",
+      "base": {
+        "gatewayUrl": "http://test-gateway:8080",
+        "gatewayHealthPath": "/actuator/health",
+        "dataServiceUrl": "http://test-data:8082",
+        "dataServiceHealthPath": "/actuator/health",
+        "bizServiceUrl": "http://test-biz:8083",
+        "bizServiceHealthPath": "/actuator/health",
+        "taskServiceUrl": "http://test-task:8084",
+        "taskServiceHealthPath": "/actuator/health"
+      },
+      "capabilities": {
+        "kafka": {
+          "enabled": true,
+          "bootstrapServers": "test-kafka:9092",
+          "upstreamTopic": "radar-frame-upstream",
+          "standardTopic": "leidian.realtime.standard"
+        },
+        "database": {
+          "enabled": true,
+          "jdbcUrl": "jdbc:mysql://test-mysql:3306/leidian",
+          "username": "tester",
+          "passwordRef": "test.mysql.password"
+        },
+        "minio": {
+          "enabled": false,
+          "endpoint": "",
+          "accessKey": "",
+          "secretKeyRef": "",
+          "bucket": "leidian-frame"
+        },
+        "websocket": {
+          "enabled": true,
+          "url": "ws://test-biz:8083/realtime/ws"
+        },
+        "deviceIngest": {
+          "enabled": true,
+          "rawTopic": "device-raw-data",
+          "standardTopic": "leidian.realtime.standard",
+          "defaultMonitorType": "GROUNDING_RESISTANCE"
+        },
+        "tunnel": {
+          "enabled": false,
+          "publicUrl": "",
+          "provider": ""
+        }
+      }
+    }
+  },
+  "activeEnv": "local",
+  "updatedAt": "2026-07-16T08:05:00.000Z"
+}

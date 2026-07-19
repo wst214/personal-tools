@@ -1,0 +1,113 @@
+# 分阶段造数量（对齐 雷电系统数据库性能测试开展方案.docx §3.2）
+# 有区间时取中位偏保守值，不顶格取上限（如 1500～2000 万 → 1700 万）
+# 闪电：仅配置 lightning_cmb / lightning_locator；biz_lightning_event = cmb + loc（1:1 派生，无独立条数）
+# atmosphere_rows：standard + biz 各写入相同行数
+# raw_rows：全 Topic 合计 = atmosphere + 闪电 + 低频 + 雷达 + padding + 异常(~0.1%)
+# radar_raw_rows：约 每过程 40 条（过程数 × 40）
+# calendar_months：从 t0 所在月起连续铺开的自然月数；大气/raw 底量按月均分，雷暴过程 6～8 月加权
+
+stages:
+  S0:
+    calendar_months: 1
+    mine_site: 1
+    thunderstorm_process: 10
+    lightning_cmb: 1000
+    lightning_locator: 500
+    atmosphere_rows: 10000
+    other_device_rows: 1000
+    warning_event: 10
+    warning_message: 20
+    device_alarm: 100
+    notice_event: 100
+    inspection_task: 10
+    hidden_risk: 5
+    repair_order: 5
+    raw_rows: 12932
+    radar_raw_rows: 400
+
+  S1:
+    calendar_months: 6
+    mine_site: 1
+    thunderstorm_process: 20
+    lightning_cmb: 2000
+    lightning_locator: 800
+    atmosphere_rows: 2000000
+    other_device_rows: 2000
+    warning_event: 20
+    warning_message: 100
+    device_alarm: 500
+    notice_event: 800
+    inspection_task: 30
+    hidden_risk: 15
+    repair_order: 15
+    raw_rows: 2007645
+    radar_raw_rows: 800
+
+  S2:
+    calendar_months: 9
+    mine_site: 1
+    thunderstorm_process: 50
+    lightning_cmb: 9000
+    lightning_locator: 4000
+    atmosphere_rows: 9000000
+    other_device_rows: 5000
+    warning_event: 50
+    warning_message: 250
+    device_alarm: 1500
+    notice_event: 2000
+    inspection_task: 60
+    hidden_risk: 30
+    repair_order: 30
+    raw_rows: 9029049
+    radar_raw_rows: 2000
+
+  S3:
+    calendar_months: 12
+    mine_site: 1
+    thunderstorm_process: 90
+    lightning_cmb: 27500
+    lightning_locator: 12000
+    atmosphere_rows: 17000000
+    other_device_rows: 9000
+    warning_event: 90
+    warning_message: 450
+    device_alarm: 2750
+    notice_event: 3600
+    inspection_task: 90
+    hidden_risk: 45
+    repair_order: 45
+    raw_rows: 17069189
+    radar_raw_rows: 3600
+
+  S4:
+    calendar_months: 12
+    mine_site: 1
+    thunderstorm_process: 100
+    lightning_cmb: 35000
+    lightning_locator: 15000
+    atmosphere_rows: 38900000
+    other_device_rows: 10000
+    warning_event: 100
+    warning_message: 500
+    device_alarm: 3000
+    notice_event: 4000
+    inspection_task: 100
+    hidden_risk: 50
+    repair_order: 50
+    raw_rows: 39003024
+    radar_raw_rows: 4000
+
+defaults:
+  t0: "2025-06-01T00:00:00"
+  timezone: "Asia/Shanghai"
+  atmosphere_hz: 1
+  ingest_delay_max_seconds: 3
+  thunderstorm_season_months: [6, 7, 8]
+  thunderstorm_season_ratio: 0.7
+  process_duration_min_minutes: 60
+  process_duration_max_minutes: 180
+  # 雷暴过程落在 [t0, t0+calendar_months)；6～8 月约 70%（见 thunderstorm_season_ratio）
+  calendar_months: 12
+  lightning_in_window_ratio: 0.85
+  lightning_boundary_ratio: 0.10
+  lightning_outlier_ratio: 0.05

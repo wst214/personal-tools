@@ -1,0 +1,69 @@
+# 直连 PostgreSQL SQL 压测（不经 API、不涉及应用/Kafka 数据解析）
+# 写入场景 INSERT+COMMIT；压测前后按 quality_status/topic/source_type=PERF_BENCH 清理
+# 对齐 Word 方案 PERF-01～06 并发与 P95/P99 参考值
+
+defaults:
+  iterations: 50
+  warmup: 5
+  slow_sql_threshold_ms: 500
+  perf05_agg_bucket_minutes: 10
+  # 查询类：S0～S2 用 query_low；S3/S4 用 query_high（Word §并发设置说明）
+  stage_concurrency:
+    query_low: 20
+    query_high: 50
+
+scenarios:
+  PERF-01:
+    name: 大气电场持续写入
+    kind: write
+    concurrency: 5
+    p95_limit_ms: 1000
+    p99_limit_ms: 2000
+    table: standard_atmosphere_electric_field
+  PERF-02:
+    name: 原始报文持续写入
+    kind: write
+    concurrency: 5
+    p95_limit_ms: 1000
+    p99_limit_ms: 2000
+    table: raw_kafka_message
+  PERF-03:
+    name: 活跃过程闪电突发写入
+    kind: write
+    concurrency: 1
+    p95_limit_ms: 1000
+    p99_limit_ms: 2000
+    table: biz_lightning_event
+  PERF-04:
+    name: 大气电场仪监测记录分页查询
+    kind: read
+    p95_limit_ms: 1000
+    p99_limit_ms: 2000
+    table: biz_atmosphere_electric_field_event
+  PERF-05:
+    name: 多电场仪雷暴过程窗曲线查询
+    kind: read
+    p95_limit_ms: 1500
+    p99_limit_ms: 3000
+    table: biz_atmosphere_electric_field_event
+  PERF-05-AGG:
+    name: 多电场仪雷暴过程窗曲线查询（10分钟聚合）
+    kind: read
+    p95_limit_ms: 1500
+    p99_limit_ms: 3000
+    table: biz_atmosphere_electric_field_event
+  PERF-06:
+    name: 闪电事件时空统计查询
+    kind: read
+    compound: true
+    # 子查询 P95/P99 阈值（P99 按 P95 * 2 作为尾延迟硬判定）
+    sub_queries:
+      count:
+        p95_limit_ms: 1000
+        p99_limit_ms: 2000
+      source_dist:
+        p95_limit_ms: 1500
+        p99_limit_ms: 3000
+      type_dist:
+        p95_limit_ms: 1500
+        p99_limit_ms: 3000

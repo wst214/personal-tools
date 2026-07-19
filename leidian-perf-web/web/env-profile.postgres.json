@@ -1,0 +1,12 @@
+{
+  "tester": "leidian",
+  "cpu": "Intel Core Ultra 5 225H（dbserver 联想笔记本）",
+  "memory": "30Gi 总内存 / 29Gi 可用，Swap 8Gi",
+  "disk": "NVMe 1TB：/ 98G（系统），/data 837G（PostgreSQL 数据）",
+  "os": "Ubuntu 24.04.4 LTS Server（dbserver，内核 6.8.0-124）",
+  "dbDeploy": "原生 PostgreSQL 16.14 + PostGIS 3.4；数据目录 /data/postgresql；库 leidian_perf",
+  "appDeploy": "Windows 开发机 Docker 运行 perf 压测操作台（:8100）",
+  "loadTester": "Windows 开发机（同局域网 192.168.1.0/24）",
+  "network": "dbserver 有线 enp0s31f6，192.168.1.41/24，网关 192.168.1.1",
+  "isProduction": "否"
+}

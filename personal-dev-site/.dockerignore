@@ -1,0 +1,5 @@
+server.pid
+server.err.log
+server.out.log
+.git
+.DS_Store

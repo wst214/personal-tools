@@ -1,0 +1,31 @@
+{
+  "ok": true,
+  "traceId": "trace-20260716084733-e9c8ee",
+  "caseId": "local-service-health",
+  "caseName": "本地服务健康检查",
+  "envName": "本地环境",
+  "startedAt": "2026-07-16T08:47:33.798Z",
+  "steps": [
+    {
+      "name": "gateway",
+      "ok": true,
+      "detail": "HTTP 404",
+      "elapsedMs": 11,
+      "evidence": {}
+    },
+    {
+      "name": "data-service",
+      "ok": true,
+      "detail": "HTTP 404",
+      "elapsedMs": 10,
+      "evidence": {}
+    },
+    {
+      "name": "biz-service",
+      "ok": true,
+      "detail": "HTTP 404",
+      "elapsedMs": 9,
+      "evidence": {}
+    }
+  ]
+}

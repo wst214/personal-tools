@@ -1,0 +1,85 @@
+# PERF 主数据：标准单矿区（DS-STD）
+# 调度机房坐标为空间造数锚点；50km 闪电查询基准 dispatch_room_point
+
+mine_site:
+  id: 1
+  mine_code: DS-STD
+  mine_name: 性能测试标准矿区
+  unified_social_credit_code: PERF91110000MA0000001
+  province_code: "610000"
+  city_code: "610100"
+  county_code: "610116"
+  address: 陕西省西安市长安区性能测试虚拟矿区
+  dispatch_room_lon: 109.120000
+  dispatch_room_lat: 34.250000
+  status: ACTIVE
+
+# 5 台大气电场仪：0.5~5km×2、5~15km×2、15~30km×1
+atmosphere_devices:
+  - device_addr: ATM-DS-STD-001
+    type_id: "01"
+    distance_km: 2.5
+    bearing_deg: 45
+  - device_addr: ATM-DS-STD-002
+    type_id: "01"
+    distance_km: 4.0
+    bearing_deg: 200
+  - device_addr: ATM-DS-STD-003
+    type_id: "01"
+    distance_km: 10.0
+    bearing_deg: 120
+  - device_addr: ATM-DS-STD-004
+    type_id: "01"
+    distance_km: 12.0
+    bearing_deg: 280
+  - device_addr: ATM-DS-STD-005
+    type_id: "01"
+    distance_km: 22.0
+    bearing_deg: 10
+
+# 低频设备约 10 台
+lowfreq_devices:
+  - { device_addr: GRD-DS-STD-001, type_id: "03", table: grounding_resistance }
+  - { device_addr: GRD-DS-STD-002, type_id: "03", table: grounding_resistance }
+  - { device_addr: SGC-DS-STD-001, type_id: "05", table: surge_current }
+  - { device_addr: SPD-DS-STD-001, type_id: "18", table: spd_waveform_heartbeat }
+  - { device_addr: SPD-DS-STD-002, type_id: "18", table: spd_waveform_summary }
+  - { device_addr: RTM-DS-STD-001, type_id: "10", table: remote_terminal }
+  - { device_addr: PWB-DS-STD-001, type_id: "07", table: power_board }
+  - { device_addr: DSC-DS-STD-001, type_id: "09", table: disconnect_card }
+  - { device_addr: IPD-DS-STD-001, type_id: "0F", table: ispd_pdu }
+  - { device_addr: SGM-DS-STD-001, type_id: "14", table: surge_monitor }
+
+# 通知对象 20 人（方案 §6.2：20～50）
+notice_receivers:
+  - { name: 张调度, role: DISPATCH }
+  - { name: 李调度, role: DISPATCH }
+  - { name: 王调度, role: DISPATCH }
+  - { name: 赵调度, role: DISPATCH }
+  - { name: 刘调度, role: DISPATCH }
+  - { name: 陈运维, role: OPS }
+  - { name: 杨运维, role: OPS }
+  - { name: 周运维, role: OPS }
+  - { name: 吴运维, role: OPS }
+  - { name: 郑运维, role: OPS }
+  - { name: 孙安全, role: SAFETY }
+  - { name: 钱安全, role: SAFETY }
+  - { name: 冯安全, role: SAFETY }
+  - { name: 褚安全, role: SAFETY }
+  - { name: 卫安全, role: SAFETY }
+  - { name: 蒋管理, role: MANAGER }
+  - { name: 沈管理, role: MANAGER }
+  - { name: 韩管理, role: MANAGER }
+  - { name: 朱管理, role: MANAGER }
+  - { name: 秦管理, role: MANAGER }
+
+# 巡检人员 8 人（方案 §6.2：5～10）
+inspectors:
+  - 巡检员A
+  - 巡检员B
+  - 巡检员C
+  - 巡检员D
+  - 巡检员E
+  - 巡检员F
+  - 巡检员G
+  - 巡检员H

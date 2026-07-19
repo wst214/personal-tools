@@ -1,0 +1,316 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>DevTool Gallery | 我的开发工具作品集</title>
+    <meta
+      name="description"
+      content="一个类似 MonkeyCode Showcase 的个人开发工具作品集，展示 Linux 远程控制面板、部署助手、日志诊断、模板库等实用小工具。"
+    />
+    <link rel="stylesheet" href="./styles.css" />
+  </head>
+  <body>
+    <header class="site-header">
+      <a class="brand" href="#top" aria-label="回到首页">
+        <span class="brand-logo">DG</span>
+        <span>DevTool Gallery</span>
+      </a>
+      <nav class="nav-links" aria-label="主导航">
+        <a href="#showcase">作品集</a>
+        <a href="#linux-panel">Linux 面板</a>
+        <a href="#categories">分类</a>
+        <a href="#submit">提交想法</a>
+      </nav>
+      <a class="header-action" href="#showcase">浏览工具</a>
+    </header>
+
+    <main id="top">
+      <section class="hero">
+        <div class="hero-copy">
+          <p class="eyebrow">Personal Dev Tools Showcase</p>
+          <h1>我的开发工具展厅</h1>
+          <p>
+            像 MonkeyCode Showcase 那样，把你做过、正在做、准备做的开发辅助小工具集中展示：
+            每个项目都有封面、状态、分类、简介和入口。Linux 远程控制面板是第一批主打项目。
+          </p>
+          <div class="hero-search" role="search">
+            <label class="sr-only" for="globalSearch">搜索工具</label>
+            <input
+              id="globalSearch"
+              type="search"
+              autocomplete="off"
+              placeholder="搜索：Linux、Docker、日志、模板..."
+            />
+            <button type="button" data-clear-search>清空</button>
+          </div>
+        </div>
+        <div class="hero-board" aria-label="精选工具预览">
+          <article class="spotlight-card">
+            <div class="spotlight-cover cover-terminal">
+              <span class="window-dot"></span>
+              <span class="window-dot"></span>
+              <span class="window-dot"></span>
+              <pre>$ ssh prod-api-01
+$ systemctl status app
+$ tail -f logs/app.log</pre>
+            </div>
+            <div>
+              <span class="status status-live">MVP 首发</span>
+              <h2>Linux 远程控制面板</h2>
+              <p>主机、状态、日志、命令模板、危险操作确认，一个入口搞定。</p>
+            </div>
+          </article>
+          <div class="mini-showcase">
+            <div><strong>12</strong><span>工具规划</span></div>
+            <div><strong>5</strong><span>分类方向</span></div>
+            <div><strong>1</strong><span>首发主打</span></div>
+          </div>
+        </div>
+      </section>
+
+      <section class="update-strip" aria-label="站点动态">
+        <div>
+          <span>Latest</span>
+          <strong>Linux 远程控制面板</strong>
+          <p>首个主打工具，准备从规划卡片推进到可体验版本。</p>
+        </div>
+        <div>
+          <span>Category</span>
+          <strong>远程运维 · 部署交付 · 日志诊断</strong>
+          <p>优先覆盖你每天处理服务器和项目上线时真正会用的动作。</p>
+        </div>
+        <div>
+          <span>Next</span>
+          <strong>真实截图替换封面</strong>
+          <p>每个工具做出 MVP 后，卡片封面就换成产品截图。</p>
+        </div>
+      </section>
+
+      <section id="showcase" class="section showcase-section">
+        <div class="section-heading">
+          <div>
+            <p class="eyebrow">Showcase</p>
+            <h2>工具作品集</h2>
+          </div>
+          <p>
+            用“作品卡片”呈现，而不是单纯写介绍。后续每个工具做出来后，可以把封面换成真实截图，再接上在线体验、文档或 GitHub 链接。
+          </p>
+        </div>
+
+        <div class="filter-bar" id="categories" aria-label="工具分类筛选">
+          <button class="filter active" type="button" data-filter="all">全部</button>
+          <button class="filter" type="button" data-filter="ops">远程运维</button>
+          <button class="filter" type="button" data-filter="deploy">部署交付</button>
+          <button class="filter" type="button" data-filter="logs">日志诊断</button>
+          <button class="filter" type="button" data-filter="templates">代码模板</button>
+          <button class="filter" type="button" data-filter="data">数据工具</button>
+        </div>
+
+        <div class="project-grid" data-project-grid>
+          <article class="project-card featured" data-category="ops" data-title="linux 远程 控制 面板 ssh 状态 日志 命令">
+            <div class="project-cover cover-terminal">
+              <pre>$ uptime
+18 days, 04:21
+$ docker compose ps
+api_1  running</pre>
+            </div>
+            <div class="project-body">
+              <div class="meta-row">
+                <span class="status status-live">MVP 首发</span>
+                <span>远程运维</span>
+              </div>
+              <h3>Linux 远程控制面板</h3>
+              <p>管理服务器连接、CPU/内存/磁盘指标、服务状态、日志入口和常用命令模板。</p>
+              <div class="card-actions">
+                <a href="#linux-panel">查看详情</a>
+                <span>预计首发</span>
+              </div>
+            </div>
+          </article>
+
+          <article class="project-card" data-category="deploy" data-title="docker compose 容器 部署 日志 镜像">
+            <div class="project-cover cover-docker">
+              <span>compose.yaml</span>
+              <div class="stack-lines"><i></i><i></i><i></i></div>
+            </div>
+            <div class="project-body">
+              <div class="meta-row">
+                <span class="status status-build">规划中</span>
+                <span>部署交付</span>
+              </div>
+              <h3>Docker Compose 助手</h3>
+              <p>容器状态、日志查看、镜像清理、环境变量核对、部署前检查清单。</p>
+              <div class="card-actions"><a href="#submit">加入路线图</a><span>V0.3</span></div>
+            </div>
+          </article>
+
+          <article class="project-card" data-category="deploy" data-title="nginx 配置 反向代理 https websocket 缓存">
+            <div class="project-cover cover-nginx">
+              <span>server {</span>
+              <strong>proxy_pass</strong>
+              <span>}</span>
+            </div>
+            <div class="project-body">
+              <div class="meta-row">
+                <span class="status status-idea">想法池</span>
+                <span>部署交付</span>
+              </div>
+              <h3>Nginx 配置生成器</h3>
+              <p>生成反代、HTTPS、WebSocket、安全头、静态缓存等常用配置片段。</p>
+              <div class="card-actions"><a href="#submit">查看设想</a><span>模板类</span></div>
+            </div>
+          </article>
+
+          <article class="project-card" data-category="logs" data-title="日志 定位 journalctl grep docker logs tail">
+            <div class="project-cover cover-logs">
+              <img src="./assets/xiaohei/03-one-fish-many-uses.png" alt="小黑打开工具箱插画" />
+            </div>
+            <div class="project-body">
+              <div class="meta-row">
+                <span class="status status-build">规划中</span>
+                <span>日志诊断</span>
+              </div>
+              <h3>日志定位助手</h3>
+              <p>把 journalctl、docker logs、grep、tail 组合成可复制的排障步骤。</p>
+              <div class="card-actions"><a href="#submit">查看设想</a><span>排障</span></div>
+            </div>
+          </article>
+
+          <article class="project-card" data-category="ops" data-title="端口 进程 netstat lsof ss ps">
+            <div class="project-cover cover-process">
+              <div class="node-map"><i></i><i></i><i></i><i></i></div>
+            </div>
+            <div class="project-body">
+              <div class="meta-row">
+                <span class="status status-build">规划中</span>
+                <span>远程运维</span>
+              </div>
+              <h3>端口与进程诊断</h3>
+              <p>输入端口或进程名，输出监听状态、占用进程、启动路径和排查命令。</p>
+              <div class="card-actions"><a href="#submit">查看设想</a><span>CLI 辅助</span></div>
+            </div>
+          </article>
+
+          <article class="project-card" data-category="templates" data-title="runbook 部署 回滚 巡检 文档 模板">
+            <div class="project-cover cover-doc">
+              <img src="./assets/xiaohei/01-two-breakpoints.png" alt="小黑实战手册插画" />
+            </div>
+            <div class="project-body">
+              <div class="meta-row">
+                <span class="status status-live">可先做</span>
+                <span>代码模板</span>
+              </div>
+              <h3>Runbook 模板库</h3>
+              <p>服务器巡检、部署确认、回滚流程、故障复盘，整理成可复用 Markdown 模板。</p>
+              <div class="card-actions"><a href="#submit">查看设想</a><span>文档</span></div>
+            </div>
+          </article>
+
+          <article class="project-card" data-category="templates" data-title="环境变量 dotenv 配置 检查 密钥">
+            <div class="project-cover cover-env">
+              <span>.env</span>
+              <code>API_KEY=***</code>
+              <code>DB_HOST=ok</code>
+            </div>
+            <div class="project-body">
+              <div class="meta-row">
+                <span class="status status-idea">想法池</span>
+                <span>代码模板</span>
+              </div>
+              <h3>环境变量检查器</h3>
+              <p>对照 `.env.example` 检查缺失项、危险默认值、重复配置和敏感字段。</p>
+              <div class="card-actions"><a href="#submit">查看设想</a><span>配置</span></div>
+            </div>
+          </article>
+
+          <article class="project-card" data-category="data" data-title="sql redis 快查 数据库 命令">
+            <div class="project-cover cover-data">
+              <strong>SQL</strong>
+              <span>Redis</span>
+              <span>Index</span>
+            </div>
+            <div class="project-body">
+              <div class="meta-row">
+                <span class="status status-idea">想法池</span>
+                <span>数据工具</span>
+              </div>
+              <h3>SQL / Redis 快查</h3>
+              <p>保存常用查询片段、Explain 检查、Redis key 诊断和慢查询排查步骤。</p>
+              <div class="card-actions"><a href="#submit">查看设想</a><span>查询</span></div>
+            </div>
+          </article>
+        </div>
+
+        <div class="empty-state" data-empty-state hidden>
+          <p>没有找到匹配的工具，换个关键词试试。</p>
+          <button type="button" data-reset-all>显示全部工具</button>
+        </div>
+      </section>
+
+      <section id="linux-panel" class="section detail-section">
+        <div class="detail-copy">
+          <p class="eyebrow">Featured Project</p>
+          <h2>Linux 远程控制面板：你的第一个主打作品。</h2>
+          <p>
+            这个项目最适合作为首页首屏精选，因为它有明确痛点，也容易做出真实截图：
+            主机连接、服务状态、命令模板、日志查看和危险操作确认。
+          </p>
+          <ul class="feature-list">
+            <li>主机分组：生产、测试、本地虚拟机。</li>
+            <li>状态巡检：CPU、内存、磁盘、端口、运行时间。</li>
+            <li>快捷动作：复制 SSH、查看日志、检查端口、重启确认。</li>
+            <li>操作记录：记录命令、时间、目标主机和执行结果。</li>
+          </ul>
+        </div>
+        <div class="console-preview">
+          <div class="console-sidebar">
+            <strong>Servers</strong>
+            <button class="active" type="button">prod-api-01 <span>online</span></button>
+            <button type="button">docker-lab <span>online</span></button>
+            <button type="button">dev-box <span>warning</span></button>
+          </div>
+          <div class="console-main">
+            <div class="console-top">
+              <strong>prod-api-01</strong>
+              <span>Ubuntu 22.04 · 18 days</span>
+            </div>
+            <div class="metrics">
+              <div><span>CPU</span><strong>34%</strong></div>
+              <div><span>Memory</span><strong>62%</strong></div>
+              <div><span>Disk</span><strong>71%</strong></div>
+            </div>
+            <pre>$ systemctl status app.service
+Active: active (running)
+
+$ journalctl -u app -n 80
+No critical errors in recent logs.</pre>
+          </div>
+        </div>
+      </section>
+
+      <section id="submit" class="submit-section">
+        <img src="./assets/xiaohei/08-trust-bridge.png" alt="小黑信任桥梁插画" />
+        <div>
+          <p class="eyebrow">Next</p>
+          <h2>后续就按 Showcase 模式迭代：每做一个工具，就补一张卡片。</h2>
+          <p>
+            先用规划卡片撑起网站结构，工具做出来后替换真实封面、在线地址、GitHub 地址和更新日志。
+            这样它会越来越像你的个人产品展厅，而不是一次性静态介绍页。
+          </p>
+          <a class="button-light" href="./content-plan.md">查看网站规划</a>
+        </div>
+      </section>
+    </main>
+
+    <footer class="site-footer">
+      <span>DevTool Gallery</span>
+      <span>
+        Inspired by MonkeyCode Showcase · Illustrations:
+        <a href="https://github.com/helloianneo/ian-xiaohei-illustrations">Ian Xiaohei Illustrations</a>
+      </span>
+    </footer>
+
+    <script src="./app.js"></script>
+  </body>
+</html>

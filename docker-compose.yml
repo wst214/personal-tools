@@ -1,0 +1,121 @@
+﻿name: mytools-stack
+
+services:
+
+  mytools-personal-dev-site:
+    build: ./personal-dev-site
+    image: mytools-personal-dev-site
+    container_name: mytools-personal-dev-site
+
+    ports:
+
+      - "8090:80"
+
+    restart: unless-stopped
+
+  mytools-linux-remote-panel:
+    build: ./linux-remote-panel
+    image: mytools-linux-remote-panel
+    container_name: mytools-linux-remote-panel
+
+    ports:
+
+      - "5757:5757"
+
+    volumes:
+
+      - linux-remote-data:/data
+
+      - ${USERPROFILE}/.ssh:/ssh-keys:ro
+
+      - ./linux-remote-panel/config/wsl.defaults.json:/data/wsl.defaults.json:ro
+
+    environment:
+
+      - WSL_HELPER_URL=http://host.docker.internal:5758
+
+    restart: unless-stopped
+
+  mytools-tunnel-panel:
+    build: ./tunnel-panel
+    image: mytools-tunnel-panel
+    container_name: mytools-tunnel-panel
+
+    ports:
+
+      - "5760:5760"
+
+    extra_hosts:
+
+      - "host.docker.internal:host-gateway"
+
+    env_file:
+
+      - ./tunnel-panel/.env
+
+    environment:
+
+      - TUNNEL_HOST_GATEWAY=host.docker.internal
+
+    restart: unless-stopped
+
+  mytools-ops-panel:
+    build: ./stack-panel
+    image: mytools-ops-panel
+    container_name: mytools-ops-panel
+
+    ports:
+
+      - "5770:5770"
+
+    volumes:
+
+      - /var/run/docker.sock:/var/run/docker.sock
+      - .:/workspace
+      # Mount leidian backend for Compose ops + local Maven target output
+      - ${LEIDIAN_BACKEND_HOST_PATH:-D:/workspace/leidian/leidian-backend}:/leidian-backend
+
+    environment:
+
+      - MYTOOLS_ROOT=/workspace
+      - LEIDIAN_BACKEND_ROOT=/leidian-backend
+      - LEIDIAN_BACKEND_HOST_PATH=${LEIDIAN_BACKEND_HOST_PATH:-D:/workspace/leidian/leidian-backend}
+      - OPS_LEIDIAN_OVERRIDES=/workspace/stack-panel/leidian-overrides
+      - STACK_PANEL_PORT=5770
+
+    restart: unless-stopped
+
+
+
+  mytools-leidian-test-workbench:
+    build: ./leidian-test-workbench
+    image: mytools-leidian-test-workbench
+    container_name: mytools-leidian-test-workbench
+
+    ports:
+
+      - "5785:5785"
+
+    volumes:
+
+      - ./leidian-test-workbench/data:/app/data
+
+    extra_hosts:
+
+      - "host.docker.internal:host-gateway"
+
+    environment:
+
+      - PORT=5785
+      - HOST_GATEWAY=host.docker.internal
+
+    restart: unless-stopped
+
+volumes:
+  linux-remote-data:
+    external: true
+    name: mytools_linux-remote-data
+
+
+
+

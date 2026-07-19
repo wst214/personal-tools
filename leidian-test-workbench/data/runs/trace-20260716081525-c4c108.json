@@ -1,0 +1,112 @@
+{
+  "ok": false,
+  "traceId": "trace-20260716081525-c4c108",
+  "caseId": "minio-radar-frame-full-link",
+  "caseName": "MinIO radar",
+  "envName": "Local",
+  "startedAt": "2026-07-16T08:15:34.009Z",
+  "steps": [
+    {
+      "name": "Environment precheck",
+      "ok": true,
+      "detail": "all dependencies reachable",
+      "elapsedMs": 0,
+      "evidence": {
+        "checks": [
+          {
+            "name": "gateway",
+            "ok": true,
+            "detail": "HTTP 404",
+            "elapsedMs": 51,
+            "evidence": {}
+          },
+          {
+            "name": "data-service",
+            "ok": true,
+            "detail": "HTTP 404",
+            "elapsedMs": 24,
+            "evidence": {}
+          },
+          {
+            "name": "biz-service",
+            "ok": true,
+            "detail": "HTTP 404",
+            "elapsedMs": 25,
+            "evidence": {}
+          },
+          {
+            "name": "kafka",
+            "ok": true,
+            "detail": "host.docker.internal:9092 connected",
+            "elapsedMs": 12,
+            "evidence": {}
+          },
+          {
+            "name": "database",
+            "ok": true,
+            "detail": "host.docker.internal:5432 connected",
+            "elapsedMs": 10,
+            "evidence": {}
+          },
+          {
+            "name": "minio",
+            "ok": true,
+            "detail": "HTTP 403",
+            "elapsedMs": 21,
+            "evidence": {}
+          },
+          {
+            "name": "websocket",
+            "ok": true,
+            "detail": "host.docker.internal:8080 connected",
+            "elapsedMs": 12,
+            "evidence": {}
+          }
+        ]
+      }
+    },
+    {
+      "name": "Upload MinIO object",
+      "ok": true,
+      "detail": "upstream/radar/realtime/2026/07/16/08/radar_20260716081525.json",
+      "elapsedMs": 37,
+      "evidence": {
+        "bucket": "leidian-frame",
+        "objectKey": "upstream/radar/realtime/2026/07/16/08/radar_20260716081525.json",
+        "traceId": "trace-20260716081525-c4c108"
+      }
+    },
+    {
+      "name": "Check radar-frame-upstream",
+      "ok": false,
+      "detail": "message not found before timeout",
+      "elapsedMs": 0,
+      "evidence": {}
+    },
+    {
+      "name": "Check file_metadata",
+      "ok": false,
+      "detail": "operator does not exist: character varying = integer",
+      "elapsedMs": 0,
+      "evidence": {}
+    },
+    {
+      "name": "WebSocket push",
+      "ok": true,
+      "detail": "message received",
+      "elapsedMs": 157,
+      "evidence": {
+        "message": "{\"type\":\"RADAR_FRAME_READY\",\"timestamp\":1784189726038,\"data\":{\"frameId\":\"radar-20260716081525\",\"traceId\":\"trace-20260716081525-c4c108\",\"eventTime\":1784189725000,\"objectKey\":\"upstream/radar/realtime/2026/07/16/08/radar_20260716081525.json\",\"downloadUrl\":\"http://minio:9000/leidian-frame/upstream/radar/realtime/2026/07/16/08/radar_20260716081525.json?X-Amz-Algorithm=AWS4-HMAC-SHA256&X-Amz-Credential=minioadmin%2F20260716%2Fus-east-1%2Fs3%2Faws4_request&X-Amz-Date=20260716T081526Z&X-Amz-Expires=3600"
+      }
+    },
+    {
+      "name": "Query radar replay API",
+      "ok": true,
+      "detail": "HTTP 200",
+      "elapsedMs": 17,
+      "evidence": {
+        "body": "{\"code\":0,\"message\":\"success\",\"data\":[{\"sourceTable\":\"file_frame_index\",\"id\":2077668414991323137,\"traceId\":\"trace-20260716081525-c4c108\",\"sourceType\":\"MINIO\",\"bizType\":\"RADAR_FRAME\",\"dedupKey\":\"radar-20260716081525\",\"createTime\":\"2026-07-16T08:15:25.964828\",\"payloadSummary\":\"frameTime=2026-07-16T08:15:25 parseStatus=SUCCESS bucket=leidian-frame objectKey=upstream/radar/realtime/2026/07/16/08/radar_20260716081525.json\"},{\"sourceTable\":\"file_frame_index\",\"id\":2077667433519992833,\"traceId\":\"trace-20260716081130-2b0b78\",\"sourceType\":\"MINIO\",\"bizType\":\"RADAR_FRAME\",\"dedupKey\":\"radar-20260716081130\",\"createTime\":\"2026-07-16T08:11:31.810980\",\"payloadSummary\":\"frameTime=2026-07-16T08:11:30 parseStatus=SUCCESS bucket=leidian-frame objectKey=upstream/radar/realtime/2026/07/16/08/radar_20260716081130"
+      }
+    }
+  ]
+}

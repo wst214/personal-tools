@@ -1,0 +1,40 @@
+{"index": 1, "deviceType": "14", "commandType": "0001", "note": "测量值变体 #1", "hex": "5A4B0B1400080001000100AA0334DAFC0D0A", "source": "协议 §1.1.10 0001", "deviceAddr": "00080001"}
+{"index": 2, "deviceType": "14", "commandType": "0001", "note": "测量值变体 #2", "hex": "5A4B0B1400080001000100AB03348B3C0D0A", "source": "协议 §1.1.10 0001", "deviceAddr": "00080001"}
+{"index": 3, "deviceType": "14", "commandType": "0001", "note": "测量值变体 #3", "hex": "5A4B0B1400080001000100AC03343AFD0D0A", "source": "协议 §1.1.10 0001", "deviceAddr": "00080001"}
+{"index": 4, "deviceType": "14", "commandType": "0001", "note": "测量值变体 #4", "hex": "5A4B0B1400080001000100AD03346B3D0D0A", "source": "协议 §1.1.10 0001", "deviceAddr": "00080001"}
+{"index": 5, "deviceType": "14", "commandType": "0001", "note": "测量值变体 #5", "hex": "5A4B0B1400080001000100AE03349B3D0D0A", "source": "协议 §1.1.10 0001", "deviceAddr": "00080001"}
+{"index": 6, "deviceType": "14", "commandType": "0001", "note": "测量值变体 #6", "hex": "5A4B0B1400080001000100AF0334CAFD0D0A", "source": "协议 §1.1.10 0001", "deviceAddr": "00080001"}
+{"index": 7, "deviceType": "14", "commandType": "0001", "note": "测量值变体 #7", "hex": "5A4B0B1400080001000100B00334FB3B0D0A", "source": "协议 §1.1.10 0001", "deviceAddr": "00080001"}
+{"index": 8, "deviceType": "14", "commandType": "0001", "note": "测量值变体 #8", "hex": "5A4B0B1400080001000100B10334AAFB0D0A", "source": "协议 §1.1.10 0001", "deviceAddr": "00080001"}
+{"index": 9, "deviceType": "14", "commandType": "0001", "note": "测量值变体 #9", "hex": "5A4B0B1400080001000100B203345AFB0D0A", "source": "协议 §1.1.10 0001", "deviceAddr": "00080001"}
+{"index": 10, "deviceType": "14", "commandType": "0001", "note": "测量值变体 #10", "hex": "5A4B0B1400080001000100B303340B3B0D0A", "source": "协议 §1.1.10 0001", "deviceAddr": "00080001"}
+{"index": 11, "deviceType": "14", "commandType": "0001", "note": "测量值变体 #11", "hex": "5A4B0B1400080001000100B40334BAFA0D0A", "source": "协议 §1.1.10 0001", "deviceAddr": "00080001"}
+{"index": 12, "deviceType": "14", "commandType": "0001", "note": "测量值变体 #12", "hex": "5A4B0B1400080001000100B50334EB3A0D0A", "source": "协议 §1.1.10 0001", "deviceAddr": "00080001"}
+{"index": 13, "deviceType": "14", "commandType": "000A", "note": "测量值变体 #1", "hex": "5A4B141400080001000AFF4A07EA071008351C03E3003366810D0A", "source": "协议 §1.1.10 000A", "deviceAddr": "00080001", "eventTime": "2026-07-16 08:53:28"}
+{"index": 14, "deviceType": "14", "commandType": "000A", "note": "测量值变体 #2", "hex": "5A4B141400080001000AFF4B07EA071000351C03E3003312820D0A", "source": "协议 §1.1.10 000A", "deviceAddr": "00080001", "eventTime": "2026-07-16 00:53:28"}
+{"index": 15, "deviceType": "14", "commandType": "000A", "note": "测量值变体 #3", "hex": "5A4B141400080001000AFF4C07EA070F10351C03E30033B7C40D0A", "source": "协议 §1.1.10 000A", "deviceAddr": "00080001", "eventTime": "2026-07-15 16:53:28"}
+{"index": 16, "deviceType": "14", "commandType": "000A", "note": "测量值变体 #4", "hex": "5A4B141400080001000AFF4D07EA070F08351C03E30033D2060D0A", "source": "协议 §1.1.10 000A", "deviceAddr": "00080001", "eventTime": "2026-07-15 08:53:28"}
+{"index": 17, "deviceType": "14", "commandType": "000A", "note": "测量值变体 #5", "hex": "5A4B141400080001000AFF4E07EA070F00351C03E300335FC20D0A", "source": "协议 §1.1.10 000A", "deviceAddr": "00080001", "eventTime": "2026-07-15 00:53:28"}
+{"index": 18, "deviceType": "14", "commandType": "000A", "note": "测量值变体 #6", "hex": "5A4B141400080001000AFF4F07EA070E10351C03E30033720C0D0A", "source": "协议 §1.1.10 000A", "deviceAddr": "00080001", "eventTime": "2026-07-14 16:53:28"}
+{"index": 19, "deviceType": "14", "commandType": "0102", "note": "测量值变体 #1", "hex": "5A4B0E1400080001010207EA071008351CFC160D0A", "source": "协议 §1.1.10 0102", "deviceAddr": "00080001", "eventTime": "2026-07-16 08:53:28"}
+{"index": 20, "deviceType": "14", "commandType": "0102", "note": "测量值变体 #2", "hex": "5A4B0E1400080001010207EA070E08351CFA3E0D0A", "source": "协议 §1.1.10 0102", "deviceAddr": "00080001", "eventTime": "2026-07-14 08:53:28"}
+{"index": 1, "deviceType": "14", "commandType": "0001", "note": "测量值变体 #1", "hex": "5A4B0B1400080002000100AA0334E9FC0D0A", "source": "协议 §1.1.10 0001", "deviceAddr": "00080002"}
+{"index": 2, "deviceType": "14", "commandType": "0001", "note": "测量值变体 #2", "hex": "5A4B0B1400080002000100AB0334B83C0D0A", "source": "协议 §1.1.10 0001", "deviceAddr": "00080002"}
+{"index": 3, "deviceType": "14", "commandType": "0001", "note": "测量值变体 #3", "hex": "5A4B0B1400080002000100AC033409FD0D0A", "source": "协议 §1.1.10 0001", "deviceAddr": "00080002"}
+{"index": 4, "deviceType": "14", "commandType": "0001", "note": "测量值变体 #4", "hex": "5A4B0B1400080002000100AD0334583D0D0A", "source": "协议 §1.1.10 0001", "deviceAddr": "00080002"}
+{"index": 5, "deviceType": "14", "commandType": "0001", "note": "测量值变体 #5", "hex": "5A4B0B1400080002000100AE0334A83D0D0A", "source": "协议 §1.1.10 0001", "deviceAddr": "00080002"}
+{"index": 6, "deviceType": "14", "commandType": "0001", "note": "测量值变体 #6", "hex": "5A4B0B1400080002000100AF0334F9FD0D0A", "source": "协议 §1.1.10 0001", "deviceAddr": "00080002"}
+{"index": 7, "deviceType": "14", "commandType": "0001", "note": "测量值变体 #7", "hex": "5A4B0B1400080002000100B00334C83B0D0A", "source": "协议 §1.1.10 0001", "deviceAddr": "00080002"}
+{"index": 8, "deviceType": "14", "commandType": "0001", "note": "测量值变体 #8", "hex": "5A4B0B1400080002000100B1033499FB0D0A", "source": "协议 §1.1.10 0001", "deviceAddr": "00080002"}
+{"index": 9, "deviceType": "14", "commandType": "0001", "note": "测量值变体 #9", "hex": "5A4B0B1400080002000100B2033469FB0D0A", "source": "协议 §1.1.10 0001", "deviceAddr": "00080002"}
+{"index": 10, "deviceType": "14", "commandType": "0001", "note": "测量值变体 #10", "hex": "5A4B0B1400080002000100B30334383B0D0A", "source": "协议 §1.1.10 0001", "deviceAddr": "00080002"}
+{"index": 11, "deviceType": "14", "commandType": "0001", "note": "测量值变体 #11", "hex": "5A4B0B1400080002000100B4033489FA0D0A", "source": "协议 §1.1.10 0001", "deviceAddr": "00080002"}
+{"index": 12, "deviceType": "14", "commandType": "0001", "note": "测量值变体 #12", "hex": "5A4B0B1400080002000100B50334D83A0D0A", "source": "协议 §1.1.10 0001", "deviceAddr": "00080002"}
+{"index": 13, "deviceType": "14", "commandType": "000A", "note": "测量值变体 #1", "hex": "5A4B141400080002000AFF4A07EA071008351C03E3003326700D0A", "source": "协议 §1.1.10 000A", "deviceAddr": "00080002", "eventTime": "2026-07-16 08:53:28"}
+{"index": 14, "deviceType": "14", "commandType": "000A", "note": "测量值变体 #2", "hex": "5A4B141400080002000AFF4B07EA071000351C03E3003352730D0A", "source": "协议 §1.1.10 000A", "deviceAddr": "00080002", "eventTime": "2026-07-16 00:53:28"}
+{"index": 15, "deviceType": "14", "commandType": "000A", "note": "测量值变体 #3", "hex": "5A4B141400080002000AFF4C07EA070F10351C03E30033F7350D0A", "source": "协议 §1.1.10 000A", "deviceAddr": "00080002", "eventTime": "2026-07-15 16:53:28"}
+{"index": 16, "deviceType": "14", "commandType": "000A", "note": "测量值变体 #4", "hex": "5A4B141400080002000AFF4D07EA070F08351C03E3003392F70D0A", "source": "协议 §1.1.10 000A", "deviceAddr": "00080002", "eventTime": "2026-07-15 08:53:28"}
+{"index": 17, "deviceType": "14", "commandType": "000A", "note": "测量值变体 #5", "hex": "5A4B141400080002000AFF4E07EA070F00351C03E300331F330D0A", "source": "协议 §1.1.10 000A", "deviceAddr": "00080002", "eventTime": "2026-07-15 00:53:28"}
+{"index": 18, "deviceType": "14", "commandType": "000A", "note": "测量值变体 #6", "hex": "5A4B141400080002000AFF4F07EA070E10351C03E3003332FD0D0A", "source": "协议 §1.1.10 000A", "deviceAddr": "00080002", "eventTime": "2026-07-14 16:53:28"}
+{"index": 19, "deviceType": "14", "commandType": "0102", "note": "测量值变体 #1", "hex": "5A4B0E1400080002010207EA071008351C0C190D0A", "source": "协议 §1.1.10 0102", "deviceAddr": "00080002", "eventTime": "2026-07-16 08:53:28"}
+{"index": 20, "deviceType": "14", "commandType": "0102", "note": "测量值变体 #2", "hex": "5A4B0E1400080002010207EA070E08351C0A310D0A", "source": "协议 §1.1.10 0102", "deviceAddr": "00080002", "eventTime": "2026-07-14 08:53:28"}

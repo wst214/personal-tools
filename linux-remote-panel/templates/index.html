@@ -1,0 +1,239 @@
+<!DOCTYPE html>
+<html lang="zh-CN" data-theme="hub">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Linux 远程面板</title>
+  <script>
+    (function () {
+      var theme = localStorage.getItem("linux-remote-theme");
+      if (theme === "codex") document.documentElement.dataset.theme = "codex";
+    })();
+  </script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600&family=Noto+Sans+SC:wght@400;500;600;700&family=Sora:wght@500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/static/css/style.css?v=202607061125">
+  <link rel="stylesheet" href="/static/css/theme-codex.css?v=202607061120">
+  <style>dialog:not([open]){display:none!important}</style>
+</head>
+<body>
+  <div class="page-bg" aria-hidden="true"></div>
+
+  <div class="app">
+    <header class="topbar">
+      <div class="brand">
+        <span class="brand-icon" aria-hidden="true">⌘</span>
+        <div>
+          <h1>Linux 远程面板</h1>
+          <p>SSH 终端 · 快捷命令 · 文件管理</p>
+        </div>
+      </div>
+      <div class="topbar-end">
+        <div class="theme-switch" role="group" aria-label="界面风格">
+          <button type="button" class="theme-btn active" data-theme="hub">清爽</button>
+          <button type="button" class="theme-btn" data-theme="codex">Codex</button>
+        </div>
+        <div class="status-pill" id="connection-status">
+          <span class="dot offline"></span>
+          <span class="status-text">未连接</span>
+        </div>
+      </div>
+    </header>
+
+    <section class="server-strip" aria-label="快捷服务器">
+      <div id="profile-list" class="profile-grid"></div>
+    </section>
+
+    <div class="layout has-cmd-panel" id="main-layout">
+      <aside class="col-card sidebar-card">
+        <div class="col-card-head">
+          <h2>连接服务器</h2>
+        </div>
+        <div class="col-card-body">
+          <form id="connect-form">
+            <label>
+              <span>主机地址</span>
+              <input type="text" id="host" placeholder="192.168.1.100" required>
+            </label>
+            <div class="row">
+              <label>
+                <span>端口</span>
+                <input type="number" id="port" value="22" min="1" max="65535">
+              </label>
+              <label>
+                <span>用户名</span>
+                <input type="text" id="username" value="root">
+              </label>
+            </div>
+            <label>
+              <span>服务器别名</span>
+              <input type="text" id="profile-alias-input" placeholder="例如：应用服务器、数据库、测试环境" maxlength="32">
+            </label>
+            <label>
+              <span>密码</span>
+              <input type="password" id="password" placeholder="SSH 密码">
+            </label>
+            <label>
+              <span>私钥路径（可选）</span>
+              <input type="text" id="private_key" placeholder="C:\Users\你\.ssh\id_rsa">
+            </label>
+            <label>
+              <span>私钥口令（可选）</span>
+              <input type="password" id="passphrase" placeholder="私钥密码">
+            </label>
+
+            <div class="wsl-quick">
+              <div class="wsl-quick-head">
+                <span class="wsl-quick-title">本地 WSL</span>
+                <span class="wsl-helper-status" id="wsl-helper-status">检测助手中…</span>
+              </div>
+              <div class="wsl-quick-actions">
+                <button type="button" class="btn primary sm" id="btn-wsl-connect">一键连接 WSL</button>
+                <button type="button" class="btn ghost sm" id="btn-wsl-start-ssh" title="仅启动 SSH，不连接面板">启动 SSH</button>
+                <button type="button" class="btn ghost sm" id="btn-wsl-open" title="弹出 Windows 本地 WSL 窗口">打开本地终端</button>
+              </div>
+            </div>
+
+            <div class="actions">
+              <button type="submit" class="btn primary" id="btn-connect">连接</button>
+              <button type="button" class="btn ghost" id="btn-disconnect" disabled>断开</button>
+            </div>
+          </form>
+        </div>
+      </aside>
+
+      <section class="workspace-col">
+        <div class="workspace-panel on-terminal" id="workspace-body">
+          <div class="panel-chrome">
+            <nav class="main-tabs" id="main-tabs">
+              <button type="button" class="main-tab active" data-tab="terminal">终端</button>
+              <button type="button" class="main-tab" data-tab="files">文件管理</button>
+              <button type="button" class="main-tab" data-tab="monitor">系统监控</button>
+            </nav>
+            <div class="panel-chrome-end" id="workspace-meta">
+              <span class="ws-session" id="ws-session">
+                <span class="dot offline" id="ws-dot"></span>
+                <span class="ws-addr" id="ws-addr">尚未连接</span>
+              </span>
+              <code class="ws-cwd" id="ws-cwd">/</code>
+              <button type="button" class="btn ghost sm chrome-action" id="btn-clear-output">清空输出</button>
+            </div>
+          </div>
+        <!-- 终端 -->
+        <section class="panel active" id="panel-terminal">
+          <div class="terminal-wrap">
+            <div id="output" class="terminal-output"></div>
+            <div class="command-bar">
+              <span class="prompt" id="command-prompt">$</span>
+              <input type="text" id="command-input" class="command-input" placeholder="输入命令，Enter 执行；右侧点选填入" autocomplete="off" spellcheck="false">
+              <button type="button" class="btn primary" id="btn-run-command">执行</button>
+            </div>
+          </div>
+        </section>
+
+        <!-- 文件管理 -->
+        <section class="panel" id="panel-files">
+          <div class="files-toolbar">
+            <div class="path-bar">
+              <button type="button" class="btn ghost sm" id="btn-file-up" title="上级目录">↑</button>
+              <input type="text" id="file-path" class="path-input" spellcheck="false">
+              <button type="button" class="btn ghost sm" id="btn-file-go">前往</button>
+              <button type="button" class="btn ghost sm" id="btn-file-refresh">刷新</button>
+            </div>
+            <label class="btn primary upload-btn">
+              上传文件
+              <input type="file" id="file-upload-input" hidden>
+            </label>
+          </div>
+          <div class="file-table-wrap">
+            <table class="file-table">
+              <thead>
+                <tr>
+                  <th>名称</th>
+                  <th>大小</th>
+                  <th>修改时间</th>
+                  <th>操作</th>
+                </tr>
+              </thead>
+              <tbody id="file-list"></tbody>
+            </table>
+            <p id="file-empty" class="empty-hint">请先在左侧点击「连接」按钮</p>
+          </div>
+        </section>
+
+        <!-- 系统监控 -->
+        <section class="panel" id="panel-monitor">
+          <div class="monitor-toolbar">
+            <button type="button" class="btn primary" id="btn-refresh-monitor">刷新快照</button>
+          </div>
+          <div class="monitor-grid" id="monitor-grid">
+            <p class="empty-hint">请先在左侧点击「连接」按钮</p>
+          </div>
+        </section>
+        </div>
+      </section>
+
+      <aside class="col-card cmd-card" id="quick-cmd-panel">
+        <div class="col-card-head">
+          <h3>快捷命令</h3>
+          <button type="button" class="quick-cmd-add" id="btn-add-button" title="添加自定义命令">+ 添加</button>
+        </div>
+        <div class="col-card-body">
+          <div class="quick-cmd-filters">
+            <input type="search" id="cmd-search" class="cmd-search" placeholder="搜索命令…">
+          </div>
+          <div class="command-list" id="command-grid"></div>
+        </div>
+      </aside>
+    </div>
+  </div>
+
+  <dialog id="save-profile-dialog" class="dialog" hidden>
+    <form method="dialog" id="save-profile-form">
+      <h3>保存快捷服务器</h3>
+      <label>
+        <span>服务器别名</span>
+        <input type="text" id="profile-alias" required placeholder="例如：应用服务器、数据库、测试环境" maxlength="32">
+      </label>
+      <p class="dialog-hint">别名会显示在顶部卡片上，方便区分不同服务器</p>
+      <div class="dialog-actions">
+        <button type="button" class="btn ghost" id="btn-cancel-profile">取消</button>
+        <button type="submit" class="btn primary">保存</button>
+      </div>
+    </form>
+  </dialog>
+
+  <dialog id="add-button-dialog" class="dialog" hidden>
+    <form method="dialog" id="add-button-form">
+      <h3>添加自定义命令</h3>
+      <label>
+        <span>分类</span>
+        <select id="new-category"></select>
+      </label>
+      <label>
+        <span>名称</span>
+        <input type="text" id="new-label" required placeholder="例如：重启 Nginx">
+      </label>
+      <label>
+        <span>命令</span>
+        <input type="text" id="new-command" required placeholder="systemctl restart nginx">
+      </label>
+      <label>
+        <span>说明</span>
+        <input type="text" id="new-description" placeholder="可选">
+      </label>
+      <label class="checkbox">
+        <input type="checkbox" id="new-confirm">
+        <span>执行前需要确认</span>
+      </label>
+      <div class="dialog-actions">
+        <button type="button" class="btn ghost" id="btn-cancel-add">取消</button>
+        <button type="submit" class="btn primary">保存</button>
+      </div>
+    </form>
+  </dialog>
+
+  <script src="/static/js/app.js?v=202607061130"></script>
+</body>
+</html>

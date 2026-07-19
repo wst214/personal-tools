@@ -1,0 +1,108 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="theme-color" content="#f3f4f1" />
+    <title>WST Lab | 个人开发工作台</title>
+    <meta name="description" content="WST 的个人开发工作台，集中管理远程连接、内网穿透和日常开发工具。" />
+    <link rel="stylesheet" href="./styles.css?v=20260713b" />
+  </head>
+  <body>
+    <div class="app-shell">
+      <aside class="sidebar">
+        <a class="identity" href="#overview" aria-label="返回工作台首页">
+          <span class="identity-mark">W</span>
+          <span><strong>WST Lab</strong><small>Personal workspace</small></span>
+        </a>
+        <nav class="side-nav" aria-label="工作台导航">
+          <a class="active" href="#overview"><span>⌂</span>概览</a>
+          <a href="#tools"><span>◫</span>工具</a>
+          <a href="#activity"><span>↗</span>动态</a>
+          <a href="#about"><span>○</span>关于</a>
+        </nav>
+        <div class="sidebar-note"><i></i><div><strong>本地工作区</strong><small>6 个工具已接入</small></div></div>
+      </aside>
+
+      <main>
+        <header class="topbar">
+          <button class="menu-button" type="button" aria-label="打开导航" data-menu-button>☰</button>
+          <div class="breadcrumb"><span>工作台</span><b>/</b><strong>概览</strong></div>
+          <div class="topbar-meta"><span data-current-time>--:--</span><span class="avatar">W</span></div>
+        </header>
+
+        <div class="workspace" id="overview">
+          <section class="intro">
+            <div>
+              <p class="kicker">PERSONAL DEVELOPER WORKSPACE</p>
+              <h1><span data-greeting>你好，</span><span data-daily-message>今天也把复杂的事变简单。</span></h1>
+              <p class="intro-copy">把正在使用和持续打磨的工具，都收在这里。</p>
+            </div>
+            <div class="intro-status">
+              <span class="pulse"><i></i>Workspace active</span>
+              <strong data-date-label>2026.07.12</strong><small>Asia / Shanghai</small>
+            </div>
+          </section>
+
+          <section class="section-block" id="tools">
+            <div class="section-title">
+              <div><p>QUICK ACCESS</p><h2>常用工具</h2></div>
+              <span><b data-online-count>0</b> / 5 服务在线</span>
+            </div>
+            <div class="tool-grid">
+              <a class="tool-card tool-linux" href="http://127.0.0.1:5757" target="_blank" data-port="5757" data-service-card>
+                <div class="tool-topline"><span class="tool-icon">⌘</span><span class="service-state checking" data-service-state><i></i>检测中</span></div>
+                <div class="tool-copy"><span class="tool-index">01 / REMOTE</span><h3>Linux 远程面板</h3><p>SSH 连接、文件管理、命令执行与 WSL 辅助。</p></div>
+                <div class="tool-footer"><span>端口 5757</span><strong>↗</strong></div>
+              </a>
+              <a class="tool-card tool-tunnel" href="http://127.0.0.1:5760" target="_blank" data-port="5760" data-service-card>
+                <div class="tool-topline"><span class="tool-icon">⇄</span><span class="service-state checking" data-service-state><i></i>检测中</span></div>
+                <div class="tool-copy"><span class="tool-index">02 / NETWORK</span><h3>隧道控制面板</h3><p>按需启动 Cloudflare 或 Cpolar 公网隧道。</p></div>
+                <div class="tool-footer"><span>端口 5760</span><strong>↗</strong></div>
+              </a>
+              <a class="tool-card tool-perf" href="http://127.0.0.1:8100" target="_blank" data-port="8100" data-service-card>
+                <div class="tool-topline"><span class="tool-icon">↯</span><span class="service-state checking" data-service-state><i></i>检测中</span></div>
+                <div class="tool-copy"><span class="tool-index">03 / PERFORMANCE</span><h3>PERF 压测操作台</h3><p>管理造数、校验、SQL 压测与数据库性能报告。</p></div>
+                <div class="tool-footer"><span>端口 8100</span><strong>↗</strong></div>
+              </a>
+              <a class="tool-card tool-protocol" href="http://127.0.0.1:9000" target="_blank" data-port="9000" data-service-card>
+                <div class="tool-topline"><span class="tool-icon">HEX</span><span class="service-state checking" data-service-state><i></i>检测中</span></div>
+                <div class="tool-copy"><span class="tool-index">04 / PROTOCOL</span><h3>雷电设备工具台</h3><p>解析设备协议报文、生成 MinIO 预签名地址并接收 Webhook。</p></div>
+                <div class="tool-footer"><span>端口 9000</span><strong>↗</strong></div>
+              </a>
+              <a class="tool-card tool-stack" href="http://127.0.0.1:5770" target="_blank" data-port="5770" data-service-card>
+                <div class="tool-topline"><span class="tool-icon">◫</span><span class="service-state checking" data-service-state><i></i>检测中</span></div>
+                <div class="tool-copy"><span class="tool-index">05 / STACK</span><h3>Stack 运维面板</h3><p>本机 Docker 打包、构建镜像、重启容器与查看 Compose 日志。</p></div>
+                <div class="tool-footer"><span>端口 5770</span><strong>↗</strong></div>
+              </a>
+            </div>
+          </section>
+
+          <section class="dashboard-row" id="activity">
+            <div class="activity-panel">
+              <div class="panel-heading"><div><p>RECENT</p><h2>最近动态</h2></div><span>本地</span></div>
+              <div class="activity-list">
+                <div class="activity-item"><span class="activity-icon green">✓</span><div><strong>服务状态实时同步</strong><p>工作台会自动检测每个工具的本地端口</p></div><time>现在</time></div>
+                <div class="activity-item"><span class="activity-icon coral">↗</span><div><strong>雷电工具已接入</strong><p>性能压测与协议解析入口集中管理</p></div><time>今日</time></div>
+              </div>
+            </div>
+            <div class="stack-panel">
+              <div class="stack-label"><span>STACK</span><i></i></div>
+              <h2>小而可靠，<br />持续生长。</h2>
+              <p>Docker Compose 管理核心服务，本机工具集中在常用入口。</p>
+              <div class="stack-chips"><span>Docker</span><span>Python</span><span>Node.js</span><span>Nginx</span><span>WSL</span></div>
+            </div>
+          </section>
+
+          <section class="about-strip" id="about">
+            <div class="about-copy"><p>ABOUT THIS SPACE</p><h2>这是我的工具台，<br />也是持续打磨的小作品。</h2></div>
+            <figure><img src="./assets/xiaohei/08-trust-bridge.png" alt="用小证据搭起信任桥梁的手绘插画" /></figure>
+          </section>
+          <footer><span>WST Lab · Personal workspace</span><span>Built for everyday work, 2026</span></footer>
+        </div>
+      </main>
+    </div>
+    <div class="scrim" data-scrim></div>
+    <script src="./app.js?v=20260713b"></script>
+  </body>
+</html>

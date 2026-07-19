@@ -1,0 +1,69 @@
+{
+  "ok": false,
+  "traceId": "trace-20260716075413-c8f025",
+  "caseId": "minio-radar-frame-full-link",
+  "caseName": "MinIO 雷达帧上传全链路",
+  "envName": "本地环境",
+  "startedAt": "2026-07-16T07:54:13.269Z",
+  "steps": [
+    {
+      "name": "Environment precheck",
+      "ok": false,
+      "detail": "some dependencies failed",
+      "elapsedMs": 0,
+      "evidence": {
+        "checks": [
+          {
+            "name": "gateway",
+            "ok": true,
+            "detail": "HTTP 404",
+            "elapsedMs": 145,
+            "evidence": {}
+          },
+          {
+            "name": "data-service",
+            "ok": true,
+            "detail": "HTTP 404",
+            "elapsedMs": 115,
+            "evidence": {}
+          },
+          {
+            "name": "biz-service",
+            "ok": true,
+            "detail": "HTTP 404",
+            "elapsedMs": 101,
+            "evidence": {}
+          },
+          {
+            "name": "kafka",
+            "ok": true,
+            "detail": "host.docker.internal:9092 connected",
+            "elapsedMs": 8,
+            "evidence": {}
+          },
+          {
+            "name": "database",
+            "ok": false,
+            "detail": "missing host/port",
+            "elapsedMs": 0,
+            "evidence": {}
+          },
+          {
+            "name": "minio",
+            "ok": true,
+            "detail": "HTTP 403",
+            "elapsedMs": 24,
+            "evidence": {}
+          },
+          {
+            "name": "websocket",
+            "ok": true,
+            "detail": "host.docker.internal:8080 connected",
+            "elapsedMs": 8,
+            "evidence": {}
+          }
+        ]
+      }
+    }
+  ]
+}

@@ -1,0 +1,143 @@
+# Word §3.2 业务对象「目标行数」（测试记录展示用，与造数/校验技术目标 volume-profiles 分离）
+# 实际行数仍从物理表统计；二者允许不一致（如原始报文含雷达/填充等）
+
+objects:
+  - key: mine_site
+    label: 矿区
+    table: mine_site
+  - key: thunderstorm_process
+    label: 雷暴过程
+    table: thunderstorm_process
+  - key: lightning_cmb
+    label: 雷暴监测-大网
+    table: standard_lightning_strike_cmb
+  - key: lightning_locator
+    label: 雷暴监测-小网
+    table: standard_lightning_strike_locator
+  - key: biz_lightning_event
+    label: 雷暴监测业务事件
+    table: biz_lightning_event
+  - key: atmosphere_std
+    label: 设备监测-大气电场
+    table: standard_atmosphere_electric_field
+  - key: atmosphere_biz
+    label: 大气电场业务事件
+    table: biz_atmosphere_electric_field_event
+  - key: other_device
+    label: 设备监测-其他
+    aggregate: lowfreq_standard_sum
+  - key: warning_event
+    label: 雷暴预警
+    table: thunderstorm_warning_event
+  - key: warning_message
+    label: 雷暴信息
+    table: thunderstorm_warning_message
+  - key: device_alarm
+    label: 设备告警
+    table: device_alarm_event
+  - key: notice_event
+    label: 雷暴工况联动
+    table: thunderstorm_notice_event
+  - key: inspection_task
+    label: 巡检任务
+    table: inspection_task
+  - key: hidden_risk
+    label: 隐患记录
+    table: hidden_risk
+  - key: repair_order
+    label: 故障维修
+    table: repair_order
+  - key: raw_kafka_message
+    label: 原始报文
+    table: raw_kafka_message
+
+stages:
+  S0:
+    mine_site: 1
+    thunderstorm_process: 10
+    lightning_cmb: 1000
+    lightning_locator: 500
+    biz_lightning_event: 1000
+    atmosphere_std: 10000
+    atmosphere_biz: 10000
+    other_device: 1000
+    warning_event: 10
+    warning_message: 20
+    device_alarm: 100
+    notice_event: 100
+    inspection_task: 10
+    hidden_risk: 5
+    repair_order: 5
+    raw_kafka_message: 10000
+
+  S1:
+    mine_site: 1
+    thunderstorm_process: 20
+    lightning_cmb: 2000
+    lightning_locator: 800
+    biz_lightning_event: 2000
+    atmosphere_std: 2000000
+    atmosphere_biz: 2000000
+    other_device: 2000
+    warning_event: 20
+    warning_message: 100
+    device_alarm: 500
+    notice_event: 800
+    inspection_task: 30
+    hidden_risk: 15
+    repair_order: 15
+    raw_kafka_message: 2000000
+
+  S2:
+    mine_site: 1
+    thunderstorm_process: 50
+    lightning_cmb: 9000
+    lightning_locator: 4000
+    biz_lightning_event: 9000
+    atmosphere_std: 9000000
+    atmosphere_biz: 9000000
+    other_device: 5000
+    warning_event: 50
+    warning_message: 250
+    device_alarm: 1500
+    notice_event: 2000
+    inspection_task: 60
+    hidden_risk: 30
+    repair_order: 30
+    raw_kafka_message: 9000000
+
+  S3:
+    mine_site: 1
+    thunderstorm_process: 90
+    lightning_cmb: 27500
+    lightning_locator: 12000
+    biz_lightning_event: 27500
+    atmosphere_std: 17000000
+    atmosphere_biz: 17000000
+    other_device: 9000
+    warning_event: 90
+    warning_message: 450
+    device_alarm: 2750
+    notice_event: 3600
+    inspection_task: 90
+    hidden_risk: 45
+    repair_order: 45
+    raw_kafka_message: 17000000
+
+  S4:
+    mine_site: 1
+    thunderstorm_process: 100
+    lightning_cmb: 35000
+    lightning_locator: 15000
+    biz_lightning_event: 35000
+    atmosphere_std: 38900000
+    atmosphere_biz: 38900000
+    other_device: 10000
+    warning_event: 100
+    warning_message: 500
+    device_alarm: 3000
+    notice_event: 4000
+    inspection_task: 100
+    hidden_risk: 50
+    repair_order: 50
+    raw_kafka_message: 39000000

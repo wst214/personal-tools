@@ -1,0 +1,489 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>雷电设备工具台</title>
+    <link rel="stylesheet" href="./style.css?v=20260715a" />
+  </head>
+  <body>
+    <main class="workbench">
+      <header class="app-header">
+        <div class="brand">
+          <span class="mark">LD</span>
+          <div>
+            <h1>雷电设备工具台</h1>
+            <p id="headerSubtitle">协议解析与 MinIO 预签名</p>
+          </div>
+        </div>
+        <nav class="tab-bar" role="tablist" aria-label="功能切换">
+          <button
+            type="button"
+            class="tab-btn active"
+            role="tab"
+            aria-selected="true"
+            data-tab="parse"
+            id="tabBtnParse"
+          >
+            设备协议解析
+          </button>
+          <button
+            type="button"
+            class="tab-btn"
+            role="tab"
+            aria-selected="false"
+            data-tab="presign"
+            id="tabBtnPresign"
+          >
+            预签名 URL
+          </button>
+          <button
+            type="button"
+            class="tab-btn"
+            role="tab"
+            aria-selected="false"
+            data-tab="webhook"
+            id="tabBtnWebhook"
+          >
+            MinIO Webhook
+          </button>
+          <button
+            type="button"
+            class="tab-btn"
+            role="tab"
+            aria-selected="false"
+            data-tab="upload"
+            id="tabBtnUpload"
+          >
+            上传测试
+          </button>
+        </nav>
+      </header>
+
+      <section class="env-strip" aria-label="运行环境">
+        <div id="envProfileList" class="env-profile-grid"></div>
+        <p id="envStatus" class="env-strip-status">加载中…</p>
+      </section>
+
+      <div id="tab-parse" class="tab-panel active" role="tabpanel" aria-labelledby="tabBtnParse">
+        <div class="parse-stats">
+          <div>
+            <span>帧数</span>
+            <strong id="frameCount">0</strong>
+          </div>
+          <div>
+            <span>CRC</span>
+            <strong id="crcState">-</strong>
+          </div>
+        </div>
+
+        <section class="main-grid">
+          <aside class="samples-panel panel">
+            <div class="panel-head compact">
+              <div>
+                <h2>内置样例</h2>
+                <p>每种设备一条可解析报文</p>
+              </div>
+              <span>11 类</span>
+            </div>
+            <div id="sampleGrid" class="sample-grid"></div>
+          </aside>
+
+          <section class="source-column">
+            <section class="input-panel panel">
+              <div class="panel-head">
+                <div>
+                  <h2>解析源数据</h2>
+                  <p id="sampleHint">可粘贴带空格、换行、0x 前缀的 HEX 报文。</p>
+                </div>
+                <div class="button-row">
+                  <button id="sampleBtn" class="secondary" type="button">默认样例</button>
+                  <button id="clearBtn" class="secondary" type="button">清空</button>
+                  <button id="parseBtn" type="button">解析</button>
+                </div>
+              </div>
+              <textarea id="input" spellcheck="false" placeholder="5A 4B 14 01 00 01 00 35 00 01 ... 0D 0A"></textarea>
+            </section>
+
+            <section class="json-panel panel">
+              <div class="panel-head compact">
+                <div>
+                  <h2>完整 JSON</h2>
+                  <p>调试输出，保留完整解析结果。</p>
+                </div>
+                <button id="copyBtn" class="secondary" type="button">复制 JSON</button>
+              </div>
+              <pre id="output">{}</pre>
+            </section>
+          </section>
+
+          <section class="result-column">
+            <section class="summary-panel panel">
+              <div class="panel-head">
+                <div>
+                  <h2>解析结果</h2>
+                  <p id="status">等待输入</p>
+                </div>
+              </div>
+              <div id="summary" class="summary empty">
+                <span>尚未解析</span>
+              </div>
+            </section>
+
+            <section class="fields-panel panel">
+              <div class="panel-head compact">
+                <div>
+                  <h2>字段说明</h2>
+                  <p>字段名、值、单位、类型、缩放规则</p>
+                </div>
+              </div>
+              <div id="detail" class="detail empty">
+                <span>解析后会在这里显示中文字段说明</span>
+              </div>
+            </section>
+          </section>
+        </section>
+      </div>
+
+      <div id="tab-webhook" class="tab-panel" role="tabpanel" aria-labelledby="tabBtnWebhook" hidden>
+        <div class="webhook-stats parse-stats">
+          <div>
+            <span>POST 次数</span>
+            <strong id="webhookPostCount" class="pass">0</strong>
+          </div>
+          <div>
+            <span>状态</span>
+            <strong id="webhookStatus">等待中</strong>
+          </div>
+          <div>
+            <span>最近 POST</span>
+            <strong id="webhookLastTime" style="font-size: 14px">—</strong>
+          </div>
+        </div>
+
+        <section class="webhook-layout">
+          <aside class="webhook-side panel">
+            <div class="panel-head compact">
+              <div>
+                <h2>接收配置</h2>
+                <p id="webhookConfigHint">加载中…</p>
+              </div>
+            </div>
+            <div class="builtin-defaults panel-inset webhook-config-box">
+              <h3>MinIO endpoint</h3>
+              <dl id="webhookConfigList"></dl>
+              <div class="button-row webhook-side-actions">
+                <button id="webhookCopyEndpointBtn" class="secondary" type="button">复制 URL</button>
+              </div>
+            </div>
+            <div class="panel-inset webhook-side-toolbar">
+              <label class="webhook-check"><input type="checkbox" id="webhookAutoRefresh" checked /> 每 3 秒刷新</label>
+              <label class="webhook-check"><input type="checkbox" id="webhookOnlyPost" checked /> 只显示 POST</label>
+              <div class="button-row">
+                <button id="webhookRefreshBtn" class="secondary" type="button">刷新</button>
+                <button id="webhookClearBtn" class="secondary" type="button">清空</button>
+              </div>
+            </div>
+          </aside>
+
+          <section class="webhook-main panel webhook-history-panel">
+            <div class="panel-head compact">
+              <div>
+                <h2>历史记录</h2>
+                <p>点击每条记录展开或收起 POST JSON</p>
+              </div>
+            </div>
+            <div id="webhookHistory" class="webhook-history empty">
+              <span>暂无记录，向 uploads/ 上传文件后显示</span>
+            </div>
+          </section>
+        </section>
+      </div>
+
+      <div id="tab-presign" class="tab-panel" role="tabpanel" aria-labelledby="tabBtnPresign" hidden>
+        <section class="presign-layout">
+          <aside class="presign-samples-panel panel">
+            <div class="panel-head compact">
+              <div>
+                <h2>内置附件样例</h2>
+                <p id="presignDefaultsHint">加载中…</p>
+              </div>
+            </div>
+            <div id="presignSampleGrid" class="sample-grid presign-sample-grid"></div>
+            <div class="builtin-defaults panel-inset">
+              <h3>当前内置参数</h3>
+              <dl id="presignDefaultsList"></dl>
+            </div>
+          </aside>
+
+          <section class="presign-main panel">
+            <div class="panel-head">
+              <div>
+                <h2>生成预签名 URL</h2>
+                <p>私有桶临时下载链接；灰色为内置默认值，点击输入即可覆盖。</p>
+              </div>
+              <div class="button-row">
+                <button id="presignResetBtn" class="secondary" type="button">恢复默认</button>
+                <button id="presignBtn" type="button">生成预签名</button>
+              </div>
+            </div>
+            <div class="presign-form">
+              <p class="env-inline-hint">MinIO 连接使用顶部当前启用的环境。</p>
+              <label class="wide">
+                <span>dedup_key</span>
+                <input id="presignDedupKey" class="presign-field" type="text" autocomplete="off" />
+              </label>
+              <label>
+                <span>有效期（秒）</span>
+                <input id="presignExpiry" class="presign-field" type="number" min="60" />
+              </label>
+            </div>
+            <div class="presign-result">
+              <label class="wide">
+                <span>预签名 URL</span>
+                <input id="presignUrl" type="text" readonly placeholder="生成后显示" />
+              </label>
+              <div class="button-row">
+                <button id="presignOpenBtn" class="secondary" type="button" disabled>浏览器打开</button>
+                <button id="presignCopyBtn" class="secondary" type="button" disabled>复制 URL</button>
+              </div>
+              <pre id="presignOutput" class="presign-json">{}</pre>
+            </div>
+          </section>
+        </section>
+      </div>
+      <div id="tab-upload" class="tab-panel" role="tabpanel" aria-labelledby="tabBtnUpload" hidden>
+        <div class="upload-stats parse-stats">
+          <div>
+            <span>MinIO 上传</span>
+            <strong id="uploadMinioState">—</strong>
+          </div>
+          <div>
+            <span>设备 Kafka</span>
+            <strong id="uploadDeviceState">—</strong>
+          </div>
+          <div>
+            <span>最近操作</span>
+            <strong id="uploadLastTime" style="font-size: 14px">—</strong>
+          </div>
+        </div>
+
+        <section class="upload-layout">
+          <section class="panel upload-section">
+            <div class="panel-head">
+              <div>
+                <h2>MinIO 雷达帧上传</h2>
+                <p id="uploadMinioHint">将本地 JSON 帧按间隔上传到 leidian-frame</p>
+              </div>
+              <div class="button-row">
+                <button id="uploadMinioResetBtn" class="secondary" type="button">恢复默认</button>
+                <button id="uploadMinioDryBtn" class="secondary" type="button">预检</button>
+                <button id="uploadMinioBtn" type="button">开始上传</button>
+              </div>
+            </div>
+            <div class="upload-form">
+              <p class="env-inline-hint wide">MinIO / Kafka / WebSocket / 数据接口使用顶部当前启用的环境。</p>
+              <label>
+                <span>Bucket</span>
+                <input id="uploadMinioBucket" class="upload-field" type="text" autocomplete="off" />
+              </label>
+              <label>
+                <span>Kafka Topic</span>
+                <input id="uploadMinioKafkaTopic" class="upload-field" type="text" autocomplete="off" />
+              </label>
+              <label class="wide">
+                <span>数据源目录（可填 D:\路径）</span>
+                <input id="uploadMinioSourceDir" class="upload-field" type="text" autocomplete="off" placeholder="D:\mytools\leidian-protocol-parse\minio帧文件\20250719" />
+              </label>
+              <label>
+                <span>间隔（秒）</span>
+                <input id="uploadMinioInterval" class="upload-field" type="number" min="0" step="0.1" />
+              </label>
+              <label>
+                <span>最多帧数（0=全部）</span>
+                <input id="uploadMinioLimit" class="upload-field" type="number" min="0" />
+              </label>
+              <label class="upload-check wide">
+                <input type="checkbox" id="uploadMinioOnce" />
+                <span>仅上传第一帧（冒烟）</span>
+              </label>
+              <label class="upload-check wide">
+                <input type="checkbox" id="uploadMinioVerifyObject" checked />
+                <span>上传后校验 MinIO 对象</span>
+              </label>
+              <label class="upload-check wide">
+                <input type="checkbox" id="uploadMinioVerifyKafka" checked />
+                <span>上传后校验 Kafka（radar-frame-upstream）</span>
+              </label>
+              <label class="upload-check wide">
+                <input type="checkbox" id="uploadMinioVerifyWs" checked />
+                <span>上传后监听 RADAR_FRAME_READY</span>
+              </label>
+              <label class="upload-check wide">
+                <input type="checkbox" id="uploadMinioVerifyApi" checked />
+                <span>上传后查询数据接口 recent</span>
+              </label>
+              <label>
+                <span>recent 分钟窗口</span>
+                <input id="uploadMinioApiMinutes" class="upload-field" type="number" min="1" />
+              </label>
+              <label>
+                <span>验证超时（秒）</span>
+                <input id="uploadMinioVerifyTimeout" class="upload-field" type="number" min="3" />
+              </label>
+            </div>
+            <div class="upload-result-box">
+              <h3>上传结果</h3>
+              <div id="uploadMinioResult" class="upload-result empty"><span>等待操作</span></div>
+            </div>
+            <div class="upload-verify-box">
+              <h3>MinIO 验证 <span class="upload-verify-tag">HeadObject</span></h3>
+              <div id="uploadMinioObjectVerify" class="upload-verify empty"><span>勾选后，上传完成会在这里显示</span></div>
+            </div>
+            <div class="upload-verify-box">
+              <h3>Kafka 验证 <span class="upload-verify-tag">radar-frame-upstream</span></h3>
+              <div id="uploadMinioKafkaVerify" class="upload-verify empty"><span>勾选后，上传完成会在这里显示</span></div>
+            </div>
+            <div class="upload-verify-box">
+              <h3>WebSocket 验证 <span class="upload-verify-tag">RADAR_FRAME_READY</span></h3>
+              <div id="uploadMinioVerify" class="upload-verify empty"><span>勾选后，上传完成会在这里显示</span></div>
+            </div>
+            <div class="upload-verify-box">
+              <h3>数据接口验证 <span class="upload-verify-tag">biz /radar/frames/recent</span></h3>
+              <div id="uploadMinioApiVerify" class="upload-verify empty"><span>勾选后，上传完成会在这里显示</span></div>
+            </div>
+            <details class="upload-details">
+              <summary>完整 JSON</summary>
+              <pre id="uploadMinioOutput" class="upload-json">{}</pre>
+            </details>
+          </section>
+
+          <section class="panel upload-section">
+            <div class="panel-head">
+              <div>
+                <h2>设备报文 Kafka 上传</h2>
+                <p id="uploadDeviceHint">发送 HEX 到 device-raw-data topic</p>
+              </div>
+              <div class="button-row">
+                <button id="uploadDeviceResetBtn" class="secondary" type="button">恢复默认</button>
+                <button id="uploadDeviceBtn" type="button">发送</button>
+              </div>
+            </div>
+            <div class="upload-form">
+              <p class="env-inline-hint wide">Kafka Bootstrap 使用顶部当前启用的环境。</p>
+              <label>
+                <span>Topic</span>
+                <input id="uploadDeviceTopic" class="upload-field" type="text" autocomplete="off" />
+              </label>
+              <label>
+                <span>最多条数（0=全部）</span>
+                <input id="uploadDeviceLimit" class="upload-field" type="number" min="0" />
+              </label>
+              <label>
+                <span>间隔（毫秒）</span>
+                <input id="uploadDeviceSleepMs" class="upload-field" type="number" min="0" />
+              </label>
+              <fieldset class="upload-source wide">
+                <legend>数据来源</legend>
+                <label class="upload-radio">
+                  <input type="radio" name="uploadDeviceSource" value="builtin" checked />
+                  <span>内置 11 类样例</span>
+                </label>
+                <label class="upload-radio">
+                  <input type="radio" name="uploadDeviceSource" value="hex" />
+                  <span>自定义 HEX（每行一帧）</span>
+                </label>
+                <label class="upload-radio">
+                  <input type="radio" name="uploadDeviceSource" value="file" />
+                  <span>服务端 JSONL 路径</span>
+                </label>
+              </fieldset>
+              <label class="wide upload-hex-label" id="uploadDeviceHexWrap" hidden>
+                <span>自定义 HEX</span>
+                <textarea id="uploadDeviceHex" spellcheck="false" placeholder="5A 4B 14 01 ... 0D 0A"></textarea>
+              </label>
+              <label class="wide" id="uploadDeviceFileWrap" hidden>
+                <span>JSONL 路径（服务端）</span>
+                <input id="uploadDeviceFilePath" class="upload-field" type="text" autocomplete="off" />
+              </label>
+              <label class="upload-check wide">
+                <input type="checkbox" id="uploadDeviceVerifyKafka" checked />
+                <span>发送后验证 Kafka 回读</span>
+              </label>
+              <label>
+                <span>验证超时（秒）</span>
+                <input id="uploadDeviceVerifyTimeout" class="upload-field" type="number" min="3" />
+              </label>
+            </div>
+            <div id="uploadDeviceSampleGrid" class="sample-grid upload-device-samples"></div>
+            <div class="upload-result-box">
+              <h3>发送结果</h3>
+              <div id="uploadDeviceResult" class="upload-result empty"><span>等待操作</span></div>
+            </div>
+            <div class="upload-verify-box">
+              <h3>Kafka 验证 <span class="upload-verify-tag">topic 回读</span></h3>
+              <div id="uploadDeviceVerify" class="upload-verify empty"><span>勾选验证后，发送完成会在这里显示</span></div>
+            </div>
+            <details class="upload-details">
+              <summary>完整 JSON</summary>
+              <pre id="uploadDeviceOutput" class="upload-json">{}</pre>
+            </details>
+          </section>
+        </section>
+      </div>
+    </main>
+
+    <dialog id="envProfileDialog" class="env-dialog">
+      <form method="dialog" id="envProfileForm" class="env-dialog-form">
+        <div class="env-dialog-head">
+          <div>
+            <h3 id="envDialogTitle">编辑环境</h3>
+            <p>保存后，启用该环境时预签名 / 上传测试会读取这里。</p>
+          </div>
+        </div>
+        <div class="upload-form env-form">
+          <label class="wide">
+            <span>环境名称</span>
+            <input id="envProfileName" class="upload-field" type="text" maxlength="32" required placeholder="例如：本地联调、测试环境" />
+          </label>
+          <h3 class="env-group-title wide">MinIO</h3>
+          <label class="wide">
+            <span>Endpoint</span>
+            <input id="envMinioEndpoint" class="upload-field" type="text" autocomplete="off" />
+          </label>
+          <label>
+            <span>Access Key</span>
+            <input id="envMinioAccessKey" class="upload-field" type="text" autocomplete="off" />
+          </label>
+          <label>
+            <span>Secret Key</span>
+            <input id="envMinioSecretKey" class="upload-field" type="text" autocomplete="off" placeholder="（环境变量，无需填写）" />
+          </label>
+          <h3 class="env-group-title wide">Kafka</h3>
+          <label class="wide">
+            <span>Bootstrap Servers</span>
+            <input id="envKafkaBootstrap" class="upload-field" type="text" autocomplete="off" />
+          </label>
+          <h3 class="env-group-title wide">实时 / 数据服务</h3>
+          <label class="wide">
+            <span>WebSocket</span>
+            <input id="envWsUrl" class="upload-field" type="text" autocomplete="off" />
+          </label>
+          <label class="wide">
+            <span>数据接口 Base</span>
+            <input id="envApiBaseUrl" class="upload-field" type="text" autocomplete="off" />
+          </label>
+        </div>
+        <div class="env-dialog-actions">
+          <button id="envResetBtn" class="secondary" type="button">填入服务端默认</button>
+          <div class="env-dialog-actions-end">
+            <button id="envDialogCancel" class="secondary" type="button">取消</button>
+            <button id="envSaveBtn" type="submit">保存</button>
+          </div>
+        </div>
+      </form>
+    </dialog>
+
+    <script src="./app.js?v=20260715a"></script>
+  </body>
+</html>

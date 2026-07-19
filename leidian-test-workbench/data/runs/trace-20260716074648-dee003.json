@@ -1,0 +1,69 @@
+{
+  "ok": false,
+  "traceId": "trace-20260716074648-dee003",
+  "caseId": "minio-radar-frame-full-link",
+  "caseName": "MinIO 雷达帧上传全链路",
+  "envName": "开发环境",
+  "startedAt": "2026-07-16T07:46:51.050Z",
+  "steps": [
+    {
+      "name": "Environment precheck",
+      "ok": false,
+      "detail": "some dependencies failed",
+      "elapsedMs": 0,
+      "evidence": {
+        "checks": [
+          {
+            "name": "gateway",
+            "ok": false,
+            "detail": "This operation was aborted",
+            "elapsedMs": 2202,
+            "evidence": {}
+          },
+          {
+            "name": "data-service",
+            "ok": false,
+            "detail": "This operation was aborted",
+            "elapsedMs": 2199,
+            "evidence": {}
+          },
+          {
+            "name": "biz-service",
+            "ok": false,
+            "detail": "This operation was aborted",
+            "elapsedMs": 2201,
+            "evidence": {}
+          },
+          {
+            "name": "kafka",
+            "ok": false,
+            "detail": "dev-kafka:9092 timeout",
+            "elapsedMs": 1801,
+            "evidence": {}
+          },
+          {
+            "name": "database",
+            "ok": false,
+            "detail": "dev-mysql:3306 timeout",
+            "elapsedMs": 1800,
+            "evidence": {}
+          },
+          {
+            "name": "minio",
+            "ok": false,
+            "detail": "This operation was aborted",
+            "elapsedMs": 2200,
+            "evidence": {}
+          },
+          {
+            "name": "websocket",
+            "ok": false,
+            "detail": "dev-biz:8083 timeout",
+            "elapsedMs": 1801,
+            "evidence": {}
+          }
+        ]
+      }
+    }
+  ]
+}

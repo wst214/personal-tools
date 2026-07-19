@@ -1,0 +1,12 @@
+-- PERF 默认月分区（达梦 DM8）
+-- 默认窗口 2025-03-01 ~ 2026-01-31（含 90 天造数、雷暴季 6~8 月、跨月过程缓冲）
+-- 自定义范围：CALL create_monthly_partitions('RAW_KAFKA_MESSAGE', DATE '2025-06-01', DATE '2025-12-01');
+
+ALTER SESSION SET CURRENT_SCHEMA = "PERF";
+
+CALL create_monthly_partitions('RAW_KAFKA_MESSAGE', DATE '2025-03-01', DATE '2026-02-01');
+CALL create_monthly_partitions('STANDARD_ATMOSPHERE_ELECTRIC_FIELD', DATE '2025-03-01', DATE '2026-02-01');
+CALL create_monthly_partitions('BIZ_ATMOSPHERE_ELECTRIC_FIELD_EVENT', DATE '2025-03-01', DATE '2026-02-01');
+CALL create_monthly_partitions('STANDARD_LIGHTNING_STRIKE_CMB', DATE '2025-03-01', DATE '2026-02-01');
+CALL create_monthly_partitions('STANDARD_LIGHTNING_STRIKE_LOCATOR', DATE '2025-03-01', DATE '2026-02-01');
+CALL create_monthly_partitions('BIZ_LIGHTNING_EVENT', DATE '2025-03-01', DATE '2026-02-01');

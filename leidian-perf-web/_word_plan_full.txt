@@ -1,0 +1,2953 @@
+[10] 雷电系统数据库性能测试开展方案
+[2] 工作目标
+本次性能测试用于验证雷暴过程业务在 PostgreSQL 数据库中的建模、写入、分区、索引、时序查询、空间查询等能力本次性能测试用于验证雷暴过程业务在 PostgreSQL 数据库中的建模、写入、分区、索引、时序查询、空间查询等能力。
+本次测试需要回答以下问题：
+表结构是否能承载雷暴过程、设备监测、闪电监测、预警、告警、工况联动、巡检、隐患、维修等多域数据。
+高频时序数据是否适合按时间分区，分区粒度是否合理。
+经纬度数据如何生成才接近真实业务，空间查询是否需要PostGIS。
+按当前测试机可承载的数据规模造数后，写入、分页、曲线、统计查询是否存在明显性能风险。
+在 S0 建模验证档、S1 基线档、S2 增长档、S3 压力档、S4 推荐存量档几个阶段中，明确各阶段造数规模、测试场景和阶段结论。
+[3] 测试定位与边界
+本次测试定位为前期数据库性能摸底测试，主要用于验证PostgreSQL路线下雷暴过程业务的数据建模、分区策略、索引策略、写入能力、时序查询能力、空间查询能力和典型统计查询能力。
+本次测试结论用于支撑:
+数据库表结构优化。
+索引优化。
+分区策略调整。
+后续正式环境容量规划。
+正式压测方案制定。
+确认当前数据库设计是否存在明显方向性风险。
+本次测试不作为生产环境最终验收结论。
+本次测试不覆盖以下内容:
+不覆盖正式生产环境容量验收。
+不覆盖Kafka集群吞吐上限验证。
+不覆盖WebSocket / 3D推送性能验证。
+不覆盖PostgreSQL高可用、主从切换、故障恢复能力验证。
+不覆盖国产数据库性能结论。
+[3] 当前测试环境说明
+本次测试在单机测试环境中进行。
+项目
+配置
+处理器
+14核
+内存
+32G
+硬盘
+1TB
+数据库
+PostgreSQL 16.x
+空间扩展
+PostGIS
+部署形态
+单机测试环境
+说明：
+当前机器适合完成 S0、S1、S2，并视资源情况执行 S3。
+S4 推荐存量档不作为当前机器必做项。
+当前测试结果仅反映单机测试环境表现，不代表正式生产环境性能上限。
+如需验证推荐存量 S4 或更高并发场景，应在更接近正式部署的数据库服务器上补充测试。
+[2] 测试场景
+本次性能测试场景重点包括：设备监测高频写入、原始报文写入、雷击监测时空查询、闪电事件统计查询。
+场景编号
+场景名称
+业务场景说明
+主要表
+并发
+PERF-01
+大气电场持续写入
+5 台设备常态上报
+standard_atmosphere_electric_field
+biz_atmosphere_electric_field_event
+5线程
+PERF-02
+原始报文持续写入
+device-raw-data 等 topic 写入 raw
+raw_kafka_message
+5线程
+PERF-03
+活跃过程闪电突发写入
+1 个进行中雷暴过程，50km 内落雷密集入库
+standard_lightning_strike_cmb
+standard_lightning_strike_locator
+biz_lightning_event
+1线程
+PERF-04
+大气电场仪监测记录分页查询
+按时间、矿区、设备查询电场仪监测分页数据
+standard_atmosphere_electric_field
+10～20，S3 可提升至 50
+PERF-05
+多电场仪雷暴过程窗曲线查询
+查询 5 台电场仪同一 2h 雷暴过程窗口内的电场瞬时值、平均值、变化率曲线，用于验证高频时序表在过程窗口曲线查询下的性能
+standard_atmosphere_electric_field
+10～20，S3 可提升至 50
+PERF-06
+闪电事件统计查询
+查询某个雷暴过程时间窗内、矿区调度机房 50km 范围内的闪电数量、来源类型分布、闪电类型分布
+standard_lightning_strike_cmb
+standard_lightning_strike_locator
+biz_lightning_event
+thunderstorm_process
+mine_site
+10～20，S3 可提升至 50
+说明：
+PERF-01、PERF-02、PERF-03 主要验证写入能力。
+PERF-04 主要验证高频时序表分页查询能力。
+PERF-05 主要验证高频时序表在雷暴过程 2h 时间窗口内的曲线查询能力。
+PERF-06 主要验证雷暴过程时间窗、50km 空间过滤、PostGIS 查询和统计聚合能力。
+[2] 测试数据规模
+[3] 推荐存量目标
+最终推荐存量目标如下：
+数据域
+表或数据对象
+最终推荐存量
+矿区表
+mine_site
+1条
+雷暴过程
+thunderstorm_process
+100条
+雷暴监测·大网
+standard_lightning_strike_cmb
+3.5万条
+雷暴监测·小网
+standard_lightning_strike_locator
+1.5万条
+雷暴监测业务事件
+biz_lightning_event
+5万条左右，大网+小网汇总
+设备监测·大气电场
+standard_atmosphere_electric_field
+3890万条
+大气电场业务事件
+biz_atmosphere_electric_field_event
+3890万条
+设备监测·其他
+其他 standard_* / biz_*_event
+1万条
+雷暴预警
+thunderstorm_warning_event
+100条
+雷暴信息
+thunderstorm_warning_message
+500条
+设备告警
+device_alarm_event
+3000条
+雷暴工况联动
+thunderstorm_notice_event
+4000条
+巡检任务
+inspection_task
+100条
+隐患记录
+hidden_risk
+50条
+故障维修
+repair_order
+50条
+原始报文
+raw_kafka_message，全 Topic
+3900万条
+按以上推荐存量估算，最终压测库核心数据约为：
+类型
+估算行数
+大气电场 standard + biz
+7780万
+raw全Topic
+3900万
+闪电、过程、告警、工况联动、运维等
+约10万级
+核心合计
+约 1.17 亿行
+说明：
+上述 1.17 亿行是前期数据库性能测试的推荐存量目标，不代表生产环境最终数据规模。
+考虑当前测试环境，优先完成 S0、S1、S2，形成初版数据库性能摸底结论。
+S3 作为当前单机环境下的压力档，在服务器磁盘、CPU、内存和测试周期允许的情况下执行。
+S4 推荐存量档保留为后续正式环境补测目标。
+[3] 当前测试建议执行规模
+本阶段测试采用一下分阶段数据规模
+数据对象
+S0 建模验证档
+S1 基线档
+S2 增长档
+S3 压力档
+S4 推荐存量档
+矿区
+1条
+1条
+1条
+1条
+1条
+雷暴过程
+10条
+20条
+50条
+80～100条
+100条
+雷暴监测-大网
+1000条
+2000条
+9000条
+2万～3.5万条
+3.5万条
+雷暴监测-小网
+500条
+800条
+4000条
+9000～1.5万条
+1.5万条
+雷暴监测业务事件
+1000条
+3000条
+1.25万条
+3万～5万条
+5万条左右
+设备监测-大气电场
+1万条
+200万条
+800万～1000万条
+1500万～2000万条
+3890万条
+大气电场业务事件
+1万条
+200万条
+800万～1000万条
+1500万～2000万条
+3890万条
+设备监测-其他
+1000条
+2000条
+5000条
+8000～1万条
+1万条
+雷暴预警
+10条
+20条
+50条
+80～100条
+100条
+雷暴信息
+20条
+100条
+250条
+400～500条
+500条
+设备告警
+100条
+500条
+1500条
+2500～3000条
+3000条
+雷暴工况联动
+100条
+800条
+2000条
+3200～4000条
+4000条
+巡检任务
+10条
+30条
+60条
+80～100条
+100条
+隐患记录
+5条
+15条
+30条
+40～50条
+50条
+故障维修
+5条
+15条
+30条
+40～50条
+50条
+原始报文
+1万条
+200万条
+800万～1000万条
+1500万～2000万条
+3900万条
+说明：
+以 S2 作为必做增长档。
+以 S3 作为主要压力观察档。
+S4 保留为推荐存量目标，不作为当前机器必做项。
+如果 S3 执行过程中磁盘 IO、CPU、内存已经出现明显瓶颈，可停止继续扩容，并在报告中记录当前单机测试上限。
+[2] 数据库表结构设计
+[3] 设计原则
+设计原则
+适用表
+说明
+高频时序表按时间分区
+standard_atmosphere_electric_fieldbiz_atmosphere_electric_field_eventraw_kafka_messagestandard_lightning_strike_cmbstandard_lightning_strike_locatorbiz_lightning_event
+[9] 大气电场 standard/biz 分区键 = device_upload_time；raw 分区键 = receive_time；闪电类分区键 = strike_time
+闪电类表使用 PostGIS
+mine_site
+standard_lightning_strike_cmb
+standard_lightning_strike_locator
+biz_lightning_event
+闪电表保存 geography(Point, 4326)，用于 50km 范围统计
+大气电场坐标保留普通经纬度
+standard_atmosphere_electric_field
+biz_atmosphere_electric_field_event
+设备坐标主要用于展示和归属，不做高频空间检索，不建 GiST 空间索引
+过程、告警、工况联动、运维闭环表暂不分区
+thunderstorm_processthunderstorm_warning_eventdevice_alarm_eventthunderstorm_notice_eventinspection_taskhidden_riskrepair_order
+数据量小，使用普通 B-Tree 索引支持查询
+原始报文表按接收时间分区
+raw_kafka_message
+优先 receive_time
+[3] E-R 图
+[3] 核心表设计
+[4] 【规划】矿区表（mine_site）
+字段
+类型
+说明
+id
+BIGINT
+主键
+mine_code
+VARCHAR(64)
+矿区编码
+mine_name
+VARCHAR(128)
+矿区名称
+unified_social_credit_code
+VARCHAR(64)
+统一社会信用代码
+province_code
+VARCHAR(32)
+省编码
+city_code
+VARCHAR(32)
+市编码
+county_code
+VARCHAR(32)
+区县编码
+address
+VARCHAR(256)
+地址
+dispatch_room_lon
+NUMERIC(12,6)
+调度机房经度
+dispatch_room_lat
+NUMERIC(12,6)
+调度机房纬度
+dispatch_room_point
+GEOGRAPHY(Point,4326)
+调度机房空间点
+fence_geom
+GEOMETRY(MultiPolygon,4326)
+矿区电子围栏
+status
+VARCHAR(32)
+状态：ACTIVE / DISABLED
+create_time
+TIMESTAMP
+创建时间
+建议索引：
+索引
+字段
+说明
+pk_mine_site
+id
+主键
+uq_mine_site_code
+mine_code
+矿区编码唯一
+idx_mine_site_credit_code
+unified_social_credit_code
+按统一社会信用代码查询
+idx_mine_site_status
+status
+按状态查询
+idx_mine_site_dispatch_room_gist
+dispatch_room_point
+调度机房点位空间查询
+idx_mine_site_fence_gist
+fence_geom
+电子围栏空间查询
+[4] 【规划】雷暴过程主表（thunderstorm_process）
+字段
+类型
+说明
+id
+BIGINT
+主键
+mine_code
+VARCHAR(64)
+矿区编码
+process_start_time
+TIMESTAMP
+过程开始时间，即首次预警发布时间
+process_end_time
+TIMESTAMP
+过程结束时间，即最后预警解除时间
+strike_start_time
+TIMESTAMP
+过程内首次落雷时间
+strike_end_time
+TIMESTAMP
+过程内末次落雷时间
+data_window_start
+TIMESTAMP
+关联数据窗口开始，通常为 strike_start_time - 5min
+data_window_end
+TIMESTAMP
+关联数据窗口结束，通常为 strike_end_time + 5min
+process_status
+VARCHAR(32)
+进行中、已结束、已归档、已取消
+create_time
+TIMESTAMP
+创建时间
+建议索引：
+索引
+字段
+说明
+pk_thunderstorm_process
+id
+主键
+idx_process_mine_time
+mine_code, process_start_time
+按矿区和过程开始时间查询历史过程
+idx_process_status_time
+process_status, process_start_time
+按雷暴过程状态查询进行中、已结束过程
+idx_process_time_range
+process_start_time, process_end_time
+按时间范围检索雷暴过程
+idx_process_strike_window
+strike_start_time, strike_end_time
+雷暴过程内落雷时间窗查询
+[4] 【规划】预警事件表（thunderstorm_warning_event）
+字段
+类型
+说明
+id
+BIGINT
+主键
+thunderstorm_process_id
+BIGINT
+关联雷暴过程 ID，一次过程对应一个预警事件
+mine_code
+VARCHAR(64)
+矿区编码
+event_start_time
+TIMESTAMP
+预警事件开始时间，即首次预警发布时间
+event_end_time
+TIMESTAMP
+预警事件结束时间，即最后解除时间
+current_warning_level
+INT
+当前预警等级
+max_warning_level
+INT
+本次事件最高预警等级
+event_status
+VARCHAR(32)
+事件状态：ACTIVE、CLOSED、CANCELLED
+create_time
+TIMESTAMP
+创建时间
+建议索引：
+索引
+字段
+说明
+pk_thunderstorm_warning_event
+id
+主键
+uq_warning_event_process
+thunderstorm_process_id
+唯一约束，保证一个雷暴过程只对应一个预警事件
+idx_warning_event_mine_time
+mine_code, event_start_time
+按矿区和预警事件开始时间查询
+idx_warning_event_status_time
+event_status, event_start_time
+按事件状态查询当前预警事件
+idx_warning_event_level_time
+max_warning_level, event_start_time
+按最高预警等级和时间查询
+[4] 【规划】预警信息表（thunderstorm_warning_message）
+字段
+类型
+说明
+id
+BIGINT
+主键
+warning_event_id
+BIGINT
+关联预警事件 ID
+thunderstorm_process_id
+BIGINT
+关联雷暴过程 ID，冗余便于查询
+mine_code
+VARCHAR(64)
+矿区编码
+rule_code
+VARCHAR(64)
+预警规则编码
+rule_name
+VARCHAR(128)
+预警规则名称
+rule_summary
+TEXT
+预警规则摘要
+data_source
+VARCHAR(64)
+数据来源类型
+data_source_ref_id
+BIGINT
+数据来源记录 ID
+warning_time
+TIMESTAMP
+预警信息触发时间
+warning_level
+INT
+预警等级
+warning_action
+VARCHAR(32)
+预警动作：PUBLISH、UPGRADE、DOWNGRADE、LIFT
+create_time
+TIMESTAMP
+创建时间
+建议索引:
+索引
+字段
+说明
+pk_thunderstorm_warning_message
+id
+主键
+idx_warning_msg_event_time
+warning_event_id, warning_time
+查询某个预警事件下的预警时间线
+idx_warning_msg_process_time
+thunderstorm_process_id, warning_time
+查询某个雷暴过程下的全部预警信息
+idx_warning_msg_mine_time
+mine_code, warning_time
+按矿区和时间查询预警信息
+idx_warning_msg_rule_time
+rule_code, warning_time
+按规则查询触发历史
+idx_warning_msg_level_time
+warning_level, warning_time
+按预警等级和时间查询
+[4] 【已有】原始报文表（raw_kafka_message）
+按receive_time 做月分区。
+字段
+类型
+说明
+id
+BIGINT
+主键，雪花 ID
+topic
+VARCHAR(128)
+Kafka Topic 名称
+partition_no
+INT
+Kafka 分区号
+offset_no
+BIGINT
+Kafka 消息偏移量
+message_key
+VARCHAR(256)
+Kafka Message Key
+message_timestamp
+BIGINT
+Kafka 消息时间戳，毫秒
+headers_json
+TEXT
+Kafka Headers JSON 序列化
+raw_value
+TEXT
+Kafka 消息原始 value 字符串
+raw_value_type
+VARCHAR(32)
+原始值类型：JSON / HEX / TEXT
+source_type
+VARCHAR(32)
+来源类型，如 CMB / LOCATOR / DEVICE_RAW / RADAR_REALTIME / RADAR_FORECAST
+trace_id
+VARCHAR(64)
+链路追踪 ID，仅用于追踪，不作去重依据
+dedup_key
+VARCHAR(256)
+业务去重 Key，来自 Header 或消息体
+process_status
+VARCHAR(32)
+处理状态
+error_message
+TEXT
+处理失败错误信息
+receive_time
+TIMESTAMP
+消息接收时间
+create_time
+TIMESTAMP
+记录创建时间
+update_time
+TIMESTAMP
+记录更新时间
+ext_json
+TEXT
+扩展 JSON 字段
+schema_version
+VARCHAR(16)
+消息 Schema 版本
+data_version
+VARCHAR(16)
+数据版本
+建议索引：
+索引
+字段
+说明
+pk_raw_kafka_message
+id
+主键
+uq_raw_kafka_message_tpo
+topic,
+partition_no, offset_no
+Kafka 原始消息去重
+idx_raw_kafka_message_topic_time
+topic, receive_time
+按 Topic 和接收时间查询原始报文
+idx_raw_kafka_message_source_time
+source_type, receive_time
+按来源类型和接收时间查询
+idx_raw_kafka_message_status_time
+process_status, receive_time
+按处理状态和接收时间查询
+[4] 【已有】大气电场标准表（standard_atmosphere_electric_field）
+按 device_upload_time 做月分区。
+字段
+类型
+说明
+id
+BIGINT
+主键
+raw_message_id
+BIGINT[]
+参与拼帧的 raw_kafka_message.id 数组
+device_addr
+VARCHAR(64)
+设备通信地址
+type_id
+VARCHAR(16)
+设备类型 ID，01/19
+command_type
+VARCHAR(8)
+协议指令类型
+device_upload_time
+TIMESTAMP
+设备 GPS 上报时间
+instantaneous_value
+NUMERIC(12,2)
+瞬时电场值
+average_value
+NUMERIC(12,2)
+平均值
+rate_change
+NUMERIC(12,2)
+变化率
+equipment_voltage
+NUMERIC(12,2)
+设备电压
+voltage_state
+VARCHAR(8)
+电压状态
+motor_speed
+INTEGER
+电机速度
+warning_level
+INTEGER
+预警等级
+circuit_number
+VARCHAR(50)
+回路编号
+time_category
+VARCHAR(10)
+时间类型
+longitude_direction
+VARCHAR(10)
+经度方向
+longitude
+NUMERIC(12,6)
+经度
+latitude_direction
+VARCHAR(10)
+纬度方向
+latitude
+NUMERIC(12,6)
+纬度
+card
+VARCHAR(64)
+卡号
+quality_status
+VARCHAR(16)
+数据质量状态
+create_time
+TIMESTAMP
+创建时间
+update_time
+TIMESTAMP
+更新时间
+ext_json
+TEXT
+扩展 JSON
+schema_version
+VARCHAR(16)
+Schema 版本
+data_version
+VARCHAR(16)
+数据版本
+建议索引：
+索引
+字段
+说明
+pk_standard_atmosphere_electric_field
+id
+主键
+idx_std_atm_field_addr_time
+device_addr,
+device_upload_time
+按设备和上报时间查询
+idx_std_atm_field_upload_time
+device_upload_time
+建议分区字段，按月 RANGE 分区
+[4] 【已有】大气电场业务事件表（biz_atmosphere_electric_field_event）
+按 device_upload_time 做月分区。
+字段
+类型
+说明
+id
+BIGINT
+主键
+standard_record_id
+BIGINT
+关联 standard_atmosphere_electric_field.id
+source_topic
+VARCHAR(128)
+来源 Kafka Topic
+source_type
+VARCHAR(32)
+来源类型
+device_addr
+VARCHAR(64)
+设备通信地址
+type_id
+VARCHAR(16)
+设备类型 ID
+command_type
+VARCHAR(8)
+协议指令类型
+device_upload_time
+TIMESTAMP
+设备上报时间
+instantaneous_value
+NUMERIC(12,2)
+瞬时电场值
+average_value
+NUMERIC(12,2)
+平均值
+rate_change
+NUMERIC(12,2)
+变化率
+equipment_voltage
+NUMERIC(12,2)
+设备电压
+voltage_state
+VARCHAR(8)
+电压状态
+motor_speed
+INTEGER
+电机速度
+warning_level
+INTEGER
+预警等级
+circuit_number
+VARCHAR(50)
+回路编号
+time_category
+VARCHAR(10)
+时间类型
+longitude_direction
+VARCHAR(10)
+经度方向
+longitude
+NUMERIC(12,6)
+经度
+latitude_direction
+VARCHAR(10)
+纬度方向
+latitude
+NUMERIC(12,6)
+纬度
+card
+VARCHAR(64)
+卡号
+risk_level
+INT
+风险等级
+event_status
+VARCHAR(16)
+事件状态
+create_time
+TIMESTAMP
+创建时间
+update_time
+TIMESTAMP
+更新时间
+ext_json
+TEXT
+扩展 JSON
+schema_version
+VARCHAR(16)
+Schema 版本
+data_version
+VARCHAR(16)
+数据版本
+建议索引：
+索引
+字段
+说明
+pk_biz_atmosphere_electric_field_event
+id
+主键
+uq_biz_atm_field_event_standard
+standard_record_id
+保证 standard 与 biz 1:1
+idx_biz_atm_field_addr_time
+device_addr,
+device_upload_time
+按设备和时间查询
+idx_biz_atm_field_upload_time
+device_upload_time
+建议分区字段，按月 RANGE 分区
+[4] 【已有】小网雷击定位标准表（standard_lightning_strike_locator）
+按strike_time做月分区。
+字段
+类型
+说明
+id
+BIGINT
+主键
+raw_message_id
+BIGINT
+关联 raw_kafka_message.id
+source_type
+VARCHAR(32)
+来源类型，固定为 LOCATOR
+lightning_type
+VARCHAR(8)
+闪电类型
+strike_time
+TIMESTAMP
+雷击发生时间
+longitude
+DECIMAL(10,6)
+经度
+latitude
+DECIMAL(10,6)
+纬度
+lightning_point
+GEOGRAPHY(Point,4326)
+雷击空间点
+site_count
+INT
+定位站点数
+province
+VARCHAR(64)
+省份
+city
+VARCHAR(64)
+城市
+county
+VARCHAR(64)
+区县
+address
+VARCHAR(256)
+完整地址
+province_code
+BIGINT
+省份行政区划码
+city_code
+BIGINT
+城市行政区划码
+county_code
+BIGINT
+区县行政区划码
+quality_status
+VARCHAR(16)
+数据质量状态
+create_time
+TIMESTAMP
+创建时间
+update_time
+TIMESTAMP
+更新时间
+ext_json
+TEXT
+扩展 JSON
+schema_version
+VARCHAR(16)
+Schema 版本
+data_version
+VARCHAR(16)
+数据版本
+建议索引：
+索引
+字段
+说明
+pk_standard_lightning_strike_locator
+id
+主键
+idx_std_locator_strike_time
+strike_time
+按雷击时间查询
+idx_std_locator_lightning_point_gist
+lightning_point
+PostGIS 索引，支持 50km 查询
+[4] 【已有】CMB 雷击标准表（standard_lightning_strike_cmb）
+按strike_time做月分区。
+字段
+类型
+说明
+id
+BIGINT
+主键
+raw_message_id
+BIGINT
+关联 raw_kafka_message.id
+source_type
+VARCHAR(32)
+来源类型，固定为 CMB
+lightning_type
+VARCHAR(8)
+闪电类型
+strike_time
+TIMESTAMP
+雷击发生时间
+longitude
+DECIMAL(10,6)
+经度
+latitude
+DECIMAL(10,6)
+纬度
+lightning_point
+GEOGRAPHY(Point,4326)
+雷击空间点
+peak_current
+DECIMAL(12,6)
+峰值电流
+height
+DECIMAL(12,6)
+高度
+province
+VARCHAR(64)
+省份
+city
+VARCHAR(64)
+城市
+county
+VARCHAR(64)
+区县
+province_code
+BIGINT
+省份行政区划码
+city_code
+BIGINT
+城市行政区划码
+county_code
+BIGINT
+区县行政区划码
+quality_status
+VARCHAR(16)
+数据质量状态
+create_time
+TIMESTAMP
+创建时间
+update_time
+TIMESTAMP
+更新时间
+ext_json
+TEXT
+扩展 JSON
+schema_version
+VARCHAR(16)
+Schema 版本
+data_version
+VARCHAR(16)
+数据版本
+建议索引：
+索引
+字段
+说明
+pk_standard_lightning_strike_cmb
+id
+主键
+idx_std_cmb_strike_time
+strike_time
+按雷击时间查询
+idx_std_cmb_lightning_point_gist
+lightning_point
+PostGIS 索引，支持 50km 查询
+[4] 【已有】雷击业务事件表（biz_lightning_event）
+按 strike_time 做月分区。
+字段
+类型
+说明
+id
+BIGINT
+主键
+standard_record_id
+BIGINT
+关联 standard 层记录 ID
+source_topic
+VARCHAR(128)
+来源 Kafka Topic
+source_type
+VARCHAR(32)
+来源类型：CMB / LOCATOR
+lightning_type
+VARCHAR(8)
+闪电类型
+strike_time
+TIMESTAMP
+雷击发生时间
+longitude
+DECIMAL(10,6)
+经度
+latitude
+DECIMAL(10,6)
+纬度
+lightning_point
+GEOGRAPHY(Point,4326)
+雷击空间点
+peak_current
+DECIMAL(12,6)
+峰值电流
+height
+DECIMAL(12,6)
+高度
+site_count
+INT
+定位站点数
+province
+VARCHAR(64)
+省份
+city
+VARCHAR(64)
+城市
+county
+VARCHAR(64)
+区县
+address
+VARCHAR(256)
+完整地址
+display_name
+VARCHAR(128)
+展示名称
+risk_level
+INT
+风险等级
+event_status
+VARCHAR(16)
+事件状态
+create_time
+TIMESTAMP
+创建时间
+update_time
+TIMESTAMP
+更新时间
+ext_json
+TEXT
+扩展 JSON
+schema_version
+VARCHAR(16)
+Schema 版本
+data_version
+VARCHAR(16)
+数据版本
+建议索引：
+索引
+字段
+说明
+pk_biz_lightning_event
+id
+主键
+idx_biz_lightning_strike_time
+strike_time
+按雷击时间查询
+idx_biz_lightning_point_gist
+lightning_point
+PostGIS 索引，支持 50km 查询
+[4] 【已有】其他设备标准表、事件表（standard_*、biz_*）
+[4] 【规划】设备告警事件表（device_alarm_event）
+数据量较小，暂不分区。
+字段
+类型
+说明
+id
+BIGINT
+主键
+thunderstorm_process_id
+BIGINT
+关联雷暴过程 ID
+mine_code
+VARCHAR(64)
+矿区编码
+device_addr
+VARCHAR(64)
+设备通信地址
+alarm_time
+TIMESTAMP
+告警时间
+alarm_level
+INT
+告警等级
+alarm_code
+VARCHAR(64)
+告警编码
+alarm_name
+VARCHAR(128)
+告警名称
+alarm_status
+VARCHAR(32)
+告警状态
+source_table
+VARCHAR(128)
+告警来源业务表
+source_record_id
+BIGINT
+告警来源记录 ID
+create_time
+TIMESTAMP
+创建时间
+建议索引：
+索引
+字段
+说明
+pk_device_alarm_event
+id
+主键
+idx_device_alarm_process_time
+thunderstorm_process_id, alarm_time
+按雷暴过程查询告警
+idx_device_alarm_addr_time
+device_addr, alarm_time
+按设备查询告警
+idx_device_alarm_status
+alarm_status
+按告警状态查询
+[4] 【规划】工况联动表（thunderstorm_notice_event）
+数据量较小，暂不分区。
+字段
+类型
+说明
+id
+BIGINT
+主键
+thunderstorm_process_id
+BIGINT
+关联雷暴过程 ID
+warning_event_id
+BIGINT
+关联预警事件 ID
+warning_message_id
+BIGINT
+关联预警信息 ID
+mine_code
+VARCHAR(64)
+矿区编码
+notice_time
+TIMESTAMP
+通知发送时间
+notice_channel
+VARCHAR(32)
+通知渠道
+receiver
+VARCHAR(128)
+通知接收人
+receiver_role
+VARCHAR(64)
+接收人角色
+notice_title
+VARCHAR(256)
+通知标题
+notice_content
+TEXT
+通知内容
+notice_status
+VARCHAR(32)
+通知状态
+trigger_type
+VARCHAR(32)
+触发来源类型
+trigger_event_id
+BIGINT
+触发来源事件 ID
+create_time
+TIMESTAMP
+创建时间
+建议索引：
+索引
+字段
+说明
+pk_thunderstorm_notice_event
+id
+主键
+idx_notice_process_time
+thunderstorm_process_id, notice_time
+按雷暴过程查询通知
+idx_notice_warning_msg
+warning_message_id
+按预警信息追溯通知
+idx_notice_status
+notice_status
+按通知状态查询
+[4] 【规划】巡检任务表（inspection_task）
+数据量较小，暂不分区。
+字段
+类型
+说明
+id
+BIGINT
+主键
+thunderstorm_process_id
+BIGINT
+关联雷暴过程 ID
+device_alarm_event_id
+BIGINT
+来源设备告警事件 ID
+mine_code
+VARCHAR(64)
+矿区编码
+device_addr
+VARCHAR(64)
+设备通信地址
+task_status
+VARCHAR(32)
+任务状态
+plan_time
+TIMESTAMP
+计划巡检时间
+finish_time
+TIMESTAMP
+完成时间
+assignee
+VARCHAR(128)
+负责人
+create_time
+TIMESTAMP
+创建时间
+update_time
+TIMESTAMP
+更新时间
+ext_json
+TEXT
+扩展 JSON
+schema_version
+VARCHAR(16)
+Schema 版本
+data_version
+VARCHAR(16)
+数据版本
+建议索引：
+索引
+字段
+说明
+pk_inspection_task
+id
+主键
+idx_inspection_process_time
+thunderstorm_process_id, plan_time
+按雷暴过程查询巡检
+idx_inspection_alarm
+device_alarm_event_id
+按设备告警追溯巡检
+idx_inspection_status
+task_status
+按任务状态查询
+[4] 【规划】隐患记录表（hidden_risk）
+数据量较小，暂不分区。
+字段
+类型
+说明
+id
+BIGINT
+主键
+thunderstorm_process_id
+BIGINT
+关联雷暴过程 ID
+inspection_task_id
+BIGINT
+关联巡检任务 ID
+mine_code
+VARCHAR(64)
+矿区编码
+device_addr
+VARCHAR(64)
+设备通信地址
+risk_level
+INT
+隐患等级
+risk_desc
+TEXT
+隐患描述
+rectify_status
+VARCHAR(32)
+整改状态
+discover_time
+TIMESTAMP
+发现时间
+create_time
+TIMESTAMP
+创建时间
+建议索引：
+索引
+字段
+说明
+pk_hidden_risk
+id
+主键
+idx_hidden_risk_process_time
+thunderstorm_process_id, create_time
+按雷暴过程查询隐患
+idx_hidden_risk_task
+inspection_task_id
+按巡检任务追溯隐患
+idx_hidden_risk_status
+rectify_status
+按整改状态查询
+[4] 【规划】维修工单表（repair_order）
+数据量较小，暂不分区。
+字段
+类型
+说明
+id
+BIGINT
+主键
+thunderstorm_process_id
+BIGINT
+关联雷暴过程 ID
+hidden_risk_id
+BIGINT
+关联隐患记录 ID
+mine_code
+VARCHAR(64)
+矿区编码
+device_addr
+VARCHAR(64)
+设备通信地址
+repair_status
+VARCHAR(32)
+维修状态
+repair_desc
+TEXT
+维修描述
+start_time
+TIMESTAMP
+维修开始时间
+close_time
+TIMESTAMP
+维修关闭时间
+create_time
+TIMESTAMP
+创建时间
+建议索引：
+索引
+字段
+说明
+pk_repair_order
+id
+主键
+idx_repair_process_time
+thunderstorm_process_id, create_time
+按雷暴过程查询维修
+idx_repair_hidden_risk
+hidden_risk_id
+按隐患追溯维修
+idx_repair_status
+repair_status
+按维修状态查询
+[2] 分区与索引设计
+[3] 分区策略
+表类型
+分区字段
+分区方式
+原因
+大气电场 standard/biz
+device_upload_time
+按月RANGE
+数据量大，典型按设备和时间查
+raw 原始报文
+receive_time
+按月RANGE
+数据量大，便于归档和追溯
+闪电standard/biz
+strike_time
+按月RANGE
+时空查询先按时间裁剪，再空间过滤
+其他低频设备表
+时间字段
+暂不分区或后续按月
+推荐存量仅1万
+过程、预警、告警、工况联动、运维表
+不分区
+普通表
+单表量小，查询优先使用普通索引
+分区粒度说明：
+本次测试默认采用按月 RANGE 分区，主要验证 90 天推荐存量下月分区是否能够满足写入、分页、曲线和统计查询要求。
+如果测试过程中出现以下情况，应在报告中记录并提出后续优化建议：
+单月分区数据量过大，导致查询扫描行数过多。
+查询无法有效命中分区裁剪。
+大气电场 2h 曲线查询 P95 明显超出目标。
+raw_kafka_message 按 Topic + receive_time 查询性能不足。
+历史数据归档、删除、迁移成本过高。
+后续可评估的优化方向包括：
+大气电场表由月分区调整为周分区。
+raw_kafka_message 保持月分区，但增加冷热归档策略。
+对高频查询增加覆盖索引。
+对报表统计类场景增加汇总表或物化视图。
+对超大历史数据采用冷热分层存储。
+[3] 空间字段策略
+数据
+经纬度用途
+是否使用 PostGIS
+矿区中心点
+与闪电点、雷达回波区域做范围匹配和距离判断
+是
+闪电大网、小网
+50 km 闪电窗、区域统计、距离计算
+是
+大气电场设备坐标
+展示、设备安装点
+否，先用普通经纬度
+其他设备坐标
+展示或低频查询
+按需
+空间点生成公式：
+ST_SetSRID(
+ST_MakePoint(longitude::double precision, latitude::double precision),
+4326
+)::geography;
+50 km 查询方式：
+以雷暴过程所属矿区的调度机房坐标作为空间判断基准，查询某个雷暴过程时间窗口内、距离矿区调度机房 50km 范围内的闪电事件数量。闪电表已保存 lightning_point 字段，查询时直接使用该字段参与 PostGIS 距离计算。
+SELECT count(*) AS lightning_count
+FROM thunderstorm_process p
+JOIN mine_site m
+ON m.mine_code = p.mine_code
+JOIN biz_lightning_event l
+ON l.strike_time BETWEEN p.strike_start_time AND p.strike_end_time
+AND l.lightning_point IS NOT NULL
+AND ST_DWithin(
+l.lightning_point,
+m.dispatch_room_point,
+50000
+)
+WHERE p.id = :process_id;
+来源类型分布统计：
+SELECT l.source_type,
+count(*) AS lightning_count
+FROM thunderstorm_process p
+JOIN mine_site m
+ON m.mine_code = p.mine_code
+JOIN biz_lightning_event l
+ON l.strike_time BETWEEN p.strike_start_time AND p.strike_end_time
+AND l.lightning_point IS NOT NULL
+AND ST_DWithin(
+l.lightning_point,
+m.dispatch_room_point,
+50000
+)
+WHERE p.id = :process_id
+GROUP BY l.source_type;
+闪电类型分布统计：
+SELECT l.lightning_type,
+count(*) AS lightning_count
+FROM thunderstorm_process p
+JOIN mine_site m
+ON m.mine_code = p.mine_code
+JOIN biz_lightning_event l
+ON l.strike_time BETWEEN p.strike_start_time AND p.strike_end_time
+AND l.lightning_point IS NOT NULL
+AND ST_DWithin(
+l.lightning_point,
+m.dispatch_room_point,
+50000
+)
+WHERE p.id = :process_id
+GROUP BY l.lightning_type;
+[2] 造数总体方案
+[3] 造数原则
+[6] 不随机堆行数，要按业务域分别构造。
+[6] 高频设备数据要连续、稳定、有少量异常。
+[6] 经纬度要落在真实矿区范围附近，不允许全国随机散点。
+[6] 雷暴过程要有明确开始、升级、解除和过程窗口。
+[6] 闪电事件要集中落在过程窗口和 50 km 范围内，同时保留少量窗口外数据用于反向校验。
+[6] 原始报文、标准数据、业务事件之间要能追溯，不能三类数据完全割裂。
+[6] 当前单机测试优先保证 S0、S1、S2 数据质量，不强制一次性造满 S4 推荐存量。
+[3] 主数据准备
+主数据
+建议
+矿区调度机房坐标
+设定 dispatch_room_lon、dispatch_room_lat，并生成 dispatch_room_point，作为空间造数锚点
+大气电场设备
+5 台，固定安装在矿区调度机房周边 0.5~30km 范围内，按 0.5~5km、5~15km、15~30km 分层分布
+低频设备
+SPD、接地、电源、雷电流仪等 10 台左右
+通知对象
+20 ~ 50 人，分调度、运维、安全、管理角色
+巡检人员
+5 ~ 10 人
+设备坐标生成规则：
+以矿区调度机房坐标作为设备空间分布中心，5 台大气电场设备固定生成在矿区调度机房周边 0.5~30km 范围内。
+建议分布为：
+2 台设备位于 0.5~5km 范围；
+2 台设备位于 5~15km 范围；
+1 台设备位于 15~30km 范围。
+同一 device_addr 的经纬度在全量数据中保持不变。
+[3] 原始报文造数
+最终raw总量为3900万条。
+构成建议：
+类型
+占比
+说明
+设备 HEX 原始报文
+95% 左右
+对应高频设备数据
+闪电 raw
+少量
+对应大网、小网
+异常 raw
+0.1%
+格式错误、缺字段、低质量
+raw 造数方式：
+[6] 小规模阶段通过 Kafka 重放，验证 raw 接收、解析、入库链路是否可运行。
+[6] 大规模存量准备通过批量脚本或 COPY 直写数据库，用于快速构造千万级以上存量。
+[6] 最终阶段保留一段 Kafka 持续写入，用于观察持续写入期间的入库延迟、消费堆积和数据库资源变化。
+[6] 说明：
+[6] COPY 或批量脚本直写数据库只验证数据库承载能力，不验证 Kafka 消费、应用解析、反压控制和端到端链路能力。
+[6] Kafka 重放结果可用于链路真实性参考，但不作为 Kafka 集群吞吐上限测试结论。
+[6] raw_kafka_message 的性能测试结论应区分“数据库写入能力”和“应用链路写入能力”。
+[3] 大气电场造数
+5 台设备，每台 1 秒 1 条：
+每秒行数 = 5
+每天行数 = 5 × 86400 = 432000
+推荐存量 3890 万 ≈ 90 天 × 432000
+生成方式：
+start_time = T0
+end_time   = T0 + 90 days
+每秒为 5 台设备各生成 1 条
+字段合理性：
+字段
+正常范围
+异常/预警规则
+instantaneous_value
+-200 ~ +200 kV/m；过程前平稳 ±20；过程中 +80 ~ +180
+雷暴过程前后逐步升高
+average_value
+瞬时值滑动平均
+保持平滑
+rate_change
+-2 到 2
+雷暴突变时增大
+warning_level
+0 ~ 4
+0 正常；过程抬升期 1 蓝 → 2 黄 → 3 橙 → 4 红（规范为 0~4）
+quality_status
+NORMAL
+0.1% 数据标 LOW_QUALITY
+雷暴过程附近的电场值不应完全随机，应呈现“平稳 → 抬升 → 高值 → 回落”的趋势。
+[3] 雷暴过程造数
+生成 100 个雷暴过程：
+字段
+规则
+开始时间
+由首次预警触发
+持续时间
+典型 2 小时，可在 60 ~ 180 分钟随机
+过程分布
+70% 集中在雷暴季，30% 分散
+预警轨迹
+发布、升级、降级、解除
+[3] 闪电数据造数
+每个过程生成：
+来源
+单过程典型量
+最终总量
+大网 CMB
+约350 条
+3.5 万条
+小网 Locator
+约150 条
+1.5 万条
+空间分布：
+雷暴过程不维护动态中心点。闪电数据和预警触发判断统一以矿区调度机房坐标作为空间基准。
+类型
+比例
+规则
+过程内有效闪电
+85%
+落在矿区调度机房坐标 0~50km 范围内
+近边界闪电
+10%
+落在 45 ~ 55 km，用于验证50km边界
+无关闪电
+5%
+落在雷暴过程时间窗外，或落在矿区调度机房坐标 50km 以外
+经纬度生成方法：
+输入：矿区调度机房经纬度 lon0, lat0，半径 r km，方位角 theta
+lat = lat0 + (r / 111.32) * cos(theta)
+lon = lon0 + (r / (111.32 * cos(lat0))) * sin(theta)
+[3] 预警、告警、工况联动、运维闭环造数
+按过程模板生成：
+数据
+每过程数量
+最终数量
+预警事件
+1条
+100 条
+预警信息
+约 5 条
+500 条
+设备告警
+约 30 条
+3000 条
+工况联动
+约 40 条
+4000 条
+巡检任务
+0 ~ 2 条
+100 条
+隐患
+0 ~ 1 条
+50 条
+维修
+0 ~ 1 条
+50 条
+要求：
+[6] 所有闭环数据必须归属到某个 thunderstorm_process.id。
+[6] 告警时间落在过程窗口或 ±5 分钟关联窗口内。
+[6] 巡检、隐患、维修时间必须晚于告警时间。
+[6] 关闭时间必须晚于创建时间。
+[6] 本轮测试不对闭环详情聚合查询做并发压测，但数据关系仍需造数完整，便于后续业务模块测试复用。
+[3] 造数通道
+通道
+用途
+优点
+注意点
+SQL COPY
+大规模存量准备
+快，适合千万级以上
+不验证应用解析逻辑
+Kafka 重放
+raw 到标准链路验证
+真实
+不适合一次性灌 3900 万
+HTTP/API
+冒烟和小批量验证
+覆盖接口
+速度慢
+建议组合：
+阶段
+造数方式
+S0
+小批量SQL
+S1
+COPY 为主，少量 Kafka
+S2
+COPY + 过程模板
+S3
+COPY 准备存量，Kafka 做持续写
+S4
+正式环境中 COPY 补齐推荐存量，再补充 Kafka 持续写
+[2] 数据合理性校验
+造数完成后必须先跑校验，再进入压测。
+[3] 行数校验
+SELECT 'standard_atmosphere_electric_field' AS table_name, count(*) FROM standard_atmosphere_electric_field
+UNION ALL
+SELECT 'biz_atmosphere_electric_field_event', count(*) FROM biz_atmosphere_electric_field_event
+UNION ALL
+SELECT 'raw_kafka_message', count(*) FROM raw_kafka_message
+UNION ALL
+SELECT 'thunderstorm_process', count(*) FROM thunderstorm_process
+UNION ALL
+SELECT 'biz_lightning_event', count(*) FROM biz_lightning_event;
+校验通过预期：
+表
+预期
+mine_site
+≥ 1
+standard_atmosphere_electric_field
+与当前阶段目标一致
+biz_atmosphere_electric_field_event
+与 standard 大气电场数据量一致
+raw_kafka_message
+与当前阶段目标一致
+thunderstorm_process
+与当前阶段目标一致
+thunderstorm_warning_event
+与当前阶段目标一致
+thunderstorm_warning_message
+与当前阶段目标一致
+standard_lightning_strike_cmb
+与当前阶段目标一致
+standard_lightning_strike_locator
+与当前阶段目标一致
+biz_lightning_event
+与当前阶段目标一致
+device_alarm_event
+与当前阶段目标一致
+thunderstorm_notice_event
+与当前阶段目标一致
+inspection_task
+与当前阶段目标一致
+hidden_risk
+与当前阶段目标一致
+repair_order
+与当前阶段目标一致
+[3] 经纬度校验
+SELECT count(*) AS invalid_lightning
+FROM biz_lightning_event
+WHERE longitude NOT BETWEEN 73 AND 135
+OR latitude NOT BETWEEN 3 AND 54;
+校验通过预期：
+invalid_lightning = 0
+说明：闪电经纬度必须落在中国大陆合理经纬度范围内。
+[3] 矿区调度机房坐标校验
+SELECT count(*) AS invalid_mine_site
+FROM mine_site
+WHERE dispatch_room_lon NOT BETWEEN 73 AND 135
+OR dispatch_room_lat NOT BETWEEN 3 AND 54
+OR dispatch_room_point IS NULL;
+校验通过预期：
+invalid_mine_site = 0
+说明：矿区调度机房坐标必须合法，并且已生成 PostGIS 空间点。
+[3] standard ↔ biz 1:1 校验
+必测对象：
+standard_atmosphere_electric_field ↔ biz_atmosphere_electric_field_event。
+standard_lightning_strike_cmb / standard_lightning_strike_locator ↔ biz_lightning_event。
+大气电场 1:1 校验：
+SELECT
+(SELECT count(*) FROM standard_atmosphere_electric_field) AS std_cnt,
+(SELECT count(*) FROM biz_atmosphere_electric_field_event) AS biz_cnt,
+(SELECT count(*)
+FROM standard_atmosphere_electric_field s
+LEFT JOIN biz_atmosphere_electric_field_event b
+ON b.standard_record_id = s.id
+WHERE b.id IS NULL) AS missing_biz,
+(SELECT count(*)
+FROM biz_atmosphere_electric_field_event b
+LEFT JOIN standard_atmosphere_electric_field s
+ON s.id = b.standard_record_id
+WHERE s.id IS NULL) AS orphan_biz,
+(SELECT count(*) - count(DISTINCT standard_record_id)
+FROM biz_atmosphere_electric_field_event) AS duplicate_biz_key;
+校验通过预期：
+字段
+预期
+std_cnt
+与阶段目标一致
+biz_cnt
+与 std_cnt 一致
+missing_biz
+0
+orphan_biz
+0
+duplicate_biz_key
+0
+说明：
+当前阶段尚未建表或尚未造数的设备表，不作为必测项。
+任一已参与造数的 standard / biz 表，如果存在 missing_biz、orphan_biz、duplicate_biz_key 非 0，则该批造数不通过，不应进入正式压测。
+[3] 闪电 50km关联校验
+SELECT p.id,
+count(l.id) AS lightning_count,
+count(CASE WHEN l.source_type = 'CMB' THEN 1 END) AS cmb_count,
+count(CASE WHEN l.source_type = 'LOCATOR' THEN 1 END) AS locator_count
+FROM thunderstorm_process p
+JOIN mine_site m
+ON m.mine_code = p.mine_code
+LEFT JOIN biz_lightning_event l
+ON l.strike_time BETWEEN p.strike_start_time AND p.strike_end_time
+AND l.lightning_point IS NOT NULL
+AND ST_DWithin(
+l.lightning_point,
+m.dispatch_room_point,
+50000
+)
+GROUP BY p.id
+ORDER BY p.id;
+校验通过预期：
+返回记录数应与当前阶段 thunderstorm_process 数量一致。
+每个过程 lightning_count 应大于 0。
+典型造数下每个过程约 500 条左右，其中 CMB 约 350 条，Locator 约 150 条。
+该校验验证雷暴过程时间窗内、距离矿区调度机房 50km 范围内是否存在有效闪电事件。
+[3] 预警事件与预警信息关系校验
+SELECT p.id AS process_id,
+count(DISTINCT e.id) AS warning_event_count,
+count(DISTINCT msg.id) AS warning_message_count
+FROM thunderstorm_process p
+LEFT JOIN thunderstorm_warning_event e
+ON e.thunderstorm_process_id = p.id
+LEFT JOIN thunderstorm_warning_message msg
+ON msg.warning_event_id = e.id
+GROUP BY p.id
+ORDER BY p.id;
+校验通过预期：
+返回记录数应与当前阶段 thunderstorm_process 数量一致。
+每个过程 warning_event_count = 1。
+每个过程 warning_message_count 通常约 5 条。
+[3] 雷暴过程闭环数据量校验
+SELECT p.id,
+count(DISTINCT w.id) AS warning_event_count,
+count(DISTINCT msg.id) AS warning_message_count,
+count(DISTINCT a.id) AS alarm_count,
+count(DISTINCT n.id) AS notice_count,
+count(DISTINCT i.id) AS inspection_count,
+count(DISTINCT h.id) AS risk_count,
+count(DISTINCT r.id) AS repair_count
+FROM thunderstorm_process p
+LEFT JOIN thunderstorm_warning_event w ON w.thunderstorm_process_id = p.id
+LEFT JOIN thunderstorm_warning_message msg ON msg.thunderstorm_process_id = p.id
+LEFT JOIN device_alarm_event a ON a.thunderstorm_process_id = p.id
+LEFT JOIN thunderstorm_notice_event n ON n.thunderstorm_process_id = p.id
+LEFT JOIN inspection_task i ON i.thunderstorm_process_id = p.id
+LEFT JOIN hidden_risk h ON h.thunderstorm_process_id = p.id
+LEFT JOIN repair_order r ON r.thunderstorm_process_id = p.id
+GROUP BY p.id;
+校验通过预期：
+返回记录数应与当前阶段 thunderstorm_process 数量一致。
+每个过程 warning_event_count = 1。
+每个过程 warning_message_count 通常约 5。
+每个过程 alarm_count 通常约 30。
+每个过程 notice_count 通常约 40。
+inspection_count、risk_count、repair_count 可为 0，但总量应接近当前阶段目标。
+说明：
+该校验仅用于确认数据关系完整性，不作为本轮核心并发压测场景。
+[3] 时间窗口校验
+SELECT count(*) AS invalid_window
+FROM thunderstorm_process
+WHERE process_start_time > process_end_time
+OR strike_start_time > strike_end_time
+OR data_window_start > data_window_end;
+校验通过预期：
+invalid_window = 0
+说明：雷暴过程开始结束时间、闪电窗口、数据关联窗口必须满足时间顺序。
+[3] 预警动作时间线校验
+SELECT count(*) AS invalid_warning_timeline
+FROM thunderstorm_warning_event e
+WHERE NOT EXISTS (
+SELECT 1
+FROM thunderstorm_warning_message m
+WHERE m.warning_event_id = e.id
+AND m.warning_action = 'PUBLISH'
+AND m.warning_time = e.event_start_time
+)
+OR NOT EXISTS (
+SELECT 1
+FROM thunderstorm_warning_message m
+WHERE m.warning_event_id = e.id
+AND m.warning_action = 'LIFT'
+AND m.warning_time = e.event_end_time
+);
+校验通过预期：
+invalid_warning_timeline = 0
+说明：预警事件开始时间应对应首条发布信息，结束时间应对应最后解除信息。
+[3] 原始报文去重校验
+SELECT topic,
+partition_no,
+offset_no,
+count(*) AS duplicate_count
+FROM raw_kafka_message
+GROUP BY topic, partition_no, offset_no
+HAVING count(*) > 1;
+校验通过预期：
+返回 0 行
+说明：同一 Topic、分区、offset 不能重复入库。
+[2] 压测工具
+工具/组件
+是否必需
+主要用途
+对应结果指标
+部署建议
+JMeter
+必需
+执行接口并发压测、记录请求结果
+执行次数、平均响应时间、P95、TPS/QPS、错误率
+部署在独立压测机
+Prometheus
+必需
+统一采集服务器资源指标
+CPU平均、内存平均、磁盘利用率、磁盘 IO 等待时间
+Docker部署
+node_exporter
+必需
+暴露被测服务器 CPU、内存、磁盘指标
+CPU平均、内存平均、磁盘利用率、磁盘 IO 等待时间
+部署在被测服务器
+Grafana
+建议使用
+展示 Prometheus 指标，便于按压测时间窗口取值
+CPU平均、内存平均、磁盘利用率、磁盘 IO 等待时间
+Docker部署
+自定义数据生产程序
+写入类场景必需
+执行原始报文、大气电场、闪电数据持续写入，并输出执行次数、TPS、错误率
+执行次数、TPS、错误率
+部署在独立压测机
+pg_stat_statements
+必需
+统计 SQL 执行次数、平均耗时、最大耗时、总耗时
+慢 SQL、热点 SQL、调用次数
+PostgreSQL 扩展
+EXPLAIN ANALYZE
+必需
+分析关键 SQL 执行计划
+是否命中索引、是否分区裁剪、扫描行数
+每个核心查询至少保留一次
+pg_stat_activity
+建议使用
+观察数据库连接和执行中的 SQL
+活跃连接、等待事件、长事务
+数据库侧查询
+数据库慢 SQL 日志
+建议使用
+记录超过阈值的 SQL
+慢 SQL 明细
+PostgreSQL 配置
+要求：
+每个核心查询场景至少保留一次 EXPLAIN ANALYZE 结果。
+每轮压测后导出 pg_stat_statements 中耗时最高的 SQL。
+如果出现慢 SQL，报告中必须说明原因和优化建议。
+需要区分应用接口耗时、SQL 执行耗时和数据库资源瓶颈，不能只给 JMeter 结果。
+[3] 压测工具部署说明
+当前测试环境为单机环境。若无独立压测机，JMeter 与自定义造数程序可部署在同机，但需要在报告中说明该限制。
+压测过程中应重点记录：
+CPU 使用率。
+内存使用率。
+磁盘 IO 等待。
+数据库连接数。
+慢 SQL。
+PostgreSQL 数据目录和 WAL 占用。
+如条件允许，JMeter 应部署在另一台机器上，数据库服务器仅运行 PostgreSQL、PostGIS、node_exporter 和必要监控组件。
+[3] 并发设置说明
+当前测试机为单机环境，查询并发采用分级递增方式，不直接从高并发开始。
+建议并发梯度：
+并发档
+用途
+5
+验证 SQL 和接口稳定性
+10
+观察低并发下响应时间
+20
+观察常规并发下响应时间
+50
+仅在 S3 阶段对核心查询场景执行，用于观察单机压力上限
+说明：
+PERF-01、PERF-02 写入类场景按 5 线程执行。
+PERF-03 闪电突发写入按 1 线程执行。
+PERF-04、PERF-05、PERF-06 查询类场景先测 10～20 并发。
+S3 阶段如资源允许，可将 PERF-04、PERF-05、PERF-06 提升至 50 并发。
+[3] 数据库测试配置建议
+当前测试机内存为 32GB，PostgreSQL 可按前期测试环境进行如下配置，实际以测试前配置为准并写入报告：
+参数
+建议值
+shared_buffers
+8GB
+effective_cache_size
+20GB～24GB
+work_mem
+16MB～64MB，根据并发控制调整
+maintenance_work_mem
+1GB～2GB
+max_connections
+100～150
+wal_compression
+on
+checkpoint_timeout
+15min
+max_wal_size
+8GB～16GB
+说明：
+以上参数仅用于当前单机测试环境，不代表生产推荐配置。
+调整参数前后应记录配置差异，避免不同阶段结果不可比。
+[3] 磁盘空间控制要求
+当前测试机硬盘容量为 1TB。压测过程中应持续监控数据库数据目录、WAL、临时文件和造数文件占用。
+建议控制线：
+磁盘使用率
+处理方式
+< 70%
+正常测试
+70%～80%
+停止继续扩容数据，只执行查询测试
+> 80%
+停止压测，清理中间文件或归档数据
+> 90%
+禁止继续写入测试，避免数据库异常或系统不稳定
+[2] 分阶段测试计划
+[3] 阶段总览
+阶段编号
+阶段
+数据目标
+主要目的
+当前测试机是否执行
+是否作为最终结论
+S0
+建模验证档
+1 万级
+验证表、分区、PostGIS、造数逻辑
+必做
+否
+S1
+基线档
+核心大表约200万
+建立写入和查询基线
+必做
+阶段参考
+S2
+增长档
+核心大表约800~1000万
+验证分区和索引策略
+必做
+阶段性结论
+S3
+压力档
+核心大表约1500~2000万
+验证主要场景和混合负载
+建议执行
+当前单机主要结论
+S4
+推荐存量档
+原计划推荐存量，核心合计约 1.17 亿行
+验证推荐存量下数据库能力
+不强制执行
+后续正式环境补测
+阶段结论说明：
+S0 只用于验证表结构、分区、PostGIS 字段、造数逻辑和基础 SQL 是否可运行。
+S1 用于形成低数据量基线，不作为容量判断依据。
+S2 用于观察数据增长后分区和索引策略是否有效，可形成阶段性结论。
+S3 用于验证主要场景在当前单机环境下的表现，是本轮测试的重要参考。
+S4 用于验证推荐存量下的主要数据库能力，但当前单机环境不强制执行。
+由于测试环境并非正式生产环境，S3/S4 结果不作为生产最终验收结论，仅作为正式环境压测和容量规划依据。
+[3] 阶段推进原则
+当前阶段数据校验未通过，不进入压测。
+当前阶段压测未完成，不进入下一阶段。
+当前阶段出现明显慢 SQL，应先分析执行计划，再决定是否继续扩容。
+当前阶段磁盘使用率超过 80%，停止继续扩容。
+当前阶段如果数据库连接池耗尽、锁等待严重或错误率明显异常，应暂停测试并定位原因。
+每一阶段结束后都要记录：数据规模、测试场景、性能结果、资源占用、慢 SQL、阶段结论。
+[2] 通过标准与判断口径
+[3] 性能指标口径
+指标
+说明
+执行次数
+场景执行总次数
+成功次数
+成功完成的请求或写入次数
+错误次数
+失败请求、写入失败、SQL 执行失败次数
+错误率
+错误次数 / 执行次数
+平均响应时间
+场景平均耗时
+P95
+95% 请求或 SQL 的响应时间
+P99
+99% 请求或 SQL 的响应时间
+TPS/QPS
+单位时间内写入或查询数量
+CPU 平均使用率
+压测窗口内数据库服务器 CPU 平均值
+内存使用率
+压测窗口内数据库服务器内存使用情况
+磁盘 IO 等待
+压测窗口内磁盘 IO 等待情况
+慢 SQL
+超过阈值的 SQL 明细
+分区裁剪情况
+查询是否命中目标分区，是否扫描无关分区
+索引命中情况
+查询是否使用预期索引
+[3] 参考通过标准
+本次测试为前期摸底测试，以下指标作为参考目标，不作为生产最终验收指标。
+场景
+参考目标
+PERF-01 大气电场持续写入
+写入成功率 ≥ 99.9%，持续写入期间无数据库异常
+PERF-02 原始报文持续写入
+写入成功率 ≥ 99.9%，raw 表无重复 topic + partition + offset
+PERF-03 活跃过程闪电突发写入
+写入成功率 ≥ 99.9%，空间字段生成正常
+PERF-04 大气电场仪监测记录分页查询
+分页查询 P95 ≤ 1000ms，错误率 ≤ 0.1%
+PERF-05 多电场仪雷暴过程窗曲线查询
+2h 曲线查询 P95 ≤ 1500ms，错误率 ≤ 0.1%
+PERF-06 闪电事件时空统计查询
+50km 闪电数量统计 P95 ≤ 1000ms，来源类型/闪电类型分布统计 P95 ≤ 1500ms，错误率 ≤ 0.1%
+说明：
+S0～S2 阶段可按参考通过标准判断是否通过。
+S3 阶段如部分场景超过参考 P95，不直接判定数据库方案不可用，应结合资源指标、执行计划和慢 SQL 分析判断是否属于单机资源限制。
+当前单机环境下，P95 超标但执行计划合理、索引命中正常、主要瓶颈为磁盘 IO 时，应在报告中标记为“单机资源限制，正式环境需复测”。
+[2] 测试结果记录模板
+[3] 测试环境
+项目
+内容
+测试时间
+测试人员
+数据库版本
+PostgreSQL 16.x
+PostGIS 版本
+CPU
+14核
+内存
+32GB
+硬盘
+1TB
+操作系统
+数据库部署方式
+裸机 / Docker / 虚拟机
+应用服务部署方式
+压测机配置
+同机 / 独立压测机
+网络环境
+同机 / 局域网
+是否正式环境
+否
+[3] 数据规模结果
+数据对象
+目标行数
+实际行数
+是否达标
+说明
+mine_site
+1
+thunderstorm_process
+standard_atmosphere_electric_field
+biz_atmosphere_electric_field_event
+raw_kafka_message
+standard_lightning_strike_cmb
+standard_lightning_strike_locator
+biz_lightning_event
+thunderstorm_warning_event
+thunderstorm_warning_message
+device_alarm_event
+thunderstorm_notice_event
+inspection_task
+hidden_risk
+repair_order
+[3] 数据校验结果
+校验项
+结果
+是否通过
+说明
+行数校验
+经纬度合法性校验
+mine_site 坐标校验
+standard ↔ biz 关系校验
+50km 闪电关联校验
+预警事件与预警信息关系校验
+雷暴过程闭环数据量校验
+时间窗口校验
+预警动作时间线校验
+raw 原始报文去重校验
+[3] 性能测试结果汇总
+场景编号
+场景名称
+数据
+档位
+并发
+执行
+次数
+成功率
+平均
+耗时
+P95
+TPS/QPS
+是否
+通过
+PERF-01
+大气电场持续写入
+PERF-02
+原始报文持续写入
+PERF-03
+活跃过程闪电突发写入
+PERF-04
+大气电场仪监测记录分页查询
+PERF-05
+多电场仪雷暴过程窗曲线查询
+PERF-06
+闪电事件时空统计查询
+[3] 数据库资源结果
+场景编号
+CPU平均
+CPU峰值
+内存平均
+磁盘IO等待
+连接数峰值
+说明
+PERF-01
+PERF-02
+PERF-03
+PERF-04
+PERF-05
+PERF-06
+[3] 阶段结论
+阶段
+数据规模
+结论
+主要问题
+是否进入下一阶段
+S0
+1万级
+S1
+核心大表约200万
+S2
+核心大表约800万～1000万
+S3
+核心大表约1500万～2000万
+S4
+推荐存量档
+当前不强制执行
+[2] 总体结论口径
+当前测试环境下，PostgreSQL 是否能够支撑当前单机数据规模下的主要数据库场景。
+当前表结构、分区策略和索引策略是否存在明显问题。
+高频时序数据是否适合按当前粒度分区。
+闪电类空间查询是否需要继续保留 PostGIS。
+哪些 SQL 或业务场景需要优化。
+正式环境压测前还需要补充哪些测试。
+当前测试结果不作为生产最终验收结论。
+建议报告结论示例：
+本次测试基于 14核cpu、32GB 内存、1TB 硬盘的单机环境开展，测试结果用于前期数据库建模、索引、分区和查询性能摸底。
+在当前硬件条件下，测试结论仅反映单机测试环境中的性能表现，不代表正式生产环境性能上限，也不作为最终生产验收结论。
+如需验证推荐存量 S4 或更高并发场景，应在更接近正式部署的数据库服务器上补充测试。
+
+============================================================
+TABLES
+============================================================
+
+
+--- Table 0 (7 rows) ---
+项目 | 配置
+处理器 | 14核
+内存 | 32G
+硬盘 | 1TB
+数据库 | PostgreSQL 16.x
+空间扩展 | PostGIS
+部署形态 | 单机测试环境
+
+--- Table 1 (7 rows) ---
+场景编号 | 场景名称 | 业务场景说明 | 主要表 | 并发
+PERF-01 | 大气电场持续写入 | 5 台设备常态上报 | standard_atmosphere_electric_fieldbiz_atmosphere_electric_field_event | 5线程
+PERF-02 | 原始报文持续写入 | device-raw-data 等 topic 写入 raw | raw_kafka_message | 5线程
+PERF-03 | 活跃过程闪电突发写入 | 1 个进行中雷暴过程，50km 内落雷密集入库 | standard_lightning_strike_cmbstandard_lightning_strike_locatorbiz_lightning_event | 1线程
+PERF-04 | 大气电场仪监测记录分页查询 | 按时间、矿区、设备查询电场仪监测分页数据 | standard_atmosphere_electric_field | 10～20，S3 可提升至 50
+PERF-05 | 多电场仪雷暴过程窗曲线查询 | 查询 5 台电场仪同一 2h 雷暴过程窗口内的电场瞬时值、平均值、变化率曲线，用于验证高频时序表在过程窗口曲线查询下的性能 | standard_atmosphere_electric_field | 10～20，S3 可提升至 50
+PERF-06 | 闪电事件统计查询 | 查询某个雷暴过程时间窗内、矿区调度机房 50km 范围内的闪电数量、来源类型分布、闪电类型分布 | standard_lightning_strike_cmbstandard_lightning_strike_locatorbiz_lightning_eventthunderstorm_processmine_site | 10～20，S3 可提升至 50
+
+--- Table 2 (17 rows) ---
+数据域 | 表或数据对象 | 最终推荐存量
+矿区表 | mine_site | 1条
+雷暴过程 | thunderstorm_process | 100条
+雷暴监测·大网 | standard_lightning_strike_cmb | 3.5万条
+雷暴监测·小网 | standard_lightning_strike_locator | 1.5万条
+雷暴监测业务事件 | biz_lightning_event | 5万条左右，大网+小网汇总
+设备监测·大气电场 | standard_atmosphere_electric_field | 3890万条
+大气电场业务事件 | biz_atmosphere_electric_field_event | 3890万条
+设备监测·其他 | 其他 standard_* / biz_*_event | 1万条
+雷暴预警 | thunderstorm_warning_event | 100条
+雷暴信息 | thunderstorm_warning_message | 500条
+设备告警 | device_alarm_event | 3000条
+雷暴工况联动 | thunderstorm_notice_event | 4000条
+巡检任务 | inspection_task | 100条
+隐患记录 | hidden_risk | 50条
+故障维修 | repair_order | 50条
+原始报文 | raw_kafka_message，全 Topic | 3900万条
+
+--- Table 3 (5 rows) ---
+类型 | 估算行数
+大气电场 standard + biz | 7780万
+raw全Topic | 3900万
+闪电、过程、告警、工况联动、运维等 | 约10万级
+核心合计 | 约 1.17 亿行
+
+--- Table 4 (17 rows) ---
+数据对象 | S0 建模验证档 | S1 基线档 | S2 增长档 | S3 压力档 | S4 推荐存量档
+矿区 | 1条 | 1条 | 1条 | 1条 | 1条
+雷暴过程 | 10条 | 20条 | 50条 | 80～100条 | 100条
+雷暴监测-大网 | 1000条 | 2000条 | 9000条 | 2万～3.5万条 | 3.5万条
+雷暴监测-小网 | 500条 | 800条 | 4000条 | 9000～1.5万条 | 1.5万条
+雷暴监测业务事件 | 1000条 | 3000条 | 1.25万条 | 3万～5万条 | 5万条左右
+设备监测-大气电场 | 1万条 | 200万条 | 800万～1000万条 | 1500万～2000万条 | 3890万条
+大气电场业务事件 | 1万条 | 200万条 | 800万～1000万条 | 1500万～2000万条 | 3890万条
+设备监测-其他 | 1000条 | 2000条 | 5000条 | 8000～1万条 | 1万条
+雷暴预警 | 10条 | 20条 | 50条 | 80～100条 | 100条
+雷暴信息 | 20条 | 100条 | 250条 | 400～500条 | 500条
+设备告警 | 100条 | 500条 | 1500条 | 2500～3000条 | 3000条
+雷暴工况联动 | 100条 | 800条 | 2000条 | 3200～4000条 | 4000条
+巡检任务 | 10条 | 30条 | 60条 | 80～100条 | 100条
+隐患记录 | 5条 | 15条 | 30条 | 40～50条 | 50条
+故障维修 | 5条 | 15条 | 30条 | 40～50条 | 50条
+原始报文 | 1万条 | 200万条 | 800万～1000万条 | 1500万～2000万条 | 3900万条
+
+--- Table 5 (6 rows) ---
+设计原则 | 适用表 | 说明
+高频时序表按时间分区 | standard_atmosphere_electric_fieldbiz_atmosphere_electric_field_eventraw_kafka_messagestandard_lightning_strike_cmbstandard_lightning_strike_locatorbiz_lightning_event | 大气电场 standard/biz 分区键 = device_upload_time；raw 分区键 = receive_time；闪电类分区键 = strike_time
+闪电类表使用 PostGIS | mine_sitestandard_lightning_strike_cmbstandard_lightning_strike_locatorbiz_lightning_event | 闪电表保存 geography(Point, 4326)，用于 50km 范围统计
+大气电场坐标保留普通经纬度 | standard_atmosphere_electric_fieldbiz_atmosphere_electric_field_event | 设备坐标主要用于展示和归属，不做高频空间检索，不建 GiST 空间索引
+过程、告警、工况联动、运维闭环表暂不分区 | thunderstorm_processthunderstorm_warning_eventdevice_alarm_eventthunderstorm_notice_eventinspection_taskhidden_riskrepair_order | 数据量小，使用普通 B-Tree 索引支持查询
+原始报文表按接收时间分区 | raw_kafka_message | 优先 receive_time
+
+--- Table 6 (15 rows) ---
+字段 | 类型 | 说明
+id | BIGINT | 主键
+mine_code | VARCHAR(64) | 矿区编码
+mine_name | VARCHAR(128) | 矿区名称
+unified_social_credit_code | VARCHAR(64) | 统一社会信用代码
+province_code | VARCHAR(32) | 省编码
+city_code | VARCHAR(32) | 市编码
+county_code | VARCHAR(32) | 区县编码
+address | VARCHAR(256) | 地址
+dispatch_room_lon | NUMERIC(12,6) | 调度机房经度
+dispatch_room_lat | NUMERIC(12,6) | 调度机房纬度
+dispatch_room_point | GEOGRAPHY(Point,4326) | 调度机房空间点
+fence_geom | GEOMETRY(MultiPolygon,4326) | 矿区电子围栏
+status | VARCHAR(32) | 状态：ACTIVE / DISABLED
+create_time | TIMESTAMP | 创建时间
+
+--- Table 7 (7 rows) ---
+索引 | 字段 | 说明
+pk_mine_site | id | 主键
+uq_mine_site_code | mine_code | 矿区编码唯一
+idx_mine_site_credit_code | unified_social_credit_code | 按统一社会信用代码查询
+idx_mine_site_status | status | 按状态查询
+idx_mine_site_dispatch_room_gist | dispatch_room_point | 调度机房点位空间查询
+idx_mine_site_fence_gist | fence_geom | 电子围栏空间查询
+
+--- Table 8 (11 rows) ---
+字段 | 类型 | 说明
+id | BIGINT | 主键
+mine_code | VARCHAR(64) | 矿区编码
+process_start_time | TIMESTAMP | 过程开始时间，即首次预警发布时间
+process_end_time | TIMESTAMP | 过程结束时间，即最后预警解除时间
+strike_start_time | TIMESTAMP | 过程内首次落雷时间
+strike_end_time | TIMESTAMP | 过程内末次落雷时间
+data_window_start | TIMESTAMP | 关联数据窗口开始，通常为 strike_start_time - 5min
+data_window_end | TIMESTAMP | 关联数据窗口结束，通常为 strike_end_time + 5min
+process_status | VARCHAR(32) | 进行中、已结束、已归档、已取消
+create_time | TIMESTAMP | 创建时间
+
+--- Table 9 (6 rows) ---
+索引 | 字段 | 说明
+pk_thunderstorm_process | id | 主键
+idx_process_mine_time | mine_code, process_start_time | 按矿区和过程开始时间查询历史过程
+idx_process_status_time | process_status, process_start_time | 按雷暴过程状态查询进行中、已结束过程
+idx_process_time_range | process_start_time, process_end_time | 按时间范围检索雷暴过程
+idx_process_strike_window | strike_start_time, strike_end_time | 雷暴过程内落雷时间窗查询
+
+--- Table 10 (10 rows) ---
+字段 | 类型 | 说明
+id | BIGINT | 主键
+thunderstorm_process_id | BIGINT | 关联雷暴过程 ID，一次过程对应一个预警事件
+mine_code | VARCHAR(64) | 矿区编码
+event_start_time | TIMESTAMP | 预警事件开始时间，即首次预警发布时间
+event_end_time | TIMESTAMP | 预警事件结束时间，即最后解除时间
+current_warning_level | INT | 当前预警等级
+max_warning_level | INT | 本次事件最高预警等级
+event_status | VARCHAR(32) | 事件状态：ACTIVE、CLOSED、CANCELLED
+create_time | TIMESTAMP | 创建时间
+
+--- Table 11 (6 rows) ---
+索引 | 字段 | 说明
+pk_thunderstorm_warning_event | id | 主键
+uq_warning_event_process | thunderstorm_process_id | 唯一约束，保证一个雷暴过程只对应一个预警事件
+idx_warning_event_mine_time | mine_code, event_start_time | 按矿区和预警事件开始时间查询
+idx_warning_event_status_time | event_status, event_start_time | 按事件状态查询当前预警事件
+idx_warning_event_level_time | max_warning_level, event_start_time | 按最高预警等级和时间查询
+
+--- Table 12 (14 rows) ---
+字段 | 类型 | 说明
+id | BIGINT | 主键
+warning_event_id | BIGINT | 关联预警事件 ID
+thunderstorm_process_id | BIGINT | 关联雷暴过程 ID，冗余便于查询
+mine_code | VARCHAR(64) | 矿区编码
+rule_code | VARCHAR(64) | 预警规则编码
+rule_name | VARCHAR(128) | 预警规则名称
+rule_summary | TEXT | 预警规则摘要
+data_source | VARCHAR(64) | 数据来源类型
+data_source_ref_id | BIGINT | 数据来源记录 ID
+warning_time | TIMESTAMP | 预警信息触发时间
+warning_level | INT | 预警等级
+warning_action | VARCHAR(32) | 预警动作：PUBLISH、UPGRADE、DOWNGRADE、LIFT
+create_time | TIMESTAMP | 创建时间
+
+--- Table 13 (7 rows) ---
+索引 | 字段 | 说明
+pk_thunderstorm_warning_message | id | 主键
+idx_warning_msg_event_time | warning_event_id, warning_time | 查询某个预警事件下的预警时间线
+idx_warning_msg_process_time | thunderstorm_process_id, warning_time | 查询某个雷暴过程下的全部预警信息
+idx_warning_msg_mine_time | mine_code, warning_time | 按矿区和时间查询预警信息
+idx_warning_msg_rule_time | rule_code, warning_time | 按规则查询触发历史
+idx_warning_msg_level_time | warning_level, warning_time | 按预警等级和时间查询
+
+--- Table 14 (21 rows) ---
+字段 | 类型 | 说明
+id | BIGINT | 主键，雪花 ID
+topic | VARCHAR(128) | Kafka Topic 名称
+partition_no | INT | Kafka 分区号
+offset_no | BIGINT | Kafka 消息偏移量
+message_key | VARCHAR(256) | Kafka Message Key
+message_timestamp | BIGINT | Kafka 消息时间戳，毫秒
+headers_json | TEXT | Kafka Headers JSON 序列化
+raw_value | TEXT | Kafka 消息原始 value 字符串
+raw_value_type | VARCHAR(32) | 原始值类型：JSON / HEX / TEXT
+source_type | VARCHAR(32) | 来源类型，如 CMB / LOCATOR / DEVICE_RAW / RADAR_REALTIME / RADAR_FORECAST
+trace_id | VARCHAR(64) | 链路追踪 ID，仅用于追踪，不作去重依据
+dedup_key | VARCHAR(256) | 业务去重 Key，来自 Header 或消息体
+process_status | VARCHAR(32) | 处理状态
+error_message | TEXT | 处理失败错误信息
+receive_time | TIMESTAMP | 消息接收时间
+create_time | TIMESTAMP | 记录创建时间
+update_time | TIMESTAMP | 记录更新时间
+ext_json | TEXT | 扩展 JSON 字段
+schema_version | VARCHAR(16) | 消息 Schema 版本
+data_version | VARCHAR(16) | 数据版本
+
+--- Table 15 (6 rows) ---
+索引 | 字段 | 说明
+pk_raw_kafka_message | id | 主键
+uq_raw_kafka_message_tpo | topic, partition_no, offset_no | Kafka 原始消息去重
+idx_raw_kafka_message_topic_time | topic, receive_time | 按 Topic 和接收时间查询原始报文
+idx_raw_kafka_message_source_time | source_type, receive_time | 按来源类型和接收时间查询
+idx_raw_kafka_message_status_time | process_status, receive_time | 按处理状态和接收时间查询
+
+--- Table 16 (27 rows) ---
+字段 | 类型 | 说明
+id | BIGINT | 主键
+raw_message_id | BIGINT[] | 参与拼帧的 raw_kafka_message.id 数组
+device_addr | VARCHAR(64) | 设备通信地址
+type_id | VARCHAR(16) | 设备类型 ID，01/19
+command_type | VARCHAR(8) | 协议指令类型
+device_upload_time | TIMESTAMP | 设备 GPS 上报时间
+instantaneous_value | NUMERIC(12,2) | 瞬时电场值
+average_value | NUMERIC(12,2) | 平均值
+rate_change | NUMERIC(12,2) | 变化率
+equipment_voltage | NUMERIC(12,2) | 设备电压
+voltage_state | VARCHAR(8) | 电压状态
+motor_speed | INTEGER | 电机速度
+warning_level | INTEGER | 预警等级
+circuit_number | VARCHAR(50) | 回路编号
+time_category | VARCHAR(10) | 时间类型
+longitude_direction | VARCHAR(10) | 经度方向
+longitude | NUMERIC(12,6) | 经度
+latitude_direction | VARCHAR(10) | 纬度方向
+latitude | NUMERIC(12,6) | 纬度
+card | VARCHAR(64) | 卡号
+quality_status | VARCHAR(16) | 数据质量状态
+create_time | TIMESTAMP | 创建时间
+update_time | TIMESTAMP | 更新时间
+ext_json | TEXT | 扩展 JSON
+schema_version | VARCHAR(16) | Schema 版本
+data_version | VARCHAR(16) | 数据版本
+
+--- Table 17 (4 rows) ---
+索引 | 字段 | 说明
+pk_standard_atmosphere_electric_field | id | 主键
+idx_std_atm_field_addr_time | device_addr, device_upload_time | 按设备和上报时间查询
+idx_std_atm_field_upload_time | device_upload_time | 建议分区字段，按月 RANGE 分区
+
+--- Table 18 (30 rows) ---
+字段 | 类型 | 说明
+id | BIGINT | 主键
+standard_record_id | BIGINT | 关联 standard_atmosphere_electric_field.id
+source_topic | VARCHAR(128) | 来源 Kafka Topic
+source_type | VARCHAR(32) | 来源类型
+device_addr | VARCHAR(64) | 设备通信地址
+type_id | VARCHAR(16) | 设备类型 ID
+command_type | VARCHAR(8) | 协议指令类型
+device_upload_time | TIMESTAMP | 设备上报时间
+instantaneous_value | NUMERIC(12,2) | 瞬时电场值
+average_value | NUMERIC(12,2) | 平均值
+rate_change | NUMERIC(12,2) | 变化率
+equipment_voltage | NUMERIC(12,2) | 设备电压
+voltage_state | VARCHAR(8) | 电压状态
+motor_speed | INTEGER | 电机速度
+warning_level | INTEGER | 预警等级
+circuit_number | VARCHAR(50) | 回路编号
+time_category | VARCHAR(10) | 时间类型
+longitude_direction | VARCHAR(10) | 经度方向
+longitude | NUMERIC(12,6) | 经度
+latitude_direction | VARCHAR(10) | 纬度方向
+latitude | NUMERIC(12,6) | 纬度
+card | VARCHAR(64) | 卡号
+risk_level | INT | 风险等级
+event_status | VARCHAR(16) | 事件状态
+create_time | TIMESTAMP | 创建时间
+update_time | TIMESTAMP | 更新时间
+ext_json | TEXT | 扩展 JSON
+schema_version | VARCHAR(16) | Schema 版本
+data_version | VARCHAR(16) | 数据版本
+
+--- Table 19 (5 rows) ---
+索引 | 字段 | 说明
+pk_biz_atmosphere_electric_field_event | id | 主键
+uq_biz_atm_field_event_standard | standard_record_id | 保证 standard 与 biz 1:1
+idx_biz_atm_field_addr_time | device_addr, device_upload_time | 按设备和时间查询
+idx_biz_atm_field_upload_time | device_upload_time | 建议分区字段，按月 RANGE 分区
+
+--- Table 20 (23 rows) ---
+字段 | 类型 | 说明
+id | BIGINT | 主键
+raw_message_id | BIGINT | 关联 raw_kafka_message.id
+source_type | VARCHAR(32) | 来源类型，固定为 LOCATOR
+lightning_type | VARCHAR(8) | 闪电类型
+strike_time | TIMESTAMP | 雷击发生时间
+longitude | DECIMAL(10,6) | 经度
+latitude | DECIMAL(10,6) | 纬度
+lightning_point | GEOGRAPHY(Point,4326) | 雷击空间点
+site_count | INT | 定位站点数
+province | VARCHAR(64) | 省份
+city | VARCHAR(64) | 城市
+county | VARCHAR(64) | 区县
+address | VARCHAR(256) | 完整地址
+province_code | BIGINT | 省份行政区划码
+city_code | BIGINT | 城市行政区划码
+county_code | BIGINT | 区县行政区划码
+quality_status | VARCHAR(16) | 数据质量状态
+create_time | TIMESTAMP | 创建时间
+update_time | TIMESTAMP | 更新时间
+ext_json | TEXT | 扩展 JSON
+schema_version | VARCHAR(16) | Schema 版本
+data_version | VARCHAR(16) | 数据版本
+
+--- Table 21 (4 rows) ---
+索引 | 字段 | 说明
+pk_standard_lightning_strike_locator | id | 主键
+idx_std_locator_strike_time | strike_time | 按雷击时间查询
+idx_std_locator_lightning_point_gist | lightning_point | PostGIS 索引，支持 50km 查询
+
+--- Table 22 (23 rows) ---
+字段 | 类型 | 说明
+id | BIGINT | 主键
+raw_message_id | BIGINT | 关联 raw_kafka_message.id
+source_type | VARCHAR(32) | 来源类型，固定为 CMB
+lightning_type | VARCHAR(8) | 闪电类型
+strike_time | TIMESTAMP | 雷击发生时间
+longitude | DECIMAL(10,6) | 经度
+latitude | DECIMAL(10,6) | 纬度
+lightning_point | GEOGRAPHY(Point,4326) | 雷击空间点
+peak_current | DECIMAL(12,6) | 峰值电流
+height | DECIMAL(12,6) | 高度
+province | VARCHAR(64) | 省份
+city | VARCHAR(64) | 城市
+county | VARCHAR(64) | 区县
+province_code | BIGINT | 省份行政区划码
+city_code | BIGINT | 城市行政区划码
+county_code | BIGINT | 区县行政区划码
+quality_status | VARCHAR(16) | 数据质量状态
+create_time | TIMESTAMP | 创建时间
+update_time | TIMESTAMP | 更新时间
+ext_json | TEXT | 扩展 JSON
+schema_version | VARCHAR(16) | Schema 版本
+data_version | VARCHAR(16) | 数据版本
+
+--- Table 23 (4 rows) ---
+索引 | 字段 | 说明
+pk_standard_lightning_strike_cmb | id | 主键
+idx_std_cmb_strike_time | strike_time | 按雷击时间查询
+idx_std_cmb_lightning_point_gist | lightning_point | PostGIS 索引，支持 50km 查询
+
+--- Table 24 (25 rows) ---
+字段 | 类型 | 说明
+id | BIGINT | 主键
+standard_record_id | BIGINT | 关联 standard 层记录 ID
+source_topic | VARCHAR(128) | 来源 Kafka Topic
+source_type | VARCHAR(32) | 来源类型：CMB / LOCATOR
+lightning_type | VARCHAR(8) | 闪电类型
+strike_time | TIMESTAMP | 雷击发生时间
+longitude | DECIMAL(10,6) | 经度
+latitude | DECIMAL(10,6) | 纬度
+lightning_point | GEOGRAPHY(Point,4326) | 雷击空间点
+peak_current | DECIMAL(12,6) | 峰值电流
+height | DECIMAL(12,6) | 高度
+site_count | INT | 定位站点数
+province | VARCHAR(64) | 省份
+city | VARCHAR(64) | 城市
+county | VARCHAR(64) | 区县
+address | VARCHAR(256) | 完整地址
+display_name | VARCHAR(128) | 展示名称
+risk_level | INT | 风险等级
+event_status | VARCHAR(16) | 事件状态
+create_time | TIMESTAMP | 创建时间
+update_time | TIMESTAMP | 更新时间
+ext_json | TEXT | 扩展 JSON
+schema_version | VARCHAR(16) | Schema 版本
+data_version | VARCHAR(16) | 数据版本
+
+--- Table 25 (4 rows) ---
+索引 | 字段 | 说明
+pk_biz_lightning_event | id | 主键
+idx_biz_lightning_strike_time | strike_time | 按雷击时间查询
+idx_biz_lightning_point_gist | lightning_point | PostGIS 索引，支持 50km 查询
+
+--- Table 26 (13 rows) ---
+字段 | 类型 | 说明
+id | BIGINT | 主键
+thunderstorm_process_id | BIGINT | 关联雷暴过程 ID
+mine_code | VARCHAR(64) | 矿区编码
+device_addr | VARCHAR(64) | 设备通信地址
+alarm_time | TIMESTAMP | 告警时间
+alarm_level | INT | 告警等级
+alarm_code | VARCHAR(64) | 告警编码
+alarm_name | VARCHAR(128) | 告警名称
+alarm_status | VARCHAR(32) | 告警状态
+source_table | VARCHAR(128) | 告警来源业务表
+source_record_id | BIGINT | 告警来源记录 ID
+create_time | TIMESTAMP | 创建时间
+
+--- Table 27 (5 rows) ---
+索引 | 字段 | 说明
+pk_device_alarm_event | id | 主键
+idx_device_alarm_process_time | thunderstorm_process_id, alarm_time | 按雷暴过程查询告警
+idx_device_alarm_addr_time | device_addr, alarm_time | 按设备查询告警
+idx_device_alarm_status | alarm_status | 按告警状态查询
+
+--- Table 28 (16 rows) ---
+字段 | 类型 | 说明
+id | BIGINT | 主键
+thunderstorm_process_id | BIGINT | 关联雷暴过程 ID
+warning_event_id | BIGINT | 关联预警事件 ID
+warning_message_id | BIGINT | 关联预警信息 ID
+mine_code | VARCHAR(64) | 矿区编码
+notice_time | TIMESTAMP | 通知发送时间
+notice_channel | VARCHAR(32) | 通知渠道
+receiver | VARCHAR(128) | 通知接收人
+receiver_role | VARCHAR(64) | 接收人角色
+notice_title | VARCHAR(256) | 通知标题
+notice_content | TEXT | 通知内容
+notice_status | VARCHAR(32) | 通知状态
+trigger_type | VARCHAR(32) | 触发来源类型
+trigger_event_id | BIGINT | 触发来源事件 ID
+create_time | TIMESTAMP | 创建时间
+
+--- Table 29 (5 rows) ---
+索引 | 字段 | 说明
+pk_thunderstorm_notice_event | id | 主键
+idx_notice_process_time | thunderstorm_process_id, notice_time | 按雷暴过程查询通知
+idx_notice_warning_msg | warning_message_id | 按预警信息追溯通知
+idx_notice_status | notice_status | 按通知状态查询
+
+--- Table 30 (15 rows) ---
+字段 | 类型 | 说明
+id | BIGINT | 主键
+thunderstorm_process_id | BIGINT | 关联雷暴过程 ID
+device_alarm_event_id | BIGINT | 来源设备告警事件 ID
+mine_code | VARCHAR(64) | 矿区编码
+device_addr | VARCHAR(64) | 设备通信地址
+task_status | VARCHAR(32) | 任务状态
+plan_time | TIMESTAMP | 计划巡检时间
+finish_time | TIMESTAMP | 完成时间
+assignee | VARCHAR(128) | 负责人
+create_time | TIMESTAMP | 创建时间
+update_time | TIMESTAMP | 更新时间
+ext_json | TEXT | 扩展 JSON
+schema_version | VARCHAR(16) | Schema 版本
+data_version | VARCHAR(16) | 数据版本
+
+--- Table 31 (5 rows) ---
+索引 | 字段 | 说明
+pk_inspection_task | id | 主键
+idx_inspection_process_time | thunderstorm_process_id, plan_time | 按雷暴过程查询巡检
+idx_inspection_alarm | device_alarm_event_id | 按设备告警追溯巡检
+idx_inspection_status | task_status | 按任务状态查询
+
+--- Table 32 (11 rows) ---
+字段 | 类型 | 说明
+id | BIGINT | 主键
+thunderstorm_process_id | BIGINT | 关联雷暴过程 ID
+inspection_task_id | BIGINT | 关联巡检任务 ID
+mine_code | VARCHAR(64) | 矿区编码
+device_addr | VARCHAR(64) | 设备通信地址
+risk_level | INT | 隐患等级
+risk_desc | TEXT | 隐患描述
+rectify_status | VARCHAR(32) | 整改状态
+discover_time | TIMESTAMP | 发现时间
+create_time | TIMESTAMP | 创建时间
+
+--- Table 33 (5 rows) ---
+索引 | 字段 | 说明
+pk_hidden_risk | id | 主键
+idx_hidden_risk_process_time | thunderstorm_process_id, create_time | 按雷暴过程查询隐患
+idx_hidden_risk_task | inspection_task_id | 按巡检任务追溯隐患
+idx_hidden_risk_status | rectify_status | 按整改状态查询
+
+--- Table 34 (11 rows) ---
+字段 | 类型 | 说明
+id | BIGINT | 主键
+thunderstorm_process_id | BIGINT | 关联雷暴过程 ID
+hidden_risk_id | BIGINT | 关联隐患记录 ID
+mine_code | VARCHAR(64) | 矿区编码
+device_addr | VARCHAR(64) | 设备通信地址
+repair_status | VARCHAR(32) | 维修状态
+repair_desc | TEXT | 维修描述
+start_time | TIMESTAMP | 维修开始时间
+close_time | TIMESTAMP | 维修关闭时间
+create_time | TIMESTAMP | 创建时间
+
+--- Table 35 (5 rows) ---
+索引 | 字段 | 说明
+pk_repair_order | id | 主键
+idx_repair_process_time | thunderstorm_process_id, create_time | 按雷暴过程查询维修
+idx_repair_hidden_risk | hidden_risk_id | 按隐患追溯维修
+idx_repair_status | repair_status | 按维修状态查询
+
+--- Table 36 (6 rows) ---
+表类型 | 分区字段 | 分区方式 | 原因
+大气电场 standard/biz | device_upload_time | 按月RANGE | 数据量大，典型按设备和时间查
+raw 原始报文 | receive_time | 按月RANGE | 数据量大，便于归档和追溯
+闪电standard/biz | strike_time | 按月RANGE | 时空查询先按时间裁剪，再空间过滤
+其他低频设备表 | 时间字段 | 暂不分区或后续按月 | 推荐存量仅1万
+过程、预警、告警、工况联动、运维表 | 不分区 | 普通表 | 单表量小，查询优先使用普通索引
+
+--- Table 37 (5 rows) ---
+数据 | 经纬度用途 | 是否使用 PostGIS
+矿区中心点 | 与闪电点、雷达回波区域做范围匹配和距离判断 | 是
+闪电大网、小网 | 50 km 闪电窗、区域统计、距离计算 | 是
+大气电场设备坐标 | 展示、设备安装点 | 否，先用普通经纬度
+其他设备坐标 | 展示或低频查询 | 按需
+
+--- Table 38 (6 rows) ---
+主数据 | 建议
+矿区调度机房坐标 | 设定 dispatch_room_lon、dispatch_room_lat，并生成 dispatch_room_point，作为空间造数锚点
+大气电场设备 | 5 台，固定安装在矿区调度机房周边 0.5~30km 范围内，按 0.5~5km、5~15km、15~30km 分层分布
+低频设备 | SPD、接地、电源、雷电流仪等 10 台左右
+通知对象 | 20 ~ 50 人，分调度、运维、安全、管理角色
+巡检人员 | 5 ~ 10 人
+
+--- Table 39 (4 rows) ---
+类型 | 占比 | 说明
+设备 HEX 原始报文 | 95% 左右 | 对应高频设备数据
+闪电 raw | 少量 | 对应大网、小网
+异常 raw | 0.1% | 格式错误、缺字段、低质量
+
+--- Table 40 (6 rows) ---
+字段 | 正常范围 | 异常/预警规则
+instantaneous_value | -200 ~ +200 kV/m；过程前平稳 ±20；过程中 +80 ~ +180 | 雷暴过程前后逐步升高
+average_value | 瞬时值滑动平均 | 保持平滑
+rate_change | -2 到 2 | 雷暴突变时增大
+warning_level | 0 ~ 4 | 0 正常；过程抬升期 1 蓝 → 2 黄 → 3 橙 → 4 红（规范为 0~4）
+quality_status | NORMAL | 0.1% 数据标 LOW_QUALITY
+
+--- Table 41 (5 rows) ---
+字段 | 规则
+开始时间 | 由首次预警触发
+持续时间 | 典型 2 小时，可在 60 ~ 180 分钟随机
+过程分布 | 70% 集中在雷暴季，30% 分散
+预警轨迹 | 发布、升级、降级、解除
+
+--- Table 42 (3 rows) ---
+来源 | 单过程典型量 | 最终总量
+大网 CMB | 约350 条 | 3.5 万条
+小网 Locator | 约150 条 | 1.5 万条
+
+--- Table 43 (4 rows) ---
+类型 | 比例 | 规则
+过程内有效闪电 | 85% | 落在矿区调度机房坐标 0~50km 范围内
+近边界闪电 | 10% | 落在 45 ~ 55 km，用于验证50km边界
+无关闪电 | 5% | 落在雷暴过程时间窗外，或落在矿区调度机房坐标 50km 以外
+
+--- Table 44 (8 rows) ---
+数据 | 每过程数量 | 最终数量
+预警事件 | 1条 | 100 条
+预警信息 | 约 5 条 | 500 条
+设备告警 | 约 30 条 | 3000 条
+工况联动 | 约 40 条 | 4000 条
+巡检任务 | 0 ~ 2 条 | 100 条
+隐患 | 0 ~ 1 条 | 50 条
+维修 | 0 ~ 1 条 | 50 条
+
+--- Table 45 (4 rows) ---
+通道 | 用途 | 优点 | 注意点
+SQL COPY | 大规模存量准备 | 快，适合千万级以上 | 不验证应用解析逻辑
+Kafka 重放 | raw 到标准链路验证 | 真实 | 不适合一次性灌 3900 万
+HTTP/API | 冒烟和小批量验证 | 覆盖接口 | 速度慢
+
+--- Table 46 (6 rows) ---
+阶段 | 造数方式
+S0 | 小批量SQL
+S1 | COPY 为主，少量 Kafka
+S2 | COPY + 过程模板
+S3 | COPY 准备存量，Kafka 做持续写
+S4 | 正式环境中 COPY 补齐推荐存量，再补充 Kafka 持续写
+
+--- Table 47 (16 rows) ---
+表 | 预期
+mine_site | ≥ 1
+standard_atmosphere_electric_field | 与当前阶段目标一致
+biz_atmosphere_electric_field_event | 与 standard 大气电场数据量一致
+raw_kafka_message | 与当前阶段目标一致
+thunderstorm_process | 与当前阶段目标一致
+thunderstorm_warning_event | 与当前阶段目标一致
+thunderstorm_warning_message | 与当前阶段目标一致
+standard_lightning_strike_cmb | 与当前阶段目标一致
+standard_lightning_strike_locator | 与当前阶段目标一致
+biz_lightning_event | 与当前阶段目标一致
+device_alarm_event | 与当前阶段目标一致
+thunderstorm_notice_event | 与当前阶段目标一致
+inspection_task | 与当前阶段目标一致
+hidden_risk | 与当前阶段目标一致
+repair_order | 与当前阶段目标一致
+
+--- Table 48 (6 rows) ---
+字段 | 预期
+std_cnt | 与阶段目标一致
+biz_cnt | 与 std_cnt 一致
+missing_biz | 0
+orphan_biz | 0
+duplicate_biz_key | 0
+
+--- Table 49 (10 rows) ---
+工具/组件 | 是否必需 | 主要用途 | 对应结果指标 | 部署建议
+JMeter | 必需 | 执行接口并发压测、记录请求结果 | 执行次数、平均响应时间、P95、TPS/QPS、错误率 | 部署在独立压测机
+Prometheus | 必需 | 统一采集服务器资源指标 | CPU平均、内存平均、磁盘利用率、磁盘 IO 等待时间 | Docker部署
+node_exporter | 必需 | 暴露被测服务器 CPU、内存、磁盘指标 | CPU平均、内存平均、磁盘利用率、磁盘 IO 等待时间 | 部署在被测服务器
+Grafana | 建议使用 | 展示 Prometheus 指标，便于按压测时间窗口取值 | CPU平均、内存平均、磁盘利用率、磁盘 IO 等待时间 | Docker部署
+自定义数据生产程序 | 写入类场景必需 | 执行原始报文、大气电场、闪电数据持续写入，并输出执行次数、TPS、错误率 | 执行次数、TPS、错误率 | 部署在独立压测机
+pg_stat_statements | 必需 | 统计 SQL 执行次数、平均耗时、最大耗时、总耗时 | 慢 SQL、热点 SQL、调用次数 | PostgreSQL 扩展
+EXPLAIN ANALYZE | 必需 | 分析关键 SQL 执行计划 | 是否命中索引、是否分区裁剪、扫描行数 | 每个核心查询至少保留一次
+pg_stat_activity | 建议使用 | 观察数据库连接和执行中的 SQL | 活跃连接、等待事件、长事务 | 数据库侧查询
+数据库慢 SQL 日志 | 建议使用 | 记录超过阈值的 SQL | 慢 SQL 明细 | PostgreSQL 配置
+
+--- Table 50 (5 rows) ---
+并发档 | 用途
+5 | 验证 SQL 和接口稳定性
+10 | 观察低并发下响应时间
+20 | 观察常规并发下响应时间
+50 | 仅在 S3 阶段对核心查询场景执行，用于观察单机压力上限
+
+--- Table 51 (9 rows) ---
+参数 | 建议值
+shared_buffers | 8GB
+effective_cache_size | 20GB～24GB
+work_mem | 16MB～64MB，根据并发控制调整
+maintenance_work_mem | 1GB～2GB
+max_connections | 100～150
+wal_compression | on
+checkpoint_timeout | 15min
+max_wal_size | 8GB～16GB
+
+--- Table 52 (5 rows) ---
+磁盘使用率 | 处理方式
+< 70% | 正常测试
+70%～80% | 停止继续扩容数据，只执行查询测试
+> 80% | 停止压测，清理中间文件或归档数据
+> 90% | 禁止继续写入测试，避免数据库异常或系统不稳定
+
+--- Table 53 (6 rows) ---
+阶段编号 | 阶段 | 数据目标 | 主要目的 | 当前测试机是否执行 | 是否作为最终结论
+S0 | 建模验证档 | 1 万级 | 验证表、分区、PostGIS、造数逻辑 | 必做 | 否
+S1 | 基线档 | 核心大表约200万 | 建立写入和查询基线 | 必做 | 阶段参考
+S2 | 增长档 | 核心大表约800~1000万 | 验证分区和索引策略 | 必做 | 阶段性结论
+S3 | 压力档 | 核心大表约1500~2000万 | 验证主要场景和混合负载 | 建议执行 | 当前单机主要结论
+S4 | 推荐存量档 | 原计划推荐存量，核心合计约 1.17 亿行 | 验证推荐存量下数据库能力 | 不强制执行 | 后续正式环境补测
+
+--- Table 54 (15 rows) ---
+指标 | 说明
+执行次数 | 场景执行总次数
+成功次数 | 成功完成的请求或写入次数
+错误次数 | 失败请求、写入失败、SQL 执行失败次数
+错误率 | 错误次数 / 执行次数
+平均响应时间 | 场景平均耗时
+P95 | 95% 请求或 SQL 的响应时间
+P99 | 99% 请求或 SQL 的响应时间
+TPS/QPS | 单位时间内写入或查询数量
+CPU 平均使用率 | 压测窗口内数据库服务器 CPU 平均值
+内存使用率 | 压测窗口内数据库服务器内存使用情况
+磁盘 IO 等待 | 压测窗口内磁盘 IO 等待情况
+慢 SQL | 超过阈值的 SQL 明细
+分区裁剪情况 | 查询是否命中目标分区，是否扫描无关分区
+索引命中情况 | 查询是否使用预期索引
+
+--- Table 55 (7 rows) ---
+场景 | 参考目标
+PERF-01 大气电场持续写入 | 写入成功率 ≥ 99.9%，持续写入期间无数据库异常
+PERF-02 原始报文持续写入 | 写入成功率 ≥ 99.9%，raw 表无重复 topic + partition + offset
+PERF-03 活跃过程闪电突发写入 | 写入成功率 ≥ 99.9%，空间字段生成正常
+PERF-04 大气电场仪监测记录分页查询 | 分页查询 P95 ≤ 1000ms，错误率 ≤ 0.1%
+PERF-05 多电场仪雷暴过程窗曲线查询 | 2h 曲线查询 P95 ≤ 1500ms，错误率 ≤ 0.1%
+PERF-06 闪电事件时空统计查询 | 50km 闪电数量统计 P95 ≤ 1000ms，来源类型/闪电类型分布统计 P95 ≤ 1500ms，错误率 ≤ 0.1%
+
+--- Table 56 (14 rows) ---
+项目 | 内容
+测试时间 | 
+测试人员 | 
+数据库版本 | PostgreSQL 16.x
+PostGIS 版本 | 
+CPU | 14核
+内存 | 32GB
+硬盘 | 1TB
+操作系统 | 
+数据库部署方式 | 裸机 / Docker / 虚拟机
+应用服务部署方式 | 
+压测机配置 | 同机 / 独立压测机
+网络环境 | 同机 / 局域网
+是否正式环境 | 否
+
+--- Table 57 (16 rows) ---
+数据对象 | 目标行数 | 实际行数 | 是否达标 | 说明
+mine_site | 1 |  |  | 
+thunderstorm_process |  |  |  | 
+standard_atmosphere_electric_field |  |  |  | 
+biz_atmosphere_electric_field_event |  |  |  | 
+raw_kafka_message |  |  |  | 
+standard_lightning_strike_cmb |  |  |  | 
+standard_lightning_strike_locator |  |  |  | 
+biz_lightning_event |  |  |  | 
+thunderstorm_warning_event |  |  |  | 
+thunderstorm_warning_message |  |  |  | 
+device_alarm_event |  |  |  | 
+thunderstorm_notice_event |  |  |  | 
+inspection_task |  |  |  | 
+hidden_risk |  |  |  | 
+repair_order |  |  |  | 
+
+--- Table 58 (11 rows) ---
+校验项 | 结果 | 是否通过 | 说明
+行数校验 |  |  | 
+经纬度合法性校验 |  |  | 
+mine_site 坐标校验 |  |  | 
+standard ↔ biz 关系校验 |  |  | 
+50km 闪电关联校验 |  |  | 
+预警事件与预警信息关系校验 |  |  | 
+雷暴过程闭环数据量校验 |  |  | 
+时间窗口校验 |  |  | 
+预警动作时间线校验 |  |  | 
+raw 原始报文去重校验 |  |  | 
+
+--- Table 59 (7 rows) ---
+场景编号 | 场景名称 | 数据档位 | 并发 | 执行次数 | 成功率 | 平均耗时 | P95 | TPS/QPS | 是否通过
+PERF-01 | 大气电场持续写入 |  |  |  |  |  |  |  | 
+PERF-02 | 原始报文持续写入 |  |  |  |  |  |  |  | 
+PERF-03 | 活跃过程闪电突发写入 |  |  |  |  |  |  |  | 
+PERF-04 | 大气电场仪监测记录分页查询 |  |  |  |  |  |  |  | 
+PERF-05 | 多电场仪雷暴过程窗曲线查询 |  |  |  |  |  |  |  | 
+PERF-06 | 闪电事件时空统计查询 |  |  |  |  |  |  |  | 
+
+--- Table 60 (7 rows) ---
+场景编号 | CPU平均 | CPU峰值 | 内存平均 | 磁盘IO等待 | 连接数峰值 | 说明
+PERF-01 |  |  |  |  |  | 
+PERF-02 |  |  |  |  |  | 
+PERF-03 |  |  |  |  |  | 
+PERF-04 |  |  |  |  |  | 
+PERF-05 |  |  |  |  |  | 
+PERF-06 |  |  |  |  |  | 
+
+--- Table 61 (6 rows) ---
+阶段 | 数据规模 | 结论 | 主要问题 | 是否进入下一阶段
+S0 | 1万级 |  |  | 
+S1 | 核心大表约200万 |  |  | 
+S2 | 核心大表约800万～1000万 |  |  | 
+S3 | 核心大表约1500万～2000万 |  |  | 
+S4 | 推荐存量档 | 当前不强制执行 |  | 

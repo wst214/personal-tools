@@ -1,0 +1,176 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="theme-color" content="#f3f4f1" />
+    <title>内网穿透面板 · WST Lab</title>
+    <meta name="description" content="WST Lab 内网穿透控制面板" />
+    <link rel="stylesheet" href="/static/css/style.css" />
+  </head>
+  <body>
+    <div class="app-shell">
+      <aside class="sidebar">
+        <a class="identity" href="http://127.0.0.1:8090" aria-label="返回个人开发工作台">
+          <span class="identity-mark">W</span>
+          <span>
+            <strong>WST Lab</strong>
+            <small>Personal workspace</small>
+          </span>
+        </a>
+
+        <nav class="side-nav" aria-label="工具导航">
+          <a href="http://127.0.0.1:8090"><span aria-hidden="true">⌂</span>工作台首页</a>
+          <a class="active" href="#control"><span aria-hidden="true">⇄</span>隧道控制</a>
+          <a href="#logs"><span aria-hidden="true">_</span>运行日志</a>
+        </nav>
+
+        <div class="sidebar-service">
+          <span class="presence-dot"></span>
+          <div>
+            <strong>本地服务</strong>
+            <small>端口 5760</small>
+          </div>
+        </div>
+      </aside>
+
+      <main>
+        <header class="topbar">
+          <div class="mobile-brand"><span>W</span><strong>WST Lab</strong></div>
+          <div class="breadcrumb"><span>工具</span><b>/</b><strong>隧道控制</strong></div>
+          <div id="envBadge" class="badge badge-warn"><i></i>检测中…</div>
+        </header>
+
+        <div class="workspace">
+          <section class="intro" id="control">
+            <div>
+              <p class="kicker">TUNNEL CONTROL</p>
+              <h1>临时公网入口，<br />按需建立。</h1>
+              <p>选择穿透服务并填写本地地址，剩下的交给面板。</p>
+            </div>
+            <div class="intro-meta">
+              <span><i></i>Service active</span>
+              <strong>LOCAL / 5760</strong>
+              <small>Cloudflare · cpolar</small>
+            </div>
+          </section>
+
+          <section class="control-grid">
+            <div class="panel control-panel">
+              <div class="panel-heading">
+                <div>
+                  <p>NEW CONNECTION</p>
+                  <h2>建立映射</h2>
+                </div>
+                <span class="step-count">01</span>
+              </div>
+
+              <fieldset class="provider-fieldset">
+                <legend class="field-label">选择穿透方式</legend>
+                <div class="provider-row" role="radiogroup" aria-label="穿透方式">
+                  <label class="provider-option">
+                    <input type="radio" name="provider" value="cloudflare" checked />
+                    <span class="provider-indicator" aria-hidden="true"></span>
+                    <span class="provider-copy">
+                      <strong>Cloudflare</strong>
+                      <small>免注册 · 全球节点</small>
+                    </span>
+                    <b aria-hidden="true">CF</b>
+                  </label>
+                  <label class="provider-option">
+                    <input type="radio" name="provider" value="cpolar" />
+                    <span class="provider-indicator" aria-hidden="true"></span>
+                    <span class="provider-copy">
+                      <strong>cpolar</strong>
+                      <small>国内节点 · 需要 Token</small>
+                    </span>
+                    <b aria-hidden="true">CP</b>
+                  </label>
+                </div>
+              </fieldset>
+
+              <p id="providerLockHint" class="lock-hint hidden"><i></i>隧道运行中，停止后才能切换服务。</p>
+
+              <div class="target-field">
+                <label class="field-label" for="targetInput">本地服务地址</label>
+                <div class="input-row">
+                  <div class="input-shell">
+                    <span aria-hidden="true">↳</span>
+                    <input
+                      id="targetInput"
+                      type="text"
+                      placeholder="http://localhost:8090"
+                      spellcheck="false"
+                      autocomplete="off"
+                    />
+                  </div>
+                  <button id="startBtn" class="btn btn-primary" type="button">启动隧道 <span aria-hidden="true">↗</span></button>
+                  <button id="stopBtn" class="btn btn-ghost" type="button" disabled>停止</button>
+                </div>
+                <p class="hint">Docker 模式会自动把 <code>localhost</code> 转换为宿主机地址。</p>
+              </div>
+            </div>
+
+            <aside class="panel route-panel" aria-label="连接路径">
+              <div class="route-head">
+                <span>CONNECTION PATH</span>
+                <i></i>
+              </div>
+              <div class="route-visual" aria-hidden="true">
+                <div class="route-node local-node"><span>01</span><strong>Local</strong><small>localhost</small></div>
+                <div class="route-line"><i></i><i></i><i></i></div>
+                <div class="route-node tunnel-node"><span>02</span><strong>Tunnel</strong><small>on demand</small></div>
+                <div class="route-line"><i></i><i></i><i></i></div>
+                <div class="route-node public-node"><span>03</span><strong>Public</strong><small>https://</small></div>
+              </div>
+              <div class="route-note">
+                <span class="route-note-icon">i</span>
+                <p>公网地址只在隧道运行期间有效，停止后立即失效。</p>
+              </div>
+            </aside>
+          </section>
+
+          <section id="resultCard" class="panel result-card hidden" aria-live="polite">
+            <div class="result-mark"><span>✓</span></div>
+            <div class="result-copy">
+              <p class="field-label">公网映射已建立</p>
+              <a id="publicUrl" href="#" target="_blank" rel="noopener noreferrer"></a>
+              <p id="targetEcho" class="hint"></p>
+            </div>
+            <button id="copyBtn" class="btn btn-copy" type="button">复制地址</button>
+          </section>
+
+          <section id="errorCard" class="panel error-card hidden" aria-live="assertive">
+            <div class="error-mark">!</div>
+            <div>
+              <p class="field-label">连接未建立</p>
+              <p id="errorText"></p>
+              <ul class="tips">
+                <li id="tipCloudflare">使用代理时，可关闭 TUN 模式或将 <code>trycloudflare.com</code> 设为直连。</li>
+                <li id="tipCpolar" class="hidden">cpolar 需要在 <code>tunnel-panel/.env</code> 配置 Token（<a href="https://dashboard.cpolar.com" target="_blank" rel="noopener">打开控制台</a>）。</li>
+                <li>确认本地服务已经启动，且输入地址可以在浏览器中访问。</li>
+              </ul>
+            </div>
+          </section>
+
+          <section class="panel log-panel" id="logs">
+            <div class="log-head">
+              <div>
+                <p>ACTIVITY</p>
+                <h2>运行日志</h2>
+              </div>
+              <span id="statusText" class="status-pill"><i></i>空闲</span>
+            </div>
+            <pre id="logBox" class="log-box">等待开始映射…</pre>
+          </section>
+
+          <footer>
+            <span>WST Lab · Tunnel control</span>
+            <span>Local service / 5760</span>
+          </footer>
+        </div>
+      </main>
+    </div>
+    <script src="/static/js/app.js"></script>
+  </body>
+</html>

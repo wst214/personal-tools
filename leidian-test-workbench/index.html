@@ -1,0 +1,131 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="theme-color" content="#f3f4f1" />
+    <title>雷电测试工作台</title>
+    <link rel="stylesheet" href="./styles.css" />
+  </head>
+  <body>
+    <div class="app-shell">
+      <aside class="sidebar">
+        <a class="identity" href="#run" data-view-link="run" aria-label="返回执行中心">
+          <span class="identity-mark">T</span>
+          <span><strong>雷电测试工作台</strong><small>Feature test bench</small></span>
+        </a>
+        <nav class="side-nav" aria-label="主导航">
+          <a class="active" href="#run" data-view-link="run"><span>01</span>执行中心</a>
+          <a href="#env" data-view-link="env"><span>02</span>环境配置</a>
+          <a href="#cases" data-view-link="cases"><span>03</span>用例库</a>
+          <a href="#reports" data-view-link="reports"><span>04</span>执行报告</a>
+        </nav>
+        <div class="sidebar-note"><i></i><div><strong data-active-env-label>本地环境</strong><small>当前执行环境</small></div></div>
+      </aside>
+
+      <main>
+        <header class="topbar">
+          <button class="menu-button" type="button" aria-label="打开导航" data-menu-button>☰</button>
+          <div class="breadcrumb"><span>测试工作台</span><b>/</b><strong data-view-title>执行中心</strong></div>
+          <div class="topbar-actions">
+            <label class="env-switcher">
+              <span>环境</span>
+              <select data-env-select aria-label="切换环境">
+                <option value="local">本地环境</option>
+                <option value="dev">开发环境</option>
+                <option value="test">测试环境</option>
+              </select>
+            </label>
+            <span class="time-chip" data-current-time>--:--</span>
+          </div>
+        </header>
+
+        <div class="workspace">
+          <section class="hero-band">
+            <div>
+              <p class="kicker">LEIDIAN FEATURE TEST BENCH</p>
+              <h1>把功能点验证，从手工排查变成可复用的链路用例。</h1>
+            </div>
+            <div class="hero-status">
+              <span class="pulse"><i></i><b data-active-env-name>本地环境</b></span>
+              <strong data-active-case-count>2 个内置用例</strong>
+              <small>MinIO / Kafka / DB / HTTP / WebSocket</small>
+            </div>
+          </section>
+
+          <section class="view-panel active" data-view="run" id="run">
+            <div class="section-title">
+              <div><p>RUN CENTER</p><h2>执行中心</h2></div>
+              <button class="primary-button" type="button" data-run-selected>运行选中用例</button>
+            </div>
+            <div class="run-layout">
+              <div class="case-list" data-case-list></div>
+              <div class="execution-panel">
+                <div class="panel-heading compact">
+                  <div><p>CURRENT CASE</p><h2 data-selected-case-name>MinIO 雷达帧上传全链路</h2></div>
+                  <span class="state-pill ready" data-run-state>待执行</span>
+                </div>
+                <div class="capability-row" data-selected-capabilities></div>
+                <div class="trace-box"><span>Trace ID</span><strong data-trace-id>未生成</strong></div>
+                <div class="step-list" data-step-list></div>
+              </div>
+            </div>
+          </section>
+
+          <section class="view-panel" data-view="env" id="env">
+            <div class="section-title">
+              <div><p>ENVIRONMENT</p><h2>环境配置</h2></div>
+              <div class="button-group"><button class="ghost-button" type="button" data-reset-env>恢复默认</button><button class="primary-button" type="button" data-save-env>保存当前环境</button></div>
+            </div>
+            <div class="env-layout">
+              <div class="env-summary">
+                <div class="env-card active" data-env-card="local"><strong>本地环境</strong><span>localhost 服务栈</span></div>
+                <div class="env-card" data-env-card="dev"><strong>开发环境</strong><span>联调环境配置</span></div>
+                <div class="env-card" data-env-card="test"><strong>测试环境</strong><span>验收环境配置</span></div>
+              </div>
+              <div class="config-surface">
+                <div class="config-section">
+                  <div class="config-title"><span>BASE</span><strong>基础服务</strong></div>
+                  <div class="field-grid" data-base-fields></div>
+                </div>
+                <div class="config-section">
+                  <div class="config-title"><span>CAPABILITIES</span><strong>能力模块</strong></div>
+                  <div class="module-list" data-module-list></div>
+                </div>
+                <div class="config-section env-check-section">
+                  <div class="config-title">
+                    <div><span>CONNECTIVITY</span><strong>环境连通性</strong></div>
+                    <button class="ghost-button" type="button" data-check-env>检查当前环境</button>
+                  </div>
+                  <div class="env-check-status" data-env-check-status>尚未检查当前环境</div>
+                  <div class="env-check-list" data-env-check-list></div>
+                </div>
+              </div>
+            </div>
+          </section>
+
+          <section class="view-panel" data-view="cases" id="cases">
+            <div class="section-title">
+              <div><p>CASE LIBRARY</p><h2>用例库</h2></div>
+              <button class="ghost-button" type="button">新建用例</button>
+            </div>
+            <div class="library-grid" data-library-grid></div>
+          </section>
+
+          <section class="view-panel" data-view="reports" id="reports">
+            <div class="section-title">
+              <div><p>REPORTS</p><h2>执行报告</h2></div>
+              <span class="muted-label" data-report-count>暂无记录</span>
+            </div>
+            <div class="report-list" data-report-list></div>
+          </section>
+
+          <footer><span>Leidian Test Workbench</span><span>Local prototype</span></footer>
+        </div>
+      </main>
+    </div>
+    <div class="toast" data-toast>已保存</div>
+    <div class="scrim" data-scrim></div>
+    <script src="./app.js"></script>
+  </body>
+</html>

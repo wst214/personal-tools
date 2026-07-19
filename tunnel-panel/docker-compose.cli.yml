@@ -1,0 +1,11 @@
+# 仅命令行 Cloudflare 临时穿透（可选，不经过面板）
+# 用法: docker compose -f docker-compose.cli.yml up
+name: mytools-tunnel-cli
+
+services:
+  mytools-cloudflared:
+    image: cloudflare/cloudflared:latest
+    container_name: mytools-cloudflared
+    command: tunnel --no-autoupdate --url http://host.docker.internal:${TUNNEL_PORT:-8080}
+    extra_hosts:
+      - "host.docker.internal:host-gateway"

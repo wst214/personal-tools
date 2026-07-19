@@ -1,0 +1,114 @@
+{
+  "categories": [
+    {
+      "id": "system",
+      "name": "系统概览",
+      "buttons": [
+        {"id": "uptime", "label": "运行时长", "command": "uptime", "description": "系统运行时间与负载"},
+        {"id": "uname", "label": "系统信息", "command": "uname -a", "description": "内核与架构"},
+        {"id": "hostname", "label": "主机名", "command": "hostnamectl 2>/dev/null || hostname", "description": "主机标识"},
+        {"id": "whoami", "label": "当前用户", "command": "whoami && id", "description": "用户与权限组"},
+        {"id": "date", "label": "系统时间", "command": "date '+%Y-%m-%d %H:%M:%S %Z'", "description": "服务器时间"},
+        {"id": "os_release", "label": "发行版", "command": "cat /etc/os-release 2>/dev/null | head -6", "description": "Linux 发行版信息"}
+      ]
+    },
+    {
+      "id": "resources",
+      "name": "资源监控",
+      "buttons": [
+        {"id": "mem", "label": "内存", "command": "free -h", "description": "内存与 Swap"},
+        {"id": "disk", "label": "磁盘", "command": "df -hT", "description": "分区使用情况"},
+        {"id": "inode", "label": "Inode", "command": "df -ih", "description": "Inode 使用率"},
+        {"id": "cpu_top", "label": "CPU TOP", "command": "ps aux --sort=-%cpu | head -15", "description": "CPU 占用进程"},
+        {"id": "mem_top", "label": "内存 TOP", "command": "ps aux --sort=-%mem | head -15", "description": "内存占用进程"},
+        {"id": "load", "label": "负载详情", "command": "cat /proc/loadavg && nproc", "description": "负载与 CPU 核数"},
+        {"id": "iostat", "label": "IO 状态", "command": "iostat -x 1 2 2>/dev/null | tail -20 || echo 'iostat 未安装'", "description": "磁盘 IO"}
+      ]
+    },
+    {
+      "id": "network",
+      "name": "网络",
+      "buttons": [
+        {"id": "ip", "label": "IP 地址", "command": "ip -br addr 2>/dev/null || ifconfig", "description": "网卡与 IP"},
+        {"id": "route", "label": "路由表", "command": "ip route 2>/dev/null || route -n", "description": "路由信息"},
+        {"id": "ports", "label": "监听端口", "command": "ss -tlnp 2>/dev/null || netstat -tlnp", "description": "TCP 监听"},
+        {"id": "connections", "label": "已建立连接", "command": "ss -tn state established 2>/dev/null | head -30", "description": "活跃连接"},
+        {"id": "dns", "label": "DNS", "command": "cat /etc/resolv.conf", "description": "DNS 配置"},
+        {"id": "ping_gw", "label": "Ping 网关", "command": "ping -c 3 $(ip route | awk '/default/ {print $3; exit}') 2>/dev/null", "description": "测试网关"},
+        {"id": "curl_ip", "label": "公网 IP", "command": "curl -s --max-time 5 ifconfig.me 2>/dev/null || curl -s --max-time 5 ip.sb", "description": "查询出口 IP"}
+      ]
+    },
+    {
+      "id": "services",
+      "name": "服务管理",
+      "buttons": [
+        {"id": "failed_svc", "label": "失败服务", "command": "systemctl list-units --type=service --state=failed --no-pager 2>/dev/null", "description": "启动失败的服务"},
+        {"id": "running_svc", "label": "运行服务", "command": "systemctl list-units --type=service --state=running --no-pager 2>/dev/null | head -25", "description": "运行中的服务"},
+        {"id": "cron", "label": "Crontab", "command": "crontab -l 2>/dev/null || echo '无 crontab'", "description": "定时任务"},
+        {"id": "firewall", "label": "防火墙", "command": "firewall-cmd --state 2>/dev/null; ufw status 2>/dev/null; iptables -L -n 2>/dev/null | head -15", "description": "防火墙状态"},
+        {"id": "nginx_status", "label": "Nginx 状态", "command": "systemctl status nginx --no-pager 2>/dev/null | head -12", "description": "Nginx 服务"},
+        {"id": "nginx_test", "label": "Nginx 检测", "command": "nginx -t 2>&1", "description": "配置文件语法"},
+        {"id": "nginx_reload", "label": "Nginx 重载", "command": "sudo nginx -s reload 2>&1", "description": "平滑重载", "confirm": true}
+      ]
+    },
+    {
+      "id": "docker",
+      "name": "Docker",
+      "buttons": [
+        {"id": "docker_ps", "label": "容器列表", "command": "docker ps -a --format 'table {{.Names}}\\t{{.Status}}\\t{{.Ports}}'", "description": "所有容器"},
+        {"id": "docker_images", "label": "镜像列表", "command": "docker images --format 'table {{.Repository}}\\t{{.Tag}}\\t{{.Size}}' | head -20", "description": "本地镜像"},
+        {"id": "docker_stats", "label": "容器资源", "command": "docker stats --no-stream --format 'table {{.Name}}\\t{{.CPUPerc}}\\t{{.MemUsage}}' 2>/dev/null", "description": "实时资源占用"},
+        {"id": "compose_ps", "label": "Compose", "command": "docker compose ps 2>/dev/null || docker-compose ps 2>/dev/null", "description": "Compose 项目"},
+        {"id": "docker_logs", "label": "最近日志", "command": "docker ps -q | head -1 | xargs -I{} docker logs --tail 30 {} 2>/dev/null || echo '无运行容器'", "description": "首个容器日志"},
+        {"id": "docker_system", "label": "磁盘占用", "command": "docker system df 2>/dev/null", "description": "Docker 空间"}
+      ]
+    },
+    {
+      "id": "logs",
+      "name": "日志",
+      "buttons": [
+        {"id": "journal", "label": "系统日志", "command": "journalctl -n 50 --no-pager 2>/dev/null || tail -50 /var/log/syslog", "description": "最近 50 条"},
+        {"id": "auth", "label": "登录日志", "command": "journalctl -u ssh -n 30 --no-pager 2>/dev/null || tail -30 /var/log/auth.log 2>/dev/null || last -20", "description": "SSH 登录"},
+        {"id": "dmesg", "label": "内核日志", "command": "dmesg -T 2>/dev/null | tail -30 || dmesg | tail -30", "description": "内核消息"},
+        {"id": "who", "label": "在线用户", "command": "w", "description": "当前会话"},
+        {"id": "last", "label": "登录历史", "command": "last -15", "description": "最近登录"},
+        {"id": "nginx_err", "label": "Nginx 错误", "command": "tail -40 /var/log/nginx/error.log 2>/dev/null || echo '无 nginx 错误日志'", "description": "Nginx error.log"}
+      ]
+    },
+    {
+      "id": "files",
+      "name": "文件导航",
+      "buttons": [
+        {"id": "pwd", "label": "当前目录", "command": "pwd && ls -lah", "description": "路径与列表"},
+        {"id": "home", "label": "家目录", "command": "cd ~ && pwd && ls -lah", "description": "~ 目录"},
+        {"id": "var_log", "label": "/var/log", "command": "ls -lah /var/log | head -30", "description": "日志目录"},
+        {"id": "etc", "label": "/etc", "command": "ls -lah /etc | head -30", "description": "配置目录"},
+        {"id": "tmp", "label": "/tmp", "command": "ls -lah /tmp | head -25", "description": "临时目录"},
+        {"id": "find_large", "label": "大文件", "command": "du -ahx / 2>/dev/null | sort -rh | head -15", "description": "磁盘大文件", "confirm": true}
+      ]
+    },
+    {
+      "id": "process",
+      "name": "进程",
+      "buttons": [
+        {"id": "ps_tree", "label": "进程树", "command": "ps auxf | head -30", "description": "进程树视图"},
+        {"id": "systemd_running", "label": "Systemd 进程", "command": "systemctl list-units --type=service --state=running --no-pager 2>/dev/null | wc -l", "description": "运行服务数"},
+        {"id": "zombie", "label": "僵尸进程", "command": "ps aux | awk '$8 ~ /Z/ {print}'", "description": "Z 状态进程"},
+        {"id": "open_files", "label": "打开文件数", "command": "lsof 2>/dev/null | wc -l || echo 'lsof 未安装'", "description": "系统打开文件"},
+        {"id": "kill_hint", "label": "查 PID", "command": "ps aux | grep -v grep | grep ", "description": "填入进程名后执行", "placeholder": true}
+      ]
+    },
+    {
+      "id": "maintenance",
+      "name": "运维常用",
+      "buttons": [
+        {"id": "disk_clear_log", "label": "日志大小", "command": "journalctl --disk-usage 2>/dev/null; du -sh /var/log/* 2>/dev/null | sort -rh | head -10", "description": "日志占用"},
+        {"id": "timedate", "label": "时间同步", "command": "timedatectl status 2>/dev/null", "description": "NTP 与时间"},
+        {"id": "selinux", "label": "SELinux", "command": "getenforce 2>/dev/null || echo '未启用 SELinux'", "description": "SELinux 状态"},
+        {"id": "limits", "label": "系统限制", "command": "ulimit -a", "description": "当前 shell 限制"},
+        {"id": "env", "label": "环境变量", "command": "env | sort | head -40", "description": "环境变量"},
+        {"id": "reboot", "label": "重启", "command": "sudo reboot", "description": "重启服务器", "confirm": true}
+      ]
+    }
+  ]
+}

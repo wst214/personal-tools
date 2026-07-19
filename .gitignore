@@ -1,0 +1,35 @@
+# Python
+.venv/
+venv/
+__pycache__/
+*.py[cod]
+*.egg-info/
+.pytest_cache/
+
+# Node
+node_modules/
+
+# Env / secrets
+.env
+.env.*
+!.env.example
+
+# IDE / OS
+.idea/
+.vscode/
+*.swp
+.DS_Store
+Thumbs.db
+
+# Build / caches
+dist/
+build/
+*.log
+
+# Local sync / temp archives
+*.tar.gz
+*.zip
+leidian-perf-web-sync.tar.gz
+
+# Runtime / local data (keep structure via nested rules)
+**/.venv/

@@ -1,0 +1,13 @@
+# 抓取 dbserver node_exporter（默认 192.168.1.41:9100）
+# 若 IP 变更，改 targets 后执行：docker compose restart prometheus
+
+global:
+  scrape_interval: 15s
+  evaluation_interval: 15s
+
+scrape_configs:
+  - job_name: dbserver-node
+    static_configs:
+      - targets: ["192.168.1.41:9100"]
+        labels:
+          role: database

@@ -1,0 +1,31 @@
+{
+  "ok": true,
+  "traceId": "trace-20260716073915-061f8a",
+  "caseId": "local-service-health",
+  "caseName": "????????",
+  "envName": "self-check",
+  "startedAt": "2026-07-16T07:39:15.237Z",
+  "steps": [
+    {
+      "name": "gateway",
+      "ok": true,
+      "detail": "HTTP 200",
+      "elapsedMs": 49,
+      "evidence": {}
+    },
+    {
+      "name": "data-service",
+      "ok": true,
+      "detail": "HTTP 200",
+      "elapsedMs": 22,
+      "evidence": {}
+    },
+    {
+      "name": "biz-service",
+      "ok": true,
+      "detail": "HTTP 200",
+      "elapsedMs": 20,
+      "evidence": {}
+    }
+  ]
+}

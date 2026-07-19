@@ -1,0 +1,448 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>PERF 压测操作台</title>
+    <link rel="stylesheet" href="./style.css" />
+  </head>
+  <body>
+    <div class="layout">
+      <header class="app-header panel">
+        <div class="brand">
+          <span class="mark">PF</span>
+          <div>
+            <h1>PERF 压测操作台</h1>
+            <p>环境准备 → 分档压测 → 结果核对</p>
+          </div>
+        </div>
+        <div class="header-meta">
+          <span id="stageBadge" class="stage-badge">S0</span>
+          <span id="jobBadge" class="job-badge idle">空闲</span>
+        </div>
+      </header>
+
+      <div class="tabs-dialect-wrap panel">
+        <div class="tabs-dialect-switch" role="group" aria-label="数据库类型切换">
+          <span class="tabs-dialect-label">测试数据库</span>
+          <button
+            type="button"
+            id="dialectPostgres"
+            class="btn secondary db-switch-btn"
+            data-dialect-switch="postgres"
+          >
+            PostgreSQL
+          </button>
+          <button
+            type="button"
+            id="dialectDameng"
+            class="btn secondary db-switch-btn"
+            data-dialect-switch="dameng"
+          >
+            达梦 DM8
+          </button>
+        </div>
+      </div>
+
+      <nav class="page-tabs panel" role="tablist">
+        <button type="button" class="page-tab active" data-page="prep" role="tab">
+          环境与准备
+          <span id="prepTabStatus" class="tab-pill idle">未检查</span>
+        </button>
+        <button type="button" class="page-tab" data-page="load" role="tab">
+          造数执行
+          <span id="loadTabStatus" class="tab-pill idle">待执行</span>
+        </button>
+        <button type="button" class="page-tab" data-page="result" role="tab">
+          造数结果
+          <span id="resultTabStatus" class="tab-pill idle">—</span>
+        </button>
+        <button type="button" class="page-tab" data-page="perf" role="tab">
+          SQL 压测
+          <span id="perfTabStatus" class="tab-pill idle">待执行</span>
+        </button>
+      </nav>
+
+      <!-- 环境与准备 -->
+      <div id="page-prep" class="page-panel active" role="tabpanel">
+        <section class="panel section-block">
+          <h2>数据库连接</h2>
+          <div class="form-grid">
+            <input id="dialect" type="hidden" value="postgres" />
+            <label>主机<input id="host" type="text" /></label>
+            <label>端口<input id="port" type="text" /></label>
+            <label>数据库<input id="database" type="text" /></label>
+            <label>用户<input id="user" type="text" /></label>
+            <label>密码<input id="password" type="password" autocomplete="off" /></label>
+            <label>Schema<input id="schema" type="text" value="perf" /></label>
+          </div>
+          <div class="action-row">
+            <button type="button" id="btnPreflight" class="btn primary">检查前置条件</button>
+            <button type="button" id="btnInit" class="btn secondary" title="仅首次建库">初始化 Schema</button>
+          </div>
+          <p id="prepHint" class="hint">填写连接信息后点击「检查前置条件」。</p>
+        </section>
+
+        <div class="prep-grid">
+          <section class="panel section-block">
+            <div class="section-head">
+              <h2>测试环境</h2>
+              <span class="section-desc-inline">手工项自动保存</span>
+            </div>
+            <div class="table-wrap">
+              <table class="data-table env-table">
+                <tbody id="envTableBody"></tbody>
+              </table>
+            </div>
+          </section>
+
+          <section class="panel section-block">
+            <div class="section-head">
+              <h2>前置条件</h2>
+              <span id="preflightBadge" class="section-badge idle">未检查</span>
+            </div>
+            <div id="preflightList" class="check-list">
+              <p class="placeholder">点击「检查前置条件」</p>
+            </div>
+          </section>
+        </div>
+
+        <section class="panel section-block tools-block">
+          <div class="section-head">
+            <h2>工具与部署</h2>
+            <span class="section-desc-inline">SQL 直连压测路径</span>
+          </div>
+          <p id="toolsDesc" class="section-desc"></p>
+          <div class="tools-topology">
+            <div class="topo-card">
+              <span class="topo-title">dbserver（被测库主机）</span>
+              <span id="toolsTopoDb" class="topo-items"></span>
+            </div>
+            <div class="topo-arrow" aria-hidden="true">↔</div>
+            <div class="topo-card">
+              <span class="topo-title">Windows 本机（压测机）</span>
+              <span class="topo-items">perf-web :8100 · Prometheus :9090 · Grafana :3000（可选）</span>
+            </div>
+          </div>
+          <div class="table-wrap scroll-x">
+            <table class="data-table tools-table wide">
+              <thead>
+                <tr>
+                  <th>工具/组件</th>
+                  <th>是否必需</th>
+                  <th>安装位置</th>
+                  <th>用途</th>
+                  <th>说明</th>
+                </tr>
+              </thead>
+              <tbody id="toolsTableBody"></tbody>
+            </table>
+          </div>
+          <details class="raw-details tools-details">
+            <summary id="toolsConfigSummary"></summary>
+            <pre id="toolsConfigSnippet" class="config-snippet"></pre>
+          </details>
+          <p id="toolsHint" class="hint tools-hint"></p>
+        </section>
+
+        <section class="panel section-block db-snapshot-block">
+          <h2>当前库快照</h2>
+          <p class="section-desc">仅反映数据库<strong>此刻</strong>的数据；各档位逐表造数记录见「造数结果」。</p>
+          <div id="dbSnapshot" class="db-snapshot">
+            <p class="placeholder">检查前置条件后显示</p>
+          </div>
+        </section>
+      </div>
+
+      <!-- 造数执行 -->
+      <div id="page-load" class="page-panel" role="tabpanel">
+        <section class="panel section-block">
+          <h2>造数参数</h2>
+          <div class="form-grid">
+            <label>目标档位
+              <select id="stage">
+                <option value="S0">S0 建模验证 (~1万)</option>
+                <option value="S1">S1 基线 (~200万)</option>
+                <option value="S2">S2 增长 (~900万)</option>
+                <option value="S3">S3 压力 (~1700万)</option>
+                <option value="S4">S4 推荐存量 (~3890万)</option>
+              </select>
+            </label>
+            <label>起始 t0<input id="t0" type="text" placeholder="可选" /></label>
+            <label>随机种子<input id="seed" type="number" value="42" /></label>
+          </div>
+          <div class="checkbox-row">
+            <label><input id="truncate" type="checkbox" checked /> 造数前清空 perf 表</label>
+            <label><input id="autoValidate" type="checkbox" checked /> 造数完成后自动校验</label>
+          </div>
+          <div class="action-row">
+            <button type="button" id="btnLoad" class="btn primary">开始造数</button>
+          </div>
+          <p id="loadHint" class="hint">请先在「环境与准备」通过前置检查。</p>
+        </section>
+
+        <section class="panel section-block log-section">
+          <div class="section-head">
+            <h2>执行日志</h2>
+            <span id="loadBadge" class="section-badge idle">待执行</span>
+          </div>
+          <pre id="logOutput" class="log-output">等待操作…</pre>
+        </section>
+      </div>
+
+      <!-- 造数结果 -->
+      <div id="page-result" class="page-panel" role="tabpanel">
+        <section class="panel section-block">
+          <div class="section-head">
+            <h2>数据规模</h2>
+            <span id="volumeBadge" class="section-badge idle">—</span>
+          </div>
+          <p class="section-desc">目标行数按各档位业务对象配置；实际行数来自库内物理表统计。达标规则：<strong>实际 ≥ 目标</strong> 即为是（超出仍算达标）。造数技术校验见「数据校验」。</p>
+          <div class="table-wrap">
+            <table class="data-table">
+              <thead>
+                <tr>
+                  <th>档位</th>
+                  <th>说明</th>
+                  <th>记录状态</th>
+                  <th>表达标</th>
+                  <th>最近更新</th>
+                  <th></th>
+                </tr>
+              </thead>
+              <tbody id="stageOverviewBody">
+                <tr><td colspan="6" class="placeholder">加载中…</td></tr>
+              </tbody>
+            </table>
+          </div>
+          <div class="stage-tabs" id="volumeStageTabs" role="tablist">
+            <button type="button" class="stage-tab active" data-stage="S0">S0</button>
+            <button type="button" class="stage-tab" data-stage="S1">S1</button>
+            <button type="button" class="stage-tab" data-stage="S2">S2</button>
+            <button type="button" class="stage-tab" data-stage="S3">S3</button>
+            <button type="button" class="stage-tab" data-stage="S4">S4</button>
+          </div>
+          <p id="volumeStageMeta" class="hint">—</p>
+          <div class="table-wrap scroll-x">
+            <table class="data-table">
+              <thead>
+                <tr>
+                  <th>数据对象</th>
+                  <th>目标行数</th>
+                  <th>实际行数</th>
+                  <th>是否达标</th>
+                  <th>说明</th>
+                </tr>
+              </thead>
+              <tbody id="volumeTableBody">
+                <tr><td colspan="5" class="placeholder">造数并校验后填充</td></tr>
+              </tbody>
+            </table>
+          </div>
+          <details class="raw-details">
+            <summary>raw 报文构成明细</summary>
+            <div class="table-wrap">
+              <table class="data-table compact">
+                <thead><tr><th>构成项</th><th>目标行数</th></tr></thead>
+                <tbody id="rawBreakdownBody"></tbody>
+              </table>
+            </div>
+          </details>
+        </section>
+
+        <section class="panel section-block">
+          <div class="section-head">
+            <h2>数据校验</h2>
+            <div class="head-actions">
+              <button type="button" id="btnValidate" class="btn accent tiny">刷新校验</button>
+              <span id="validationBadge" class="section-badge idle">—</span>
+            </div>
+          </div>
+          <div class="table-wrap">
+            <table class="data-table validation-table">
+              <thead>
+                <tr>
+                  <th>校验项</th>
+                  <th class="col-result">结果</th>
+                  <th>是否通过</th>
+                  <th>说明</th>
+                </tr>
+              </thead>
+              <tbody id="validationTableBody">
+                <tr><td colspan="4" class="placeholder">执行校验后展示</td></tr>
+              </tbody>
+            </table>
+          </div>
+          <details class="raw-details">
+            <summary>全部校验明细</summary>
+            <div id="rawCheckList" class="check-list compact"></div>
+          </details>
+        </section>
+
+        <section class="panel section-block">
+          <h2>阶段结论</h2>
+          <div class="table-wrap">
+            <table class="data-table">
+              <thead>
+                <tr>
+                  <th>阶段</th>
+                  <th>数据规模</th>
+                  <th>结论</th>
+                  <th>主要问题</th>
+                  <th>是否进入下一阶段</th>
+                </tr>
+              </thead>
+              <tbody id="conclusionTableBody"></tbody>
+            </table>
+          </div>
+        </section>
+      </div>
+
+      <!-- SQL 压测 -->
+      <div id="page-perf" class="page-panel" role="tabpanel">
+        <section class="panel section-block">
+          <div class="section-head">
+            <h2>档位</h2>
+            <span class="section-desc-inline">压测执行与结果均按档位独立记录</span>
+          </div>
+          <div class="stage-tabs" id="perfStageTabs" role="tablist">
+            <button type="button" class="stage-tab active" data-stage="S0">S0</button>
+            <button type="button" class="stage-tab" data-stage="S1">S1</button>
+            <button type="button" class="stage-tab" data-stage="S2">S2</button>
+            <button type="button" class="stage-tab" data-stage="S3">S3</button>
+            <button type="button" class="stage-tab" data-stage="S4">S4</button>
+          </div>
+          <p id="perfStageMeta" class="hint">—</p>
+        </section>
+
+        <section class="panel section-block">
+          <h2>直连 SQL 压测</h2>
+          <p class="section-desc">全场景仅压数据库 SQL：不经 Gateway/API，不涉及 Kafka/应用数据解析。各场景执行逻辑见下方说明框；写入为 INSERT+COMMIT（含 WAL 提交），开跑前与查询场景开始前自动清理压测落库行。结果统计 P50/P95/P99/TPS，通过以 P95 为准。写入场景并发见配置；查询场景（PERF-04～06）并发可在下方修改。</p>
+          <div class="form-grid">
+            <label>写入每线程次数<input id="benchWriteIterations" type="number" value="50" min="5" max="500" /></label>
+            <label>查询每线程次数<input id="benchQueryIterations" type="number" value="500" min="5" max="5000" /></label>
+            <label>查询并发<input id="benchQueryConcurrency" type="number" value="20" min="1" max="200" title="PERF-04～06 查询场景" /></label>
+            <label>慢SQL阈值(ms)<input id="benchSlowSqlMs" type="number" value="500" min="1" max="60000" title="每场景压测窗口内 mean/max 耗时超过此值计为慢SQL" /></label>
+            <label>PERF-05聚合(分钟)<input id="benchPerf05AggMinutes" type="number" value="10" min="1" max="60" title="PERF-05-AGG 时间桶宽度，默认 10 分钟" /></label>
+          </div>
+          <div id="benchScenarioList" class="bench-scenarios"></div>
+          <div class="action-row">
+            <button type="button" id="btnBenchAll" class="btn primary">执行全部场景</button>
+            <button type="button" id="btnBenchSelected" class="btn secondary">执行勾选场景</button>
+          </div>
+          <p id="benchHint" class="hint">请先完成当前档位造数与校验。压测写入上方所选档位的独立记录；服务器资源与 EXPLAIN/pg_stat_statements 分析请另行采集。</p>
+          <pre id="benchLog" class="log-output bench-log">等待执行…</pre>
+        </section>
+
+        <section class="panel section-block">
+          <div class="section-head">
+            <h2>压测历史</h2>
+            <div class="head-actions">
+              <button type="button" id="btnDeletePerfRuns" class="btn tiny secondary danger" disabled>删除所选</button>
+              <button type="button" id="btnDeleteAllPerfRuns" class="btn tiny secondary danger" disabled title="删除当前档位全部压测记录">删除全部</button>
+              <span id="perfBadge" class="section-badge idle">—</span>
+            </div>
+          </div>
+          <p class="section-desc">仅展示当前档位压测记录；每次执行追加、不覆盖。勾选后删除整轮记录（同运行时间的全部场景）。数据保存在 <code>data/stage-records.json</code>。</p>
+          <div class="table-wrap scroll-x">
+            <table class="data-table wide">
+              <thead>
+                <tr>
+                  <th class="col-check"><input id="perfSelectAllPage" type="checkbox" title="全选本页" /></th>
+                  <th>运行时间</th>
+                  <th>场景</th>
+                  <th>名称</th>
+                  <th>并发</th>
+                  <th>次数</th>
+                  <th>成功次数</th>
+                  <th>错误次数</th>
+                  <th>成功率</th>
+                  <th>平均(ms)</th>
+                  <th>P95(ms)</th>
+                  <th>P99(ms)</th>
+                  <th>TPS(次/秒)</th>
+                  <th class="dameng-only-col" hidden title="压测客户端耗时 ≥ 阈值的次数">样本慢SQL</th>
+                  <th class="dameng-only-col" hidden title="V$SQL_HISTORY 场景时间窗内 TIME_USED ≥ 阈值">库内慢SQL</th>
+                  <th>通过</th>
+                </tr>
+              </thead>
+              <tbody id="perfTableBody"></tbody>
+            </table>
+          </div>
+          <div id="perfPager" class="table-pager" hidden>
+            <button type="button" id="perfPagerPrev" class="btn tiny secondary">上一页</button>
+            <span id="perfPagerInfo" class="pager-info">—</span>
+            <button type="button" id="perfPagerNext" class="btn tiny secondary">下一页</button>
+          </div>
+        </section>
+
+        <section class="panel section-block">
+          <div class="section-head">
+            <h2>压测配套采集</h2>
+            <div class="head-actions">
+              <button type="button" id="btnDeleteResourceCollects" class="btn tiny secondary danger" disabled>删除所选</button>
+              <button type="button" id="btnDeleteAllResourceCollects" class="btn tiny secondary danger" disabled title="删除当前档位全部配套采集记录">删除全部</button>
+              <button type="button" id="btnCollectResources" class="btn accent tiny" title="绑定最近一轮压测：Prometheus 资源 + 慢SQL + EXPLAIN">采集资源与执行计划</button>
+              <span id="resourceBadge" class="section-badge idle">—</span>
+            </div>
+          </div>
+          <p class="section-desc">绑定最近一轮 SQL 压测，按各场景时间窗<strong>一键采集</strong>：① Prometheus → CPU/内存/IO；② 压测记录 → 连接峰值与慢 SQL 条数；③ 查询场景 <code>EXPLAIN</code> → 分区裁剪、索引命中（写入场景仅①②）。结果按场景追加、不覆盖。</p>
+          <div class="table-wrap scroll-x">
+            <table class="data-table wide resource-table">
+              <thead>
+                <tr>
+                  <th class="col-check"><input id="resourceSelectAllPage" type="checkbox" title="全选本页" /></th>
+                  <th class="col-collected-at">采集时间</th>
+                  <th class="col-scenario">场景</th>
+                  <th class="col-metric">CPU均值</th>
+                  <th class="col-metric">CPU峰值</th>
+                  <th class="col-metric">内存均值</th>
+                  <th class="col-metric">IO等待</th>
+                  <th class="col-metric">连接峰值</th>
+                  <th class="col-metric dameng-only-col" hidden title="压测客户端耗时 ≥ 阈值">样本慢SQL</th>
+                  <th class="col-metric dameng-only-col" hidden title="V$SQL_HISTORY 场景时间窗">库内慢SQL</th>
+                  <th class="col-metric postgres-only-col" title="场景内慢 SQL 条数">慢SQL数</th>
+                  <th class="col-metric">分区裁剪</th>
+                  <th class="col-metric">索引命中</th>
+                  <th class="col-note">说明</th>
+                </tr>
+              </thead>
+              <tbody id="resourceTableBody"></tbody>
+            </table>
+          </div>
+          <div id="resourcePager" class="table-pager" hidden>
+            <button type="button" id="resourcePagerPrev" class="btn tiny secondary">上一页</button>
+            <span id="resourcePagerInfo" class="pager-info">—</span>
+            <button type="button" id="resourcePagerNext" class="btn tiny secondary">下一页</button>
+          </div>
+        </section>
+
+        <section class="panel section-block">
+          <div class="section-head">
+            <h2>慢 SQL 明细</h2>
+            <div class="head-actions">
+              <button type="button" id="btnRefreshSlowSql" class="btn accent tiny" title="从 V$SQL_HISTORY 与压测记录刷新">刷新明细</button>
+              <span id="slowSqlSectionBadge" class="section-badge placeholder-badge">自动汇总</span>
+            </div>
+          </div>
+          <p class="section-desc">展示最近一轮压测中超过阈值的 SQL：<strong>样本</strong>来自客户端耗时（含场景 SQL 文本）；<strong>库内</strong>来自 <code>V$SQL_HISTORY</code> 场景时间窗。</p>
+          <div class="table-wrap scroll-x">
+            <table class="data-table wide">
+              <thead>
+                <tr>
+                  <th>场景</th>
+                  <th>来源</th>
+                  <th>耗时(ms)</th>
+                  <th>SQL 文本</th>
+                  <th>执行时间</th>
+                </tr>
+              </thead>
+              <tbody id="slowSqlTableBody"></tbody>
+            </table>
+          </div>
+        </section>
+      </div>
+    </div>
+    <script src="./app.js?v=20260622c"></script>
+  </body>
+</html>

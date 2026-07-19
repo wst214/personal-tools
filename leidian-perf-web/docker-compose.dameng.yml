@@ -1,0 +1,25 @@
+# 达梦压测：使用含 Linux disql/dmPython 的镜像（Dockerfile.dameng）
+# 用法：.\docker-start.ps1 --dameng
+# 前置：dm-client/ 已放入 DM8 Linux 客户端（scripts/pack-dm-client.ps1）
+
+services:
+  perf-web:
+    build:
+      context: .
+      dockerfile: Dockerfile.dameng
+      args:
+        PIP_INDEX_URL: ${PIP_INDEX_URL:-https://pypi.tuna.tsinghua.edu.cn/simple}
+    image: leidian-perf-tool:dameng
+    volumes:
+      - ./data:/app/data
+      - ./web:/app/web
+      - ./python:/app/python
+      - ./sql-dameng:/app/sql-dameng
+    environment:
+      PERF_DB_DIALECT: dameng
+      DMHOST: ${DMHOST:-192.168.1.41}
+      DMPORT: ${DMPORT:-5236}
+      DMSERVICE: ${DMSERVICE:-LEIDIAN_PERF}
+      DMUSER: ${DMUSER:-LEIDIAN_APP}
+      DMPASSWORD: ${DMPASSWORD:-Leidian@2026!}
+      DMSCHEMA: ${DMSCHEMA:-PERF}

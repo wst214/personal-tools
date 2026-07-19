@@ -1,0 +1,71 @@
+# PERF 操作台镜像（PostgreSQL psql + 达梦 disql/dmPython）
+# 构建前：将 Linux DM8 客户端放入 dm-client/（见 scripts/pack-dm-client.ps1）
+FROM python:3.12-bookworm
+
+# 国内构建常遇 PyPI 超时；可 build-arg 覆盖：--build-arg PIP_INDEX_URL=https://pypi.org/simple
+ARG PIP_INDEX_URL=https://pypi.tuna.tsinghua.edu.cn/simple
+ENV PIP_DEFAULT_TIMEOUT=300
+
+RUN apt-get update \
+    && apt-get install -y --no-install-recommends \
+        postgresql-client libaio1 gcc g++ python3-dev \
+    && rm -rf /var/lib/apt/lists/*
+
+# dm-client/ 目录结构应对齐 dbserver /opt/dmdbms（含 bin/disql、drivers/python/dmPython 等）
+COPY dm-client/ /opt/dmdbms/
+
+ENV DM_HOME=/opt/dmdbms
+ENV PATH="/opt/dmdbms/bin:${PATH}"
+ENV LD_LIBRARY_PATH="/opt/dmdbms/bin:${LD_LIBRARY_PATH}"
+ENV C_INCLUDE_PATH="/opt/dmdbms/include:${C_INCLUDE_PATH}"
+
+RUN test -x /opt/dmdbms/bin/disql \
+    || (echo "ERROR: dm-client missing or bin/disql not executable. Run scripts/pack-dm-client.ps1" >&2 && exit 1)
+
+WORKDIR /app
+
+COPY python/requirements.txt /app/python/requirements.txt
+RUN pip install --no-cache-dir \
+    -i "${PIP_INDEX_URL}" \
+    --trusted-host pypi.tuna.tsinghua.edu.cn \
+    --trusted-host mirrors.aliyun.com \
+    --trusted-host pypi.org \
+    --trusted-host files.pythonhosted.org \
+    -r /app/python/requirements.txt
+
+# dmPython: optional (SQL Benchmark); init/load/validate use disql only — do not fail build
+RUN DM_PY="" && \
+    if [ -d /opt/dmdbms/drivers/python/dmPython ]; then DM_PY=/opt/dmdbms/drivers/python/dmPython; \
+    elif [ -d /opt/dmdbms/drivers/python/dmPython3 ]; then DM_PY=/opt/dmdbms/drivers/python/dmPython3; \
+    fi && \
+    if [ -n "$DM_PY" ]; then \
+      CFLAGS="-I/opt/dmdbms/include" pip install --no-cache-dir "$DM_PY" && python -c "import dmPython; print('dmPython OK')" \
+        || echo "WARN: dmPython install failed (Benchmark unavailable; disql/preflight/init OK)" >&2; \
+    else \
+      echo "WARN: drivers/python/dmPython not in dm-client pack" >&2; \
+    fi
+
+COPY python/ /app/python/
+COPY sql-postgres/ /app/sql-postgres/
+COPY sql-dameng/ /app/sql-dameng/
+COPY web/ /app/web/
+
+ENV PERF_WEB_HOST=0.0.0.0
+ENV PERF_WEB_PORT=8100
+ENV PYTHONUNBUFFERED=1
+ENV PERF_DB_DIALECT=dameng
+ENV PGHOST=host.docker.internal
+ENV PGPORT=5432
+ENV PGDATABASE=leidian_perf
+ENV PGUSER=leidian
+ENV PGPASSWORD=leidian
+ENV DMHOST=192.168.1.41
+ENV DMPORT=5236
+ENV DMSERVICE=LEIDIAN_PERF
+ENV DMUSER=LEIDIAN_APP
+ENV DMPASSWORD=Leidian@2026!
+ENV DMSCHEMA=PERF
+
+EXPOSE 8100
+
+CMD ["python", "/app/web/server.py"]

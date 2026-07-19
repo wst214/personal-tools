@@ -1,0 +1,40 @@
+# Docker Compose 项目名（Docker Desktop 分组名）
+name: leidian-tools
+
+services:
+  leidian-protocol-parse:
+    build: .
+    image: leidian-protocol-parse:latest
+    container_name: leidian-protocol-parse
+    ports:
+      - "9000:9000"
+    environment:
+      PORT: 9000
+      # 浏览器打开的 URL 主机名
+      LEIDIAN_MINIO_BROWSER_ENDPOINT: ${LEIDIAN_MINIO_BROWSER_ENDPOINT:-http://localhost:19000}
+      # 容器内 HeadObject 检查用（访问宿主机 MinIO）
+      LEIDIAN_MINIO_API_ENDPOINT: ${LEIDIAN_MINIO_API_ENDPOINT:-http://host.docker.internal:19000}
+      LEIDIAN_MINIO_ACCESS_KEY: ${LEIDIAN_MINIO_ACCESS_KEY:-minioadmin}
+      LEIDIAN_MINIO_SECRET_KEY: ${LEIDIAN_MINIO_SECRET_KEY:-minioadmin}
+      LEIDIAN_MINIO_PRESIGN_EXPIRY_SECONDS: ${LEIDIAN_MINIO_PRESIGN_EXPIRY_SECONDS:-3600}
+      # 表单可直接填 Windows 路径；D: 盘映射到容器 /host-d
+      LEIDIAN_RADAR_SOURCE_DIR: "D:/mytools/leidian-protocol-parse/minio帧文件/20250719"
+      LEIDIAN_HOST_DRIVE_D: /host-d
+      LEIDIAN_KAFKA_BOOTSTRAP_SERVERS: kafka:29092
+      LEIDIAN_WS_RADAR_URL: ws://leidian-gateway-service:8080/api/biz/realtime/ws
+      # recent 直连 biz（网关缺 /api/v1/radar 路由时避免 404）
+      LEIDIAN_RADAR_API_BASE_URL: http://leidian-biz-service:8083
+    volumes:
+      # 整盘 D: 只读挂载，换目录只需改页面上的路径
+      - "D:/:/host-d:ro"
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    networks:
+      - default
+      - leidian-net
+    restart: unless-stopped
+
+networks:
+  leidian-net:
+    external: true
+    name: leidian-p0_leidian-net

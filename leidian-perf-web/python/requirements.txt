@@ -1,0 +1,6 @@
+psycopg2-binary>=2.9.9
+PyYAML>=6.0
+# Windows 等环境无系统 IANA 时区库；resource_collect 使用 ZoneInfo("Asia/Shanghai")
+tzdata>=2024.1
+# 达梦压测（直连 SQL）需 dmPython + DM 客户端；造数/校验可用 disql，不强制安装
+# dmPython  # 从达梦安装目录或 pip 获取，按本机 DM8 版本匹配

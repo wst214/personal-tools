@@ -1,0 +1,120 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="theme-color" content="#f3f4f1" />
+    <title>Stack 运维面板 · WST Lab</title>
+    <meta name="description" content="WST Lab 本机 Docker 打包、构建镜像与容器重启面板" />
+    <link rel="stylesheet" href="/static/css/style.css" />
+  </head>
+  <body>
+    <div class="app-shell">
+      <aside class="sidebar">
+        <a class="identity" href="http://127.0.0.1:8090" aria-label="返回个人开发工作台">
+          <span class="identity-mark">W</span>
+          <span>
+            <strong>WST Lab</strong>
+            <small>Personal workspace</small>
+          </span>
+        </a>
+
+        <nav class="side-nav" aria-label="工具导航">
+          <a href="http://127.0.0.1:8090"><span aria-hidden="true">⌂</span>工作台首页</a>
+          <a class="active" href="#stacks"><span aria-hidden="true">◫</span>服务栈</a>
+          <a href="#logs"><span aria-hidden="true">_</span>执行日志</a>
+        </nav>
+
+        <div class="sidebar-service">
+          <span class="presence-dot"></span>
+          <div>
+            <strong>本地服务</strong>
+            <small>端口 5770</small>
+          </div>
+        </div>
+      </aside>
+
+      <main>
+        <header class="topbar">
+          <div class="mobile-brand"><span>W</span><strong>WST Lab</strong></div>
+          <div class="breadcrumb"><span>工具</span><b>/</b><strong>Stack 运维</strong></div>
+          <div id="envBadge" class="badge badge-warn"><i></i>检测中…</div>
+        </header>
+
+        <div class="workspace">
+          <section class="intro" id="stacks">
+            <div>
+              <p class="kicker">STACK OPERATIONS</p>
+              <h1>本机构建，<br />一键重启。</h1>
+              <p>集中管理 mytools 主栈与雷电工具 Compose 项目：打包镜像、启动、停止与查看日志。</p>
+            </div>
+            <div class="intro-meta">
+              <span><i></i>Panel active</span>
+              <strong id="rootPath">--</strong>
+              <small id="dockerVersion">Docker 检测中</small>
+            </div>
+          </section>
+
+          <section class="summary-row">
+            <div class="summary-card">
+              <p>STACKS</p>
+              <strong id="stackCount">0</strong>
+              <small>Compose 项目</small>
+            </div>
+            <div class="summary-card">
+              <p>RUNNING</p>
+              <strong id="runningCount">0</strong>
+              <small>容器在线</small>
+            </div>
+            <div class="summary-card accent">
+              <p>QUICK</p>
+              <div class="quick-actions">
+                <button type="button" class="btn btn-dark" data-quick="mytools-stack" data-action="up">主栈构建启动</button>
+                <button type="button" class="btn btn-ghost" data-refresh>刷新状态</button>
+              </div>
+            </div>
+          </section>
+
+          <div id="stackList" class="stack-list"></div>
+
+          <section class="log-panel" id="logs">
+            <div class="panel-heading">
+              <div>
+                <p>EXECUTION LOG</p>
+                <h2>执行日志</h2>
+              </div>
+              <span id="taskStatus" class="status-pill idle">空闲</span>
+            </div>
+            <pre id="logBox" class="log-box">等待操作…</pre>
+          </section>
+        </div>
+      </main>
+    </div>
+
+    <template id="stackTemplate">
+      <article class="stack-card">
+        <div class="stack-head">
+          <div>
+            <p class="stack-kicker"></p>
+            <h2 class="stack-title"></h2>
+            <p class="stack-desc"></p>
+          </div>
+          <div class="stack-meta">
+            <span class="stack-count"></span>
+            <div class="build-mode-row hidden" data-build-modes></div>
+            <div class="stack-actions">
+              <button type="button" class="btn btn-ghost hidden" data-action="package" data-package-btn>Maven 打包</button>
+              <button type="button" class="btn btn-dark" data-action="up">构建并启动</button>
+              <button type="button" class="btn btn-ghost" data-action="build">仅构建</button>
+              <button type="button" class="btn btn-ghost" data-action="restart">全部重启</button>
+              <button type="button" class="btn btn-danger" data-action="down">停止栈</button>
+            </div>
+          </div>
+        </div>
+        <div class="service-grid"></div>
+      </article>
+    </template>
+
+    <script src="/static/js/app.js"></script>
+  </body>
+</html>

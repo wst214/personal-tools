@@ -1,0 +1,14 @@
+# 与 infrastructure/local 或 deployments/docker-compose 共用 leidian-net
+# 使用前请先启动基础设施；网络名默认 local_leidian-net（local 目录 compose 项目）
+
+services:
+  perf-web:
+    environment:
+      PGHOST: ${PGHOST:-postgres}
+    networks:
+      - leidian-net
+
+networks:
+  leidian-net:
+    external: true
+    name: ${LEIDIAN_DOCKER_NETWORK:-local_leidian-net}

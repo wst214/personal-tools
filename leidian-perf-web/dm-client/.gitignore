@@ -1,0 +1,4 @@
+# 达梦 Linux 客户端（闭源），勿提交 Git；构建前用 scripts/pack-dm-client 从 dbserver 拉取
+*
+!.gitignore
+!.gitkeep
