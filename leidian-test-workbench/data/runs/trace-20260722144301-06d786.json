@@ -1,0 +1,113 @@
+{
+  "ok": true,
+  "traceId": "trace-20260722144301-06d786",
+  "caseId": "minio-radar-missing-required-fields",
+  "caseName": "异常情况 · 雷达帧关键字段缺失",
+  "envName": "本地环境",
+  "startedAt": "2026-07-22T14:43:09.231Z",
+  "steps": [
+    {
+      "name": "环境预检查",
+      "ok": true,
+      "detail": "依赖均可连通",
+      "elapsedMs": 0,
+      "evidence": {
+        "checks": [
+          {
+            "name": "gateway",
+            "ok": true,
+            "detail": "HTTP 200 /actuator/health",
+            "elapsedMs": 27,
+            "evidence": {}
+          },
+          {
+            "name": "data-service",
+            "ok": true,
+            "detail": "HTTP 200 /actuator/health",
+            "elapsedMs": 22,
+            "evidence": {}
+          },
+          {
+            "name": "biz-service",
+            "ok": true,
+            "detail": "HTTP 200 /actuator/health",
+            "elapsedMs": 20,
+            "evidence": {}
+          },
+          {
+            "name": "kafka",
+            "ok": true,
+            "detail": "host.docker.internal:9092 connected",
+            "elapsedMs": 6,
+            "evidence": {}
+          },
+          {
+            "name": "database",
+            "ok": true,
+            "detail": "host.docker.internal:5432 connected",
+            "elapsedMs": 7,
+            "evidence": {}
+          },
+          {
+            "name": "minio",
+            "ok": true,
+            "detail": "HTTP 200 /minio/health/live",
+            "elapsedMs": 13,
+            "evidence": {}
+          }
+        ]
+      }
+    },
+    {
+      "name": "准备缺字段样例",
+      "ok": true,
+      "detail": "已构造缺少雷达帧关键字段的 JSON",
+      "elapsedMs": 0,
+      "evidence": {
+        "traceId": "trace-20260722144301-06d786",
+        "objectKey": "upstream/radar/realtime/2026/07/22/14/radar_missing_fields_20260722144301.json",
+        "payloadPreview": "{\n  \"traceId\": \"trace-20260722144301-06d786\",\n  \"objectKey\": \"upstream/radar/realtime/2026/07/22/14/radar_missing_fields_20260722144301.json\",\n  \"source\": \"leidian-test-workbench\"\n"
+      }
+    },
+    {
+      "name": "上传到 MinIO",
+      "ok": true,
+      "detail": "upstream/radar/realtime/2026/07/22/14/radar_missing_fields_20260722144301.json",
+      "elapsedMs": 31,
+      "evidence": {
+        "bucket": "leidian-frame",
+        "objectKey": "upstream/radar/realtime/2026/07/22/14/radar_missing_fields_20260722144301.json",
+        "traceId": "trace-20260722144301-06d786"
+      }
+    },
+    {
+      "name": "等待下游处理",
+      "ok": true,
+      "detail": "未直接观察到对象事件，继续检查下游状态",
+      "elapsedMs": 0,
+      "evidence": {}
+    },
+    {
+      "name": "检查正常索引",
+      "ok": true,
+      "detail": "未写入正常雷达帧索引",
+      "elapsedMs": 0,
+      "evidence": {
+        "rows": [
+          {
+            "count": "0"
+          }
+        ]
+      }
+    },
+    {
+      "name": "检查查询接口",
+      "ok": true,
+      "detail": "HTTP 200，未暴露异常数据",
+      "elapsedMs": 65,
+      "evidence": {
+        "body": "{\"code\":0,\"message\":\"success\",\"data\":[{\"frameId\":\"radar-20260722141539\",\"traceId\":\"trace-20260722141539-f12e1a\",\"eventTime\":1784729739000,\"objectKey\":\"upstream/radar/realtime/2026/07/22/14/radar_20260722141539.json\",\"downloadUrl\":\"http://minio:9000/leidian-frame/upstream/radar/realtime/2026/07/22/14/radar_20260722141539.json?X-Amz-Algorithm=AWS4-HMAC-SHA256&X-Amz-Credential=minioadmin%2F20260722%2Fus-east-1%2Fs3%2Faws4_request&X-Amz-Date=20260722T144309Z&X-Amz-Expires=3600&X-Amz-SignedHeaders=host&X-Amz-Signature=3b79b9bb05ed1559c5423235312d1c8d37649b2ada64c033e18fd1e5c82ee96c\"},{\"frameId\":\"radar-20260722141604\",\"traceId\":\"trace-20260722141603-8f1ba8\",\"eventTime\":1784729764000,\"objectKey\":\"upstream/radar/realtime/2026/07/22/14/radar_20260722141604.json\",\"downloadUrl\":\"http://minio:9000/lei"
+      }
+    }
+  ]
+}

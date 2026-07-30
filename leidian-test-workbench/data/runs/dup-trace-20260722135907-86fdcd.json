@@ -1,0 +1,113 @@
+{
+  "ok": false,
+  "traceId": "dup-trace-20260722135907-86fdcd",
+  "caseId": "minio-radar-duplicate-object",
+  "caseName": "边界情况 · 重复 objectKey 幂等覆盖",
+  "envName": "本地环境",
+  "startedAt": "2026-07-22T13:59:32.725Z",
+  "steps": [
+    {
+      "name": "环境预检查",
+      "ok": true,
+      "detail": "依赖均可连通",
+      "elapsedMs": 0,
+      "evidence": {
+        "checks": [
+          {
+            "name": "gateway",
+            "ok": true,
+            "detail": "HTTP 200 /actuator/health",
+            "elapsedMs": 44,
+            "evidence": {}
+          },
+          {
+            "name": "data-service",
+            "ok": true,
+            "detail": "HTTP 200 /actuator/health",
+            "elapsedMs": 34,
+            "evidence": {}
+          },
+          {
+            "name": "biz-service",
+            "ok": true,
+            "detail": "HTTP 200 /actuator/health",
+            "elapsedMs": 29,
+            "evidence": {}
+          },
+          {
+            "name": "kafka",
+            "ok": true,
+            "detail": "host.docker.internal:9092 connected",
+            "elapsedMs": 10,
+            "evidence": {}
+          },
+          {
+            "name": "database",
+            "ok": true,
+            "detail": "host.docker.internal:5432 connected",
+            "elapsedMs": 12,
+            "evidence": {}
+          },
+          {
+            "name": "minio",
+            "ok": true,
+            "detail": "HTTP 200 /minio/health/live",
+            "elapsedMs": 30,
+            "evidence": {}
+          }
+        ]
+      }
+    },
+    {
+      "name": "上传首个对象",
+      "ok": true,
+      "detail": "upstream/radar/realtime/2026/07/22/13/radar_20260722135907.json",
+      "elapsedMs": 24,
+      "evidence": {
+        "bucket": "leidian-frame",
+        "objectKey": "upstream/radar/realtime/2026/07/22/13/radar_20260722135907.json",
+        "traceId": "trace-20260722135907-86fdcd"
+      }
+    },
+    {
+      "name": "检查首次入库",
+      "ok": false,
+      "detail": "首次写入异常：命中 0 条",
+      "elapsedMs": 0,
+      "evidence": {
+        "rows": []
+      }
+    },
+    {
+      "name": "重复上传同一 objectKey",
+      "ok": true,
+      "detail": "upstream/radar/realtime/2026/07/22/13/radar_20260722135907.json",
+      "elapsedMs": 22,
+      "evidence": {
+        "bucket": "leidian-frame",
+        "objectKey": "upstream/radar/realtime/2026/07/22/13/radar_20260722135907.json",
+        "traceId": "trace-20260722135907-eaec83"
+      }
+    },
+    {
+      "name": "检查幂等覆盖",
+      "ok": false,
+      "detail": "命中 0 条，最新 trace_id=空",
+      "elapsedMs": 0,
+      "evidence": {
+        "rows": [],
+        "traceId1": "trace-20260722135907-86fdcd",
+        "traceId2": "trace-20260722135907-eaec83"
+      }
+    },
+    {
+      "name": "检查查询接口",
+      "ok": true,
+      "detail": "HTTP 200",
+      "elapsedMs": 24,
+      "evidence": {
+        "body": "{\"code\":0,\"message\":\"success\",\"data\":[],\"traceId\":\"6d39dc1b12384e3caea976164ef3d6ed\",\"timestamp\":1784728772722}"
+      }
+    }
+  ]
+}

@@ -1,8 +1,28 @@
-python/.venv
-python/**/__pycache__
-**/*.pyc
+# 构建上下文：达梦镜像仍需 dm-client/（约 1.5GB），其余尽量排除
 .git
 .gitignore
+.gitattributes
+.claude
+**/.venv
+**/__pycache__
+**/*.pyc
+**/*.pyo
+
+# 运行期挂载 / 本地产物，不必打进镜像
+data/
+monitoring/
+docs/
+scripts/
+wst-temp/
+_docx_unzip/
 *.md
+*.tar.gz
+_docx_*.txt
+_word_*.txt
+
 web/start.ps1
 web/start.sh
+
+# 诊断脚本不进镜像（运行期 python/ 已 volume 挂载）
+python/_diag_*.py
+python/diag_*.py

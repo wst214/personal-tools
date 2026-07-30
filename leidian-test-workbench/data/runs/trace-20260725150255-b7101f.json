@@ -1,0 +1,117 @@
+{
+  "ok": true,
+  "traceId": "trace-20260725150255-b7101f",
+  "caseId": "device-hex-invalid-format",
+  "caseName": "异常情况 · 非法 HEX 格式",
+  "envName": "本地环境",
+  "startedAt": "2026-07-25T15:02:56.159Z",
+  "steps": [
+    {
+      "name": "环境预检查",
+      "ok": true,
+      "detail": "依赖均可连通",
+      "elapsedMs": 0,
+      "evidence": {
+        "checks": [
+          {
+            "name": "gateway",
+            "ok": true,
+            "detail": "HTTP 200 /actuator/health",
+            "elapsedMs": 24,
+            "evidence": {}
+          },
+          {
+            "name": "data-service",
+            "ok": true,
+            "detail": "HTTP 200 /actuator/health",
+            "elapsedMs": 22,
+            "evidence": {}
+          },
+          {
+            "name": "biz-service",
+            "ok": true,
+            "detail": "HTTP 200 /actuator/health",
+            "elapsedMs": 30,
+            "evidence": {}
+          },
+          {
+            "name": "kafka",
+            "ok": true,
+            "detail": "kafka:29092 connected",
+            "elapsedMs": 4,
+            "evidence": {}
+          },
+          {
+            "name": "database",
+            "ok": true,
+            "detail": "host.docker.internal:5432 connected",
+            "elapsedMs": 5,
+            "evidence": {}
+          }
+        ]
+      }
+    },
+    {
+      "name": "构造非法报文",
+      "ok": true,
+      "detail": "含非 HEX 字符(ZZ)，归一化后 isHex=false -> TEXT_NOISE",
+      "elapsedMs": 0,
+      "evidence": {
+        "hexPreview": "5A4B11030002000100010010001A003C000703E875C8ZZ0D0A"
+      }
+    },
+    {
+      "name": "发送非法报文",
+      "ok": true,
+      "detail": "已发送到 device-raw-data",
+      "elapsedMs": 14,
+      "evidence": {
+        "traceId": "trace-20260725150255-b7101f",
+        "dedupKey": "trace-20260725150255-b7101f-invalid-format",
+        "hexPreview": "5A4B11030002000100010010001A003C000703E875C8ZZ0D0A"
+      }
+    },
+    {
+      "name": "检查失败记录",
+      "ok": true,
+      "detail": "process_status=SKIPPED（命中 TEXT_NOISE）",
+      "elapsedMs": 0,
+      "evidence": {
+        "raw": {
+          "process_status": "SKIPPED",
+          "error_message": "跳过：文本噪声（TEXT_NOISE）：报文不是有效的 HEX | payloadPreview=5A4B11030002000100010010001A003C000703E875C8ZZ0D0A",
+          "is_duplicate": 0,
+          "dedup_key": "trace-20260725150255-b7101f-invalid-format",
+          "raw_data": "5A4B11030002000100010010001A003C000703E875C8ZZ0D0A"
+        }
+      }
+    },
+    {
+      "name": "检查标准层无污染",
+      "ok": true,
+      "detail": "data_standard_message 命中 0 条",
+      "elapsedMs": 0,
+      "evidence": {
+        "standardCount": 0
+      }
+    },
+    {
+      "name": "检查 monitor 无污染",
+      "ok": true,
+      "detail": "monitor_grounding_resistance 命中 0 条",
+      "elapsedMs": 0,
+      "evidence": {
+        "monitorCount": 0
+      }
+    },
+    {
+      "name": "检查异常留痕",
+      "ok": true,
+      "detail": "data_exception 命中 1 条",
+      "elapsedMs": 0,
+      "evidence": {
+        "exceptionCount": 1
+      }
+    }
+  ]
+}

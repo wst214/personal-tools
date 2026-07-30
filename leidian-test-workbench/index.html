@@ -3,127 +3,174 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <meta name="theme-color" content="#f3f4f1" />
+    <meta name="theme-color" content="#f4f6f3" />
     <title>雷电测试工作台</title>
     <link rel="stylesheet" href="./styles.css" />
   </head>
   <body>
     <div class="app-shell">
       <aside class="sidebar">
-        <a class="identity" href="#run" data-view-link="run" aria-label="返回执行中心">
+        <a class="identity" href="#run" data-view-link="run" aria-label="返回执行工作台">
           <span class="identity-mark">T</span>
-          <span><strong>雷电测试工作台</strong><small>Feature test bench</small></span>
+          <span><strong>测试工作台</strong><small>链路验证与排障</small></span>
         </a>
+
         <nav class="side-nav" aria-label="主导航">
-          <a class="active" href="#run" data-view-link="run"><span>01</span>执行中心</a>
-          <a href="#env" data-view-link="env"><span>02</span>环境配置</a>
-          <a href="#cases" data-view-link="cases"><span>03</span>用例库</a>
-          <a href="#reports" data-view-link="reports"><span>04</span>执行报告</a>
+          <a class="active" href="#run" data-view-link="run"><span>01</span><div><strong>执行工作台</strong><small>选择场景并运行用例</small></div></a>
+          <a href="#reports" data-view-link="reports"><span>02</span><div><strong>历史报告</strong><small>查看结果与证据</small></div></a>
+          <a href="#env" data-view-link="env"><span>03</span><div><strong>环境设置</strong><small>维护连接与能力</small></div></a>
         </nav>
-        <div class="sidebar-note"><i></i><div><strong data-active-env-label>本地环境</strong><small>当前执行环境</small></div></div>
+
+        <div class="sidebar-note">
+          <i></i>
+          <div><span>当前环境</span><strong data-active-env-label>本地环境</strong></div>
+        </div>
       </aside>
 
       <main>
         <header class="topbar">
           <button class="menu-button" type="button" aria-label="打开导航" data-menu-button>☰</button>
-          <div class="breadcrumb"><span>测试工作台</span><b>/</b><strong data-view-title>执行中心</strong></div>
-          <div class="topbar-actions">
-            <label class="env-switcher">
-              <span>环境</span>
-              <select data-env-select aria-label="切换环境">
-                <option value="local">本地环境</option>
-                <option value="dev">开发环境</option>
-                <option value="test">测试环境</option>
-              </select>
-            </label>
-            <span class="time-chip" data-current-time>--:--</span>
+          <div class="page-heading">
+            <span data-view-kicker>TEST RUNNER</span>
+            <strong data-view-title>执行工作台</strong>
           </div>
+          <label class="env-switcher">
+            <span>执行环境</span>
+            <select data-env-select aria-label="切换执行环境">
+              <option value="local">本地环境</option>
+              <option value="dev">开发环境</option>
+              <option value="test">测试环境</option>
+            </select>
+          </label>
         </header>
 
         <div class="workspace">
-          <section class="hero-band">
-            <div>
-              <p class="kicker">LEIDIAN FEATURE TEST BENCH</p>
-              <h1>把功能点验证，从手工排查变成可复用的链路用例。</h1>
-            </div>
-            <div class="hero-status">
-              <span class="pulse"><i></i><b data-active-env-name>本地环境</b></span>
-              <strong data-active-case-count>2 个内置用例</strong>
-              <small>MinIO / Kafka / DB / HTTP / WebSocket</small>
-            </div>
-          </section>
-
           <section class="view-panel active" data-view="run" id="run">
-            <div class="section-title">
-              <div><p>RUN CENTER</p><h2>执行中心</h2></div>
-              <button class="primary-button" type="button" data-run-selected>运行选中用例</button>
+            <div class="run-overview">
+              <div class="overview-copy">
+                <p class="eyebrow">当前任务</p>
+                <h1>选择测试场景，再执行场景下的用例</h1>
+                <p>每个场景可以包含多个用例；执行前自动检查依赖，失败时定位到具体步骤和证据。</p>
+              </div>
+              <div class="readiness-card" data-readiness-card>
+                <div class="readiness-icon"><i></i></div>
+                <div>
+                  <span>环境状态 · <b data-active-env-name>本地环境</b></span>
+                  <strong data-run-readiness>正在检查配置</strong>
+                  <small data-run-readiness-detail>请稍候</small>
+                </div>
+                <button class="text-button" type="button" data-run-env-check>检查连通性</button>
+              </div>
             </div>
+
             <div class="run-layout">
-              <div class="case-list" data-case-list></div>
-              <div class="execution-panel">
-                <div class="panel-heading compact">
-                  <div><p>CURRENT CASE</p><h2 data-selected-case-name>MinIO 雷达帧上传全链路</h2></div>
+              <aside class="case-browser">
+                <div class="panel-title">
+                  <div><span>测试场景</span><strong data-active-case-count>2 个内置场景</strong></div>
+                  <small>选择场景后查看用例</small>
+                </div>
+                <div class="case-list" data-case-list></div>
+              </aside>
+
+              <section class="execution-panel">
+                <div class="execution-heading">
+                  <div>
+                    <p class="eyebrow">场景 · <span data-selected-scene-name>MinIO 上传</span></p>
+                    <h2 data-selected-case-name>MinIO 雷达帧上传全链路</h2>
+                  </div>
                   <span class="state-pill ready" data-run-state>待执行</span>
                 </div>
                 <div class="capability-row" data-selected-capabilities></div>
-                <div class="trace-box"><span>Trace ID</span><strong data-trace-id>未生成</strong></div>
-                <div class="step-list" data-step-list></div>
-              </div>
-            </div>
-          </section>
-
-          <section class="view-panel" data-view="env" id="env">
-            <div class="section-title">
-              <div><p>ENVIRONMENT</p><h2>环境配置</h2></div>
-              <div class="button-group"><button class="ghost-button" type="button" data-reset-env>恢复默认</button><button class="primary-button" type="button" data-save-env>保存当前环境</button></div>
-            </div>
-            <div class="env-layout">
-              <div class="env-summary">
-                <div class="env-card active" data-env-card="local"><strong>本地环境</strong><span>localhost 服务栈</span></div>
-                <div class="env-card" data-env-card="dev"><strong>开发环境</strong><span>联调环境配置</span></div>
-                <div class="env-card" data-env-card="test"><strong>测试环境</strong><span>验收环境配置</span></div>
-              </div>
-              <div class="config-surface">
-                <div class="config-section">
-                  <div class="config-title"><span>BASE</span><strong>基础服务</strong></div>
-                  <div class="field-grid" data-base-fields></div>
-                </div>
-                <div class="config-section">
-                  <div class="config-title"><span>CAPABILITIES</span><strong>能力模块</strong></div>
-                  <div class="module-list" data-module-list></div>
-                </div>
-                <div class="config-section env-check-section">
-                  <div class="config-title">
-                    <div><span>CONNECTIVITY</span><strong>环境连通性</strong></div>
-                    <button class="ghost-button" type="button" data-check-env>检查当前环境</button>
+                <section class="folder-upload" data-folder-upload hidden>
+                  <div class="folder-upload-heading">
+                    <div><p class="eyebrow">MINIO IMPORT</p><strong>帧文件导入</strong><span>递归上传 JSON 文件，并验证查询接口和 WebSocket 推送</span></div>
+                    <span class="state-pill ready" data-folder-upload-state>未选择文件夹</span>
                   </div>
-                  <div class="env-check-status" data-env-check-status>尚未检查当前环境</div>
-                  <div class="env-check-list" data-env-check-list></div>
+                  <div class="folder-upload-toolbar">
+                    <input type="file" data-folder-input webkitdirectory directory multiple accept=".json,application/json" hidden />
+                    <button class="ghost-button" type="button" data-folder-select>选择文件夹</button>
+                    <button class="primary-button" type="button" data-folder-upload-start disabled>上传到 MinIO</button>
+                    <span class="folder-upload-destination">目标：upstream/radar/realtime/{yyyy}/{MM}/{dd}/{HH}/{fileName}</span>
+                  </div>
+                  <div class="folder-upload-options" aria-label="上传参数">
+                    <label><span>上传附件数</span><input type="number" min="1" step="1" placeholder="选择后自动填充" data-folder-upload-limit /></label>
+                    <label><span>附件上传间隔(ms)</span><input type="number" min="0" max="60000" step="100" value="0" data-folder-upload-delay /></label>
+                  </div>
+                  <div class="folder-upload-summary" data-folder-summary>尚未选择文件夹</div>
+                  <progress class="folder-upload-progress" data-folder-progress max="1" value="0" hidden></progress>
+                  <div class="folder-upload-result" data-folder-result></div>
+                </section>
+                <div class="test-case-list" data-test-case-list></div>
+                <div class="batch-queue" data-batch-queue></div>
+                <div class="case-definition">
+                  <div><span>测试目标</span><strong data-case-objective>验证正常上传链路</strong></div>
+                  <div><span>预期结果</span><strong data-case-expected>关键链路均可观察并可查询</strong></div>
                 </div>
-              </div>
-            </div>
-          </section>
 
-          <section class="view-panel" data-view="cases" id="cases">
-            <div class="section-title">
-              <div><p>CASE LIBRARY</p><h2>用例库</h2></div>
-              <button class="ghost-button" type="button">新建用例</button>
+                <div class="run-toolbar">
+                  <div class="trace-box"><span>Trace ID</span><strong data-trace-id>执行后生成</strong></div>
+                  <div class="button-group">
+                    <button class="ghost-button" type="button" data-run-selected>执行当前用例</button>
+                    <button class="primary-button" type="button" data-run-scene>运行已选择用例</button>
+                  </div>
+                </div>
+
+                <section class="batch-results" data-batch-results></section>
+
+                <div class="verification-section">
+                  <div class="subheading"><div><strong>当前用例的验收条件</strong><span class="verification-case" data-verification-case>当前查看：MinIO 雷达帧上传全链路</span></div><span data-step-section-hint>批量队列中的其它用例不合并在这里</span></div>
+                  <div class="check-table">
+                    <div class="check-table-header" aria-hidden="true"><span>阶段</span><span>观察对象</span><span>通过条件</span><span>本次结果</span></div>
+                    <div class="step-list" data-step-list></div>
+                  </div>
+                </div>
+              </section>
             </div>
-            <div class="library-grid" data-library-grid></div>
           </section>
 
           <section class="view-panel" data-view="reports" id="reports">
-            <div class="section-title">
-              <div><p>REPORTS</p><h2>执行报告</h2></div>
-              <span class="muted-label" data-report-count>暂无记录</span>
+            <div class="section-heading">
+              <div><p class="eyebrow">RUN HISTORY</p><h1>历史报告</h1><span>先看失败，再展开步骤证据。</span></div>
+              <strong class="result-count" data-report-count>暂无记录</strong>
+            </div>
+
+            <div class="report-filters" aria-label="报告筛选">
+              <label><span>结果</span><select data-report-status-filter><option value="all">全部结果</option><option value="fail">仅失败</option><option value="pass">仅通过</option></select></label>
+              <label><span>环境</span><select data-report-env-filter><option value="all">全部环境</option></select></label>
+              <label><span>用例</span><select data-report-case-filter><option value="all">全部用例</option></select></label>
+              <label class="trace-filter"><span>Trace ID</span><input type="search" placeholder="输入 Trace ID" data-report-trace-filter /></label>
+              <button class="ghost-button" type="button" data-clear-report-filters>清空筛选</button>
             </div>
             <div class="report-list" data-report-list></div>
           </section>
 
-          <footer><span>Leidian Test Workbench</span><span>Local prototype</span></footer>
+          <section class="view-panel" data-view="env" id="env">
+            <div class="section-heading env-heading">
+              <div><p class="eyebrow">ENVIRONMENT</p><h1>环境设置</h1><span>当前编辑：<b data-env-context-name>本地环境</b> · <span data-env-context-desc>localhost 服务栈</span></span></div>
+              <div class="button-group"><button class="ghost-button" type="button" data-reset-env>恢复默认</button><button class="primary-button" type="button" data-save-env>保存环境</button></div>
+            </div>
+
+            <div class="env-status-panel">
+              <div><span>连通性状态</span><strong data-env-check-status>尚未检查当前环境</strong></div>
+              <button class="ghost-button" type="button" data-check-env>检查当前环境</button>
+            </div>
+            <div class="env-check-list" data-env-check-list></div>
+
+            <div class="config-surface">
+              <section class="config-section">
+                <div class="config-title"><div><span>BASE SERVICES</span><strong>基础服务</strong><p>测试链路依赖的服务入口和健康检查地址。</p></div></div>
+                <div class="field-grid" data-base-fields></div>
+              </section>
+              <section class="config-section">
+                <div class="config-title"><div><span>CAPABILITIES</span><strong>能力模块</strong><p>只启用当前环境实际具备的能力，展开后维护连接参数。</p></div></div>
+                <div class="module-list" data-module-list></div>
+              </section>
+            </div>
+          </section>
         </div>
       </main>
     </div>
+
     <div class="toast" data-toast>已保存</div>
     <div class="scrim" data-scrim></div>
     <script src="./app.js"></script>

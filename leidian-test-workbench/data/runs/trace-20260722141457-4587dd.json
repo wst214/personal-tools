@@ -1,0 +1,69 @@
+{
+  "ok": false,
+  "traceId": "trace-20260722141457-4587dd",
+  "caseId": "minio-radar-large-payload",
+  "caseName": "边界情况 · 10MB 大文件上传",
+  "envName": "本地环境",
+  "startedAt": "2026-07-22T14:14:57.252Z",
+  "steps": [
+    {
+      "name": "环境预检查",
+      "ok": false,
+      "detail": "部分依赖不可达",
+      "elapsedMs": 0,
+      "evidence": {
+        "checks": [
+          {
+            "name": "gateway",
+            "ok": true,
+            "detail": "HTTP 200 /actuator/health",
+            "elapsedMs": 13,
+            "evidence": {}
+          },
+          {
+            "name": "data-service",
+            "ok": false,
+            "detail": "fetch failed",
+            "elapsedMs": 6,
+            "evidence": {}
+          },
+          {
+            "name": "biz-service",
+            "ok": true,
+            "detail": "HTTP 200 /actuator/health",
+            "elapsedMs": 13,
+            "evidence": {}
+          },
+          {
+            "name": "kafka",
+            "ok": true,
+            "detail": "host.docker.internal:9092 connected",
+            "elapsedMs": 4,
+            "evidence": {}
+          },
+          {
+            "name": "database",
+            "ok": true,
+            "detail": "host.docker.internal:5432 connected",
+            "elapsedMs": 4,
+            "evidence": {}
+          },
+          {
+            "name": "minio",
+            "ok": true,
+            "detail": "HTTP 200 /minio/health/live",
+            "elapsedMs": 5,
+            "evidence": {}
+          },
+          {
+            "name": "websocket",
+            "ok": true,
+            "detail": "host.docker.internal:8080 connected",
+            "elapsedMs": 4,
+            "evidence": {}
+          }
+        ]
+      }
+    }
+  ]
+}

@@ -29,10 +29,16 @@ def build_disql_conn(
     host: str,
     port: str,
 ) -> str:
+    """组装 disql 连接串。
+
+    密码含 @ 时用双引号包裹；disql 以最后一个 @ 分隔主机时也能解析无引号形式，
+    但引号对含空格/反斜杠更稳妥。
+    """
     if password:
-        # 密码含 @ 等特殊字符时加引号
-        if any(ch in password for ch in "@/\\ "):
-            return f'{user}/"{password}"@{host}:{port}'
+        # 含 @ / 空格 / 反斜杠 / 引号 时给密码加双引号
+        if any(ch in password for ch in '@/\\ "'):
+            escaped = password.replace('"', '\\"')
+            return f'{user}/"{escaped}"@{host}:{port}'
         return f"{user}/{password}@{host}:{port}"
     return f"{user}@{host}:{port}"
 
@@ -70,6 +76,7 @@ def run_disql_file(
         encoding="utf-8",
         errors="replace",
         env=env,
+        stdin=subprocess.DEVNULL,
     )
     if result.returncode != 0 or _disql_output_has_error(result.stdout, result.stderr):
         raise RuntimeError(
@@ -106,6 +113,7 @@ def run_disql_sql(conn: str, sql: str, *, env: dict[str, str] | None = None) -> 
             encoding="utf-8",
             errors="replace",
             env=env,
+            stdin=subprocess.DEVNULL,
         )
         if result.returncode != 0 or _disql_output_has_error(result.stdout, result.stderr):
             raise RuntimeError(

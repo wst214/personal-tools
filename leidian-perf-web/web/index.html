@@ -166,6 +166,11 @@
                 <option value="S2">S2 增长 (~900万)</option>
                 <option value="S3">S3 压力 (~1700万)</option>
                 <option value="S4">S4 推荐存量 (~3890万)</option>
+                <option value="S5">S5 压测加压 (~1亿大气)</option>
+                <option value="S6">S6 加压扩展 (~2亿大气)</option>
+                <option value="S7">S7 200台×15天真1Hz (~2.6亿/层)</option>
+                <option value="S8">S8 100台×30天真1Hz (~2.6亿/层)</option>
+                <option value="S9">S9 500台×30天仅biz (~12.96亿)</option>
               </select>
             </label>
             <label>起始 t0<input id="t0" type="text" placeholder="可选" /></label>
@@ -221,6 +226,11 @@
             <button type="button" class="stage-tab" data-stage="S2">S2</button>
             <button type="button" class="stage-tab" data-stage="S3">S3</button>
             <button type="button" class="stage-tab" data-stage="S4">S4</button>
+            <button type="button" class="stage-tab" data-stage="S5">S5</button>
+            <button type="button" class="stage-tab" data-stage="S6">S6</button>
+            <button type="button" class="stage-tab" data-stage="S7">S7</button>
+            <button type="button" class="stage-tab" data-stage="S8">S8</button>
+            <button type="button" class="stage-tab" data-stage="S9">S9</button>
           </div>
           <p id="volumeStageMeta" class="hint">—</p>
           <div class="table-wrap scroll-x">
@@ -311,6 +321,11 @@
             <button type="button" class="stage-tab" data-stage="S2">S2</button>
             <button type="button" class="stage-tab" data-stage="S3">S3</button>
             <button type="button" class="stage-tab" data-stage="S4">S4</button>
+            <button type="button" class="stage-tab" data-stage="S5">S5</button>
+            <button type="button" class="stage-tab" data-stage="S6">S6</button>
+            <button type="button" class="stage-tab" data-stage="S7">S7</button>
+            <button type="button" class="stage-tab" data-stage="S8">S8</button>
+            <button type="button" class="stage-tab" data-stage="S9">S9</button>
           </div>
           <p id="perfStageMeta" class="hint">—</p>
         </section>
@@ -319,11 +334,20 @@
           <h2>直连 SQL 压测</h2>
           <p class="section-desc">全场景仅压数据库 SQL：不经 Gateway/API，不涉及 Kafka/应用数据解析。各场景执行逻辑见下方说明框；写入为 INSERT+COMMIT（含 WAL 提交），开跑前与查询场景开始前自动清理压测落库行。结果统计 P50/P95/P99/TPS，通过以 P95 为准。写入场景并发见配置；查询场景（PERF-04～06）并发可在下方修改。</p>
           <div class="form-grid">
+            <label>设备台数<input id="benchDeviceLimit" type="number" value="100" min="1" max="500" title="读写同池：写入轮转与 PERF-05* 曲线共用；切换档位会按造数台数预填" /></label>
             <label>写入每线程次数<input id="benchWriteIterations" type="number" value="50" min="5" max="500" /></label>
             <label>查询每线程次数<input id="benchQueryIterations" type="number" value="500" min="5" max="5000" /></label>
             <label>查询并发<input id="benchQueryConcurrency" type="number" value="20" min="1" max="200" title="PERF-04～06 查询场景" /></label>
             <label>慢SQL阈值(ms)<input id="benchSlowSqlMs" type="number" value="500" min="1" max="60000" title="每场景压测窗口内 mean/max 耗时超过此值计为慢SQL" /></label>
-            <label>PERF-05聚合(分钟)<input id="benchPerf05AggMinutes" type="number" value="10" min="1" max="60" title="PERF-05-AGG 时间桶宽度，默认 10 分钟" /></label>
+            <label>PERF-05聚合(分钟)<input id="benchPerf05AggMinutes" type="number" value="1" min="1" max="60" title="PERF-05-AGG 时间桶宽度，默认 1 分钟" /></label>
+            <label class="dameng-only-field" hidden title="仅达梦 PERF-06；bbox 依赖 idx_biz_lightning_time_lon_lat / perf06_cover">
+              PERF-06空间
+              <select id="benchPerf06Geo">
+                <option value="bbox_then_dwithin" selected>bbox_then_dwithin（两段精确）</option>
+                <option value="geog_only">geog_only（ST_DWithin）</option>
+                <option value="bbox_geog">bbox_geog（Haversine近似）</option>
+              </select>
+            </label>
           </div>
           <div id="benchScenarioList" class="bench-scenarios"></div>
           <div class="action-row">
@@ -338,6 +362,9 @@
           <div class="section-head">
             <h2>压测历史</h2>
             <div class="head-actions">
+              <label class="inline-field" title="压测历史与配套采集列表每页条数，默认 9">每页
+                <input id="listPageSize" type="number" value="9" min="1" max="100" />
+              </label>
               <button type="button" id="btnDeletePerfRuns" class="btn tiny secondary danger" disabled>删除所选</button>
               <button type="button" id="btnDeleteAllPerfRuns" class="btn tiny secondary danger" disabled title="删除当前档位全部压测记录">删除全部</button>
               <span id="perfBadge" class="section-badge idle">—</span>
@@ -443,6 +470,6 @@
         </section>
       </div>
     </div>
-    <script src="./app.js?v=20260622c"></script>
+    <script src="./app.js?v=20260722-layoutfix"></script>
   </body>
 </html>

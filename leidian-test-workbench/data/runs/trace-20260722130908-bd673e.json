@@ -1,0 +1,129 @@
+{
+  "ok": false,
+  "traceId": "trace-20260722130908-bd673e",
+  "caseId": "minio-radar-large-payload",
+  "caseName": "边界情况 · 10MB 大文件上传",
+  "envName": "本地环境",
+  "startedAt": "2026-07-22T13:09:23.899Z",
+  "steps": [
+    {
+      "name": "环境预检查",
+      "ok": true,
+      "detail": "依赖均可连通",
+      "elapsedMs": 0,
+      "evidence": {
+        "checks": [
+          {
+            "name": "gateway",
+            "ok": true,
+            "detail": "HTTP 200 /actuator/health",
+            "elapsedMs": 42,
+            "evidence": {}
+          },
+          {
+            "name": "data-service",
+            "ok": true,
+            "detail": "HTTP 200 /actuator/health",
+            "elapsedMs": 46,
+            "evidence": {}
+          },
+          {
+            "name": "biz-service",
+            "ok": true,
+            "detail": "HTTP 200 /actuator/health",
+            "elapsedMs": 31,
+            "evidence": {}
+          },
+          {
+            "name": "kafka",
+            "ok": true,
+            "detail": "host.docker.internal:9092 connected",
+            "elapsedMs": 13,
+            "evidence": {}
+          },
+          {
+            "name": "database",
+            "ok": true,
+            "detail": "host.docker.internal:5432 connected",
+            "elapsedMs": 13,
+            "evidence": {}
+          },
+          {
+            "name": "minio",
+            "ok": true,
+            "detail": "HTTP 200 /minio/health/live",
+            "elapsedMs": 31,
+            "evidence": {}
+          },
+          {
+            "name": "websocket",
+            "ok": true,
+            "detail": "host.docker.internal:8080 connected",
+            "elapsedMs": 13,
+            "evidence": {}
+          }
+        ]
+      }
+    },
+    {
+      "name": "生成大文件",
+      "ok": true,
+      "detail": "约 10240 KB",
+      "elapsedMs": 0,
+      "evidence": {
+        "objectKey": "upstream/radar/realtime/2026/07/22/13/radar_20260722130908.json",
+        "sizeBytes": 10485774
+      }
+    },
+    {
+      "name": "上传文件",
+      "ok": true,
+      "detail": "upstream/radar/realtime/2026/07/22/13/radar_20260722130908.json",
+      "elapsedMs": 272,
+      "evidence": {
+        "bucket": "leidian-frame",
+        "objectKey": "upstream/radar/realtime/2026/07/22/13/radar_20260722130908.json",
+        "traceId": "trace-20260722130908-bd673e",
+        "uploadMs": 272,
+        "sizeBytes": 10485774
+      }
+    },
+    {
+      "name": "检查异步消费",
+      "ok": false,
+      "detail": "超时未命中 file_frame_index",
+      "elapsedMs": 15038,
+      "evidence": {
+        "indexRow": null,
+        "indexMs": 15038
+      }
+    },
+    {
+      "name": "检查 WebSocket",
+      "ok": false,
+      "detail": "等待推送超时",
+      "elapsedMs": 6002,
+      "evidence": {}
+    },
+    {
+      "name": "检查查询接口",
+      "ok": true,
+      "detail": "HTTP 200",
+      "elapsedMs": 78,
+      "evidence": {
+        "body": "{\"code\":0,\"message\":\"success\",\"data\":[],\"traceId\":\"cad89fce9a704bb58adb350a7a85957d\",\"timestamp\":1784725763891}"
+      }
+    },
+    {
+      "name": "汇总时延",
+      "ok": true,
+      "detail": "上传 272ms / 端到端 15038ms",
+      "elapsedMs": 0,
+      "evidence": {
+        "uploadMs": 272,
+        "indexMs": 15038,
+        "sizeBytes": 10485774
+      }
+    }
+  ]
+}

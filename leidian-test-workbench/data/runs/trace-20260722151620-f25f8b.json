@@ -1,0 +1,118 @@
+{
+  "ok": true,
+  "traceId": "trace-20260722151620-f25f8b",
+  "caseId": "minio-radar-frame-full-link",
+  "caseName": "正常情况 · 雷达帧全链路成功",
+  "envName": "本地环境",
+  "startedAt": "2026-07-22T15:16:29.392Z",
+  "steps": [
+    {
+      "name": "环境预检查",
+      "ok": true,
+      "detail": "依赖均可连通",
+      "elapsedMs": 0,
+      "evidence": {
+        "checks": [
+          {
+            "name": "gateway",
+            "ok": true,
+            "detail": "HTTP 200 /actuator/health",
+            "elapsedMs": 102,
+            "evidence": {}
+          },
+          {
+            "name": "data-service",
+            "ok": true,
+            "detail": "HTTP 200 /actuator/health",
+            "elapsedMs": 41,
+            "evidence": {}
+          },
+          {
+            "name": "biz-service",
+            "ok": true,
+            "detail": "HTTP 200 /actuator/health",
+            "elapsedMs": 38,
+            "evidence": {}
+          },
+          {
+            "name": "kafka",
+            "ok": true,
+            "detail": "host.docker.internal:9092 connected",
+            "elapsedMs": 15,
+            "evidence": {}
+          },
+          {
+            "name": "database",
+            "ok": true,
+            "detail": "host.docker.internal:5432 connected",
+            "elapsedMs": 14,
+            "evidence": {}
+          },
+          {
+            "name": "minio",
+            "ok": true,
+            "detail": "HTTP 200 /minio/health/live",
+            "elapsedMs": 31,
+            "evidence": {}
+          },
+          {
+            "name": "websocket",
+            "ok": true,
+            "detail": "host.docker.internal:8080 connected",
+            "elapsedMs": 14,
+            "evidence": {}
+          }
+        ]
+      }
+    },
+    {
+      "name": "上传雷达帧文件",
+      "ok": true,
+      "detail": "upstream/radar/realtime/2026/07/22/15/radar_20260722151621108_1691f6.json",
+      "elapsedMs": 61,
+      "evidence": {
+        "bucket": "leidian-frame",
+        "objectKey": "upstream/radar/realtime/2026/07/22/15/radar_20260722151621108_1691f6.json",
+        "traceId": "trace-20260722151620-f25f8b"
+      }
+    },
+    {
+      "name": "检查上游 Topic",
+      "ok": true,
+      "detail": "未直接观察到消息，由下游检查确认",
+      "elapsedMs": 0,
+      "evidence": {}
+    },
+    {
+      "name": "检查文件入库",
+      "ok": true,
+      "detail": "命中 1 条",
+      "elapsedMs": 0,
+      "evidence": {
+        "rows": [
+          {
+            "count": "1"
+          }
+        ]
+      }
+    },
+    {
+      "name": "检查 WebSocket",
+      "ok": true,
+      "detail": "已收到推送消息",
+      "elapsedMs": 121,
+      "evidence": {
+        "message": "{\"type\":\"RADAR_FRAME_READY\",\"timestamp\":1784733381213,\"data\":{\"frameId\":\"radar-20260722151621\",\"traceId\":\"trace-20260722151620-f25f8b\",\"eventTime\":1784733381000,\"objectKey\":\"upstream/radar/realtime/2026/07/22/15/radar_20260722151621108_1691f6.json\",\"downloadUrl\":\"http://minio:9000/leidian-frame/upstream/radar/realtime/2026/07/22/15/radar_20260722151621108_1691f6.json?X-Amz-Algorithm=AWS4-HMAC-SHA256&X-Amz-Credential=minioadmin%2F20260722%2Fus-east-1%2Fs3%2Faws4_request&X-Amz-Date=20260722T151621"
+      }
+    },
+    {
+      "name": "检查查询接口",
+      "ok": true,
+      "detail": "HTTP 200",
+      "elapsedMs": 110,
+      "evidence": {
+        "body": "{\"code\":0,\"message\":\"success\",\"data\":[{\"frameId\":\"radar-20260722144244\",\"traceId\":\"trace-20260722144244-00e61d\",\"eventTime\":1784731364000,\"objectKey\":\"upstream/radar/realtime/2026/07/22/14/radar_20260722144244.json\",\"downloadUrl\":\"http://minio:9000/leidian-frame/upstream/radar/realtime/2026/07/22/14/radar_20260722144244.json?X-Amz-Algorithm=AWS4-HMAC-SHA256&X-Amz-Credential=minioadmin%2F20260722%2Fus-east-1%2Fs3%2Faws4_request&X-Amz-Date=20260722T151629Z&X-Amz-Expires=3600&X-Amz-SignedHeaders=host&X-Amz-Signature=56a314a47eeca2f4c8338fc796c62236d6edc74244f58d7c251e95156220cae0\"},{\"frameId\":\"radar-20260722144309\",\"traceId\":\"trace-20260722144309-ff763c\",\"eventTime\":1784731389000,\"objectKey\":\"upstream/radar/realtime/2026/07/22/14/radar_20260722144309.json\",\"downloadUrl\":\"http://minio:9000/lei"
+      }
+    }
+  ]
+}

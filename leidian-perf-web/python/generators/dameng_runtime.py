@@ -29,6 +29,7 @@ __all__ = [
     "DamengConn",
     "DamengRuntimeNotImplementedError",
     "load_stage_dameng",
+    "append_atmosphere_full_1hz_dameng",
     "validate_stage_dameng",
     "benchmark_stage_dameng",
     "insert_rows_dameng",
@@ -57,6 +58,32 @@ def load_stage_dameng(
         config_dir=config_dir,
         t0=t0,
         truncate=truncate,
+        seed=seed,
+        batch_size=min(batch_size, 5000),
+        log=log,
+    )
+
+
+def append_atmosphere_full_1hz_dameng(
+    *,
+    stage: str,
+    conn: DamengConn,
+    days: int = 15,
+    start: datetime | None = None,
+    config_dir: Path | None = None,
+    seed: int = 42,
+    batch_size: int = 50000,
+    log: Any | None = None,
+) -> dict[str, Any]:
+    """仅续写大气 std/biz/raw（真 1Hz），不写其它表。"""
+    from generators.dameng_loader import append_atmosphere_full_1hz_dameng as _impl
+
+    return _impl(
+        stage=stage,
+        conn=conn,
+        days=days,
+        start=start,
+        config_dir=config_dir,
         seed=seed,
         batch_size=min(batch_size, 5000),
         log=log,

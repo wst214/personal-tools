@@ -117,7 +117,30 @@ CREATE TABLE IF NOT EXISTS biz_atmosphere_electric_field_event (
 ) PARTITION BY RANGE (device_upload_time);
 
 CREATE INDEX IF NOT EXISTS idx_biz_atm_field_addr_time ON biz_atmosphere_electric_field_event (device_addr, device_upload_time);
-CREATE INDEX IF NOT EXISTS idx_biz_atm_field_upload_time ON biz_atmosphere_electric_field_event (device_upload_time);
+-- PERF-05-AGG 覆盖时间索引：优化器在满密档(全设备)时本就走时间索引，
+-- 改 INCLUDE 让该扫描变 Index Only Scan、免回表（S9 500 台实测从 1GB 堆 I/O 降到仅扫索引）。
+-- device_addr + 5 个度量列放 INCLUDE：不参与排序、但满足 WHERE device_addr=ANY 过滤与 AVG/MAX 取列。
+CREATE INDEX IF NOT EXISTS idx_biz_atm_field_upload_time ON biz_atmosphere_electric_field_event (
+    device_upload_time
+)
+INCLUDE (
+    device_addr,
+    instantaneous_value,
+    average_value,
+    warning_level,
+    rate_change,
+    risk_level
+);
+-- PERF-05-AGG 瘦覆盖索引（与达梦对齐）
+CREATE INDEX IF NOT EXISTS idx_biz_atm_field_agg_cover ON biz_atmosphere_electric_field_event (
+    device_addr,
+    device_upload_time,
+    instantaneous_value,
+    average_value,
+    warning_level,
+    rate_change,
+    risk_level
+);
 
 -- ============================================================
 -- standard_lightning_strike_cmb：按月 RANGE(strike_time) + lightning_point
@@ -221,5 +244,9 @@ CREATE TABLE IF NOT EXISTS biz_lightning_event (
 CREATE INDEX IF NOT EXISTS idx_biz_lightning_strike_time ON biz_lightning_event (strike_time);
 CREATE INDEX IF NOT EXISTS idx_biz_lightning_source ON biz_lightning_event (source_type);
 CREATE INDEX IF NOT EXISTS idx_biz_lightning_point_gist ON biz_lightning_event USING GIST (lightning_point);
+CREATE INDEX IF NOT EXISTS idx_biz_lightning_time_lon_lat ON biz_lightning_event (strike_time, longitude, latitude);
+-- PERF-06 bbox 路径 GROUP BY 覆盖索引（与达梦对齐）
+CREATE INDEX IF NOT EXISTS idx_biz_lightning_perf06_cover
+ON biz_lightning_event (strike_time, longitude, latitude, source_type, lightning_type);
 
 COMMENT ON COLUMN biz_lightning_event.lightning_point IS '入库时由 longitude/latitude 生成，PERF-06 50km 统计直接使用';

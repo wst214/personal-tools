@@ -79,6 +79,11 @@ const STAGE_TOTAL_ROWS_FALLBACK = {
   S2: 27069020,
   S3: 51173350,
   S4: 116930925,
+  S5: 300421109,
+  S6: 600720696,
+  S7: 778379975,
+  S8: 778379975,
+  S9: 1296520448,
 };
 
 let pollTimer = null;
@@ -97,7 +102,8 @@ let volumeMatrixCache = {};
 let allStagesMatrix = null;
 let benchConfig = null;
 let activePage = "prep";
-const PERF_PAGE_SIZE = 8;
+const PERF_LIST_PAGE_SIZE_DEFAULT = 9;
+const PERF_LIST_PAGE_SIZE_KEY = "leidian_perf_list_page_size";
 let perfHistoryAllRows = [];
 let perfHistoryPage = 1;
 let resourceHistoryAllRows = [];
@@ -171,8 +177,11 @@ const els = {
   benchWriteIterations: $("benchWriteIterations"),
   benchQueryIterations: $("benchQueryIterations"),
   benchQueryConcurrency: $("benchQueryConcurrency"),
+  benchDeviceLimit: $("benchDeviceLimit"),
   benchSlowSqlMs: $("benchSlowSqlMs"),
   benchPerf05AggMinutes: $("benchPerf05AggMinutes"),
+  benchPerf06Geo: $("benchPerf06Geo"),
+  listPageSize: $("listPageSize"),
   perfStageTabs: $("perfStageTabs"),
   perfStageMeta: $("perfStageMeta"),
   benchScenarioList: $("benchScenarioList"),
@@ -518,7 +527,7 @@ function refreshWorkflowStatusForCurrentDialect(stage) {
 
 function dialectHasAnySavedData(dialect) {
   const stages = stageRecords?.dialects?.[dialect]?.stages || {};
-  return ["S0", "S1", "S2", "S3", "S4"].some((s) => {
+  return ["S0", "S1", "S2", "S3", "S4", "S5", "S6", "S7", "S8", "S9"].some((s) => {
     const e = stages[s] || {};
     return (
       (e.section11_2 || []).length > 0 ||
@@ -672,6 +681,7 @@ function updatePerfStageTabs() {
 function renderPerfPageForStage(stage, options = {}) {
   perfViewStage = stage;
   updatePerfStageTabs();
+  syncBenchDeviceLimitForStage(stage);
   const saved = stageRecord(stage);
   const cat = catalogStages.find((c) => c.code === stage);
   const benchRows = flattenBenchmarkHistory(saved.benchmarkHistory);
@@ -970,6 +980,12 @@ async function loadBenchConfig() {
   if (els.benchPerf05AggMinutes && d.perf05_agg_bucket_minutes != null) {
     els.benchPerf05AggMinutes.value = d.perf05_agg_bucket_minutes;
   }
+  if (els.benchQueryIterations && d.query_iterations != null) {
+    els.benchQueryIterations.value = d.query_iterations;
+  }
+  if (els.benchPerf06Geo && d.perf06_geo) {
+    els.benchPerf06Geo.value = d.perf06_geo;
+  }
   renderBenchScenarios();
 }
 
@@ -989,7 +1005,46 @@ function benchSlowSqlThresholdDefault() {
 function benchPerf05AggMinutesDefault() {
   const n = Number(els.benchPerf05AggMinutes?.value);
   if (Number.isFinite(n) && n >= 1) return Math.min(60, Math.round(n));
-  return benchConfig?.defaults?.perf05_agg_bucket_minutes || 10;
+  return benchConfig?.defaults?.perf05_agg_bucket_minutes || 1;
+}
+
+function stageAtmosphereDeviceCount(stage) {
+  const cat = catalogStages.find((c) => c.code === stage);
+  const n = Number(cat?.targets?.atmosphere_device_count);
+  if (Number.isFinite(n) && n >= 1) return Math.floor(n);
+  return 5;
+}
+
+function syncBenchDeviceLimitForStage(stage, { force = false } = {}) {
+  if (!els.benchDeviceLimit) return;
+  const suggested = stageAtmosphereDeviceCount(stage || perfViewStage);
+  if (force || !els.benchDeviceLimit.dataset.userEdited) {
+    els.benchDeviceLimit.value = String(suggested);
+    delete els.benchDeviceLimit.dataset.userEdited;
+  }
+}
+
+function benchDeviceLimitDefault() {
+  const n = Number(els.benchDeviceLimit?.value);
+  if (Number.isFinite(n) && n >= 1) return Math.min(500, Math.floor(n));
+  return stageAtmosphereDeviceCount(perfViewStage);
+}
+
+function benchPerf06GeoDefault() {
+  const el = els.benchPerf06Geo || document.getElementById("benchPerf06Geo");
+  const v = String(el?.value || benchConfig?.defaults?.perf06_geo || "bbox_then_dwithin")
+    .trim()
+    .toLowerCase();
+  if (v === "bbox_then_dwithin" || v === "two_phase" || v === "2phase" || v === "bbox_then_geo") {
+    return "bbox_then_dwithin";
+  }
+  if (v === "bbox_geog" || v === "bbox" || v === "bbox_dwithin" || v === "haversine") {
+    return "bbox_geog";
+  }
+  if (v === "geog_only" || v === "geog" || v === "st_dwithin") {
+    return "geog_only";
+  }
+  return "bbox_then_dwithin";
 }
 
 function benchDisplayConcurrency(cfg) {
@@ -1007,10 +1062,11 @@ function benchWriteIterationsDefault() {
 }
 
 function benchQueryIterationsDefault() {
-  return Number(els.benchQueryIterations?.value) || 500;
+  return Number(els.benchQueryIterations?.value) || benchConfig?.defaults?.query_iterations || 500;
 }
 
 function benchScenarioIterations(cfg) {
+  if (cfg.iterations != null) return cfg.iterations;
   if (cfg.kind === "read" || cfg.compound) return benchQueryIterationsDefault();
   return benchWriteIterationsDefault();
 }
@@ -1024,18 +1080,31 @@ function benchDisplayThresholds(cfg) {
   }
   const p95 = cfg.p95_limit_ms != null ? `P95≤${cfg.p95_limit_ms}ms` : "";
   const p99 = cfg.p99_limit_ms != null ? `P99≤${cfg.p99_limit_ms}ms` : "";
-  return [p95, p99, "统计 P50/P95/P99/TPS"].filter(Boolean).join(" · ");
+  const tps =
+    cfg.pace_from_devices
+      ? `目标≈${benchDeviceLimitDefault()} TPS（=设备台数）`
+      : cfg.target_tps != null
+        ? `目标≈${cfg.target_tps} TPS`
+        : "";
+  return [p95, p99, tps, "统计 P50/P95/P99/TPS"].filter(Boolean).join(" · ");
 }
 
 function benchScenarioPrecheck(id) {
+  const n = benchDeviceLimitDefault();
   const map = {
-    "PERF-01": "前置：库内有大气电场、矿区、设备地址、时间范围",
-    "PERF-02": "前置：库内有 raw 报文与大气电场等关联数据",
+    "PERF-01":
+      `前置：库内有大气电场、矿区、设备地址；${n} 台设备轮转 + 控速约 ${n} 行/秒（页面设备台数×1Hz）`,
+    "PERF-02":
+      `前置：库内有 raw 报文与大气电场等关联数据；控速约 ${n} 条/秒（与页面设备台数同量级）`,
     "PERF-03": "前置：库内有雷暴过程与闪电事件数据",
     "PERF-04": "前置：库内有 biz 大气电场存量，解析 24h 查询时间窗",
-    "PERF-05": "前置：库内有 biz 大气电场、雷暴过程；固定 1 条过程的 data_window_start/end",
+    "PERF-05": `前置：库内有 biz 大气电场、雷暴过程；固定 1 条过程的 data_window；设备=${n} 台（页面，读写同池）`,
     "PERF-05-AGG":
-      "前置：同 PERF-05；按可配置时间桶聚合过程窗曲线，降低返回明细量",
+      `前置：同 PERF-05；多台过滤后只按时间桶聚合（跨设备合成一条曲线）；设备=${n} 台；并发取页面「查询并发」`,
+    "PERF-05-AGG-MV":
+      "前置：已建物化视图 perf.biz_atm_field_agg_1min（全库按分钟预聚合）；读温层对照，不改原 AGG",
+    "PERF-05-1MIN":
+      `前置：同 PERF-05；查询过程窗开头 1 分钟秒级明细；设备=${n} 台`,
     "PERF-06":
       activeDialect() === "dameng"
         ? "前置：库内有矿区、雷暴过程、闪电 DMGEO2 空间数据"
@@ -1052,14 +1121,39 @@ function benchScenarioFlow(id, cfg) {
   let exec;
   if (cfg.kind === "write") {
     const table = cfg.table || "目标表";
-    exec = `每次 INSERT ${table} → COMMIT（压测前后按 PERF_BENCH 标记清理）`;
+    const n = benchDeviceLimitDefault();
+    const pace =
+      cfg.pace_from_devices
+        ? `，控速约 ${n} 行/秒（=设备台数）`
+        : cfg.target_tps != null
+          ? `，控速约 ${cfg.target_tps} 行/秒`
+          : "";
+    const devices =
+      id === "PERF-01" || cfg.pace_from_devices
+        ? id === "PERF-01"
+          ? `，${n} 台设备轮转（页面设备台数）`
+          : ""
+        : cfg.device_limit != null
+          ? `，${n} 台设备轮转（页面设备台数）`
+          : "";
+    exec = `每次 INSERT ${table} → COMMIT${devices}${pace}（压测前后按 PERF_BENCH 标记清理）`;
   } else if (id === "PERF-06") {
+    const geo =
+      activeDialect() === "dameng"
+        ? `，空间模式 ${benchPerf06GeoDefault()}`
+        : "";
     exec =
-      "每轮 Word 三条 SQL（数量 / 来源分布 / 类型分布）串行执行，分项统计 P95 并单独展示";
+      `每轮 Word 三条 SQL（数量 / 来源分布 / 类型分布）串行执行，分项统计 P95 并单独展示${geo}`;
   } else if (id === "PERF-05") {
-    exec = "固定同一雷暴过程 data_window，5 台设备瞬时值/平均值/变化率全量曲线 SELECT（不降采样）";
+    exec = `固定同一雷暴过程 data_window，${benchDeviceLimitDefault()} 台设备瞬时值/平均值/变化率全量曲线 SELECT（不降采样，与写入同池）`;
   } else if (id === "PERF-05-AGG") {
-    exec = `固定同一雷暴过程 data_window，5 台设备按 ${benchPerf05AggMinutesDefault()} 分钟时间桶聚合曲线 SELECT（AVG/MAX 聚合）`;
+    exec = `固定同一雷暴过程 data_window，${benchDeviceLimitDefault()} 台 IN 过滤后只按 ${benchPerf05AggMinutesDefault()} 分钟时间桶 GROUP BY（跨设备合成一条；AVG/MAX；不按设备分桶；并发=页面查询并发）`;
+  } else if (id === "PERF-05-AGG-MV") {
+    exec =
+      "固定同一雷暴过程 data_window，SELECT 物化视图 biz_atm_field_agg_1min（全库分钟预聚合，约百行/窗；并发=页面查询并发）";
+  } else if (id === "PERF-05-1MIN") {
+    exec =
+      `固定过程 data_window 开头 1 分钟，${benchDeviceLimitDefault()} 台设备秒级明细曲线 SELECT（造数 1Hz 稠密段，不聚合）`;
   } else {
     exec = "每次 SELECT 查询（只读，无事务）";
   }
@@ -1068,7 +1162,7 @@ function benchScenarioFlow(id, cfg) {
 
 function benchScenarioDisplayName(id, cfg) {
   if (id === "PERF-05-AGG") {
-    return `多电场仪雷暴过程窗曲线查询（${benchPerf05AggMinutesDefault()}分钟聚合）`;
+    return `多电场仪过程窗${benchPerf05AggMinutesDefault()}分钟时间桶聚合（跨设备合成一条）`;
   }
   return cfg.name || id;
 }
@@ -1308,6 +1402,9 @@ function syncPerfTableDamengColumns() {
   document.querySelectorAll(".postgres-only-col").forEach((el) => {
     el.hidden = isDm;
   });
+  document.querySelectorAll(".dameng-only-field").forEach((el) => {
+    el.hidden = !isDm;
+  });
 }
 
 function perfTableColspan() {
@@ -1503,10 +1600,48 @@ function benchmarkHistoryForStage(stage) {
   return stageRecord(stage).benchmarkHistory || [];
 }
 
+function listPageSizeDefault() {
+  const el = els.listPageSize || document.getElementById("listPageSize");
+  const n = Number(el?.value);
+  if (Number.isFinite(n) && n >= 1) return Math.min(100, Math.floor(n));
+  return PERF_LIST_PAGE_SIZE_DEFAULT;
+}
+
+function persistListPageSize() {
+  try {
+    localStorage.setItem(PERF_LIST_PAGE_SIZE_KEY, String(listPageSizeDefault()));
+  } catch {
+    /* ignore */
+  }
+}
+
+function restoreListPageSize() {
+  const el = els.listPageSize || document.getElementById("listPageSize");
+  if (!el) return;
+  try {
+    const raw = localStorage.getItem(PERF_LIST_PAGE_SIZE_KEY);
+    const n = Number(raw);
+    if (Number.isFinite(n) && n >= 1) {
+      el.value = String(Math.min(100, Math.floor(n)));
+    }
+  } catch {
+    /* ignore */
+  }
+}
+
+function applyListPageSizeChange() {
+  persistListPageSize();
+  perfHistoryPage = 1;
+  resourceHistoryPage = 1;
+  if (perfHistoryAllRows.length) renderPerfResults(perfHistoryAllRows);
+  if (resourceHistoryAllRows.length) renderResourceResults(resourceHistoryAllRows);
+}
+
 function syncTablePager(pager, infoEl, prevEl, nextEl, page, total) {
   if (!pager) return;
-  const totalPages = total > 0 ? Math.max(1, Math.ceil(total / PERF_PAGE_SIZE)) : 0;
-  const show = total > PERF_PAGE_SIZE;
+  const pageSize = listPageSizeDefault();
+  const totalPages = total > 0 ? Math.max(1, Math.ceil(total / pageSize)) : 0;
+  const show = total > pageSize;
   pager.hidden = !show;
   pager.classList.toggle("is-hidden", !show);
   pager.style.display = show ? "" : "none";
@@ -1516,7 +1651,7 @@ function syncTablePager(pager, infoEl, prevEl, nextEl, page, total) {
     } else if (!show) {
       infoEl.textContent = `共 ${total} 条`;
     } else {
-      infoEl.textContent = `第 ${page}/${totalPages} 页，共 ${total} 条`;
+      infoEl.textContent = `第 ${page}/${totalPages} 页，共 ${total} 条（每页 ${pageSize}）`;
     }
   }
   if (prevEl) prevEl.disabled = !show || page <= 1;
@@ -1555,12 +1690,12 @@ function renderPerfResults(rows, options = {}) {
 
   perfHistoryAllRows = rows;
   const total = perfHistoryAllRows.length;
-  const totalPages = Math.max(1, Math.ceil(total / PERF_PAGE_SIZE));
+  const totalPages = Math.max(1, Math.ceil(total / listPageSizeDefault()));
   if (perfHistoryPage > totalPages) perfHistoryPage = totalPages;
   if (perfHistoryPage < 1) perfHistoryPage = 1;
 
-  const start = (perfHistoryPage - 1) * PERF_PAGE_SIZE;
-  const pageRows = perfHistoryAllRows.slice(start, start + PERF_PAGE_SIZE);
+  const start = (perfHistoryPage - 1) * listPageSizeDefault();
+  const pageRows = perfHistoryAllRows.slice(start, start + listPageSizeDefault());
 
   els.perfTableBody.innerHTML = pageRows
     .map(
@@ -1735,7 +1870,7 @@ async function deleteAllPerfRuns() {
 
 function changePerfPage(delta) {
   if (!perfHistoryAllRows.length) return;
-  const totalPages = Math.max(1, Math.ceil(perfHistoryAllRows.length / PERF_PAGE_SIZE));
+  const totalPages = Math.max(1, Math.ceil(perfHistoryAllRows.length / listPageSizeDefault()));
   const next = perfHistoryPage + delta;
   if (next < 1 || next > totalPages) return;
   renderPerfResults(perfHistoryAllRows, { page: next });
@@ -2108,12 +2243,12 @@ function renderResourceResults(rows, options = {}) {
 
   resourceHistoryAllRows = rows;
   const total = resourceHistoryAllRows.length;
-  const totalPages = Math.max(1, Math.ceil(total / PERF_PAGE_SIZE));
+  const totalPages = Math.max(1, Math.ceil(total / listPageSizeDefault()));
   if (resourceHistoryPage > totalPages) resourceHistoryPage = totalPages;
   if (resourceHistoryPage < 1) resourceHistoryPage = 1;
 
-  const start = (resourceHistoryPage - 1) * PERF_PAGE_SIZE;
-  const pageRows = resourceHistoryAllRows.slice(start, start + PERF_PAGE_SIZE);
+  const start = (resourceHistoryPage - 1) * listPageSizeDefault();
+  const pageRows = resourceHistoryAllRows.slice(start, start + listPageSizeDefault());
   const filled = rows.some((r) => r.cpuAvg || r.cpuPeak || r.memAvg);
 
   els.resourceTableBody.innerHTML = pageRows
@@ -2295,7 +2430,7 @@ async function deleteAllResourceCollects() {
 
 function changeResourcePage(delta) {
   if (!resourceHistoryAllRows.length) return;
-  const totalPages = Math.max(1, Math.ceil(resourceHistoryAllRows.length / PERF_PAGE_SIZE));
+  const totalPages = Math.max(1, Math.ceil(resourceHistoryAllRows.length / listPageSizeDefault()));
   const next = resourceHistoryPage + delta;
   if (next < 1 || next > totalPages) return;
   renderResourceResults(resourceHistoryAllRows, { page: next });
@@ -2570,7 +2705,27 @@ async function startBenchmark(scenarios) {
   }
 
   switchPage("perf");
-  renderBenchLog([`启动 SQL 压测 [${perfViewStage}]: ${scenarios.join(", ")}…`]);
+  const geoMode = benchPerf06GeoDefault();
+  const geoEl = els.benchPerf06Geo || document.getElementById("benchPerf06Geo");
+  renderBenchLog([
+    `启动 SQL 压测 [${perfViewStage}]: ${scenarios.join(", ")}…`,
+    `设备台数=${benchDeviceLimitDefault()}（读写同池）`,
+    `PERF-06空间(提交)=${geoMode}；下拉原始值=${geoEl ? geoEl.value : "(无元素)"}`,
+  ]);
+  if (scenarios.includes("PERF-06") && activeDialect() === "dameng") {
+    // 启动前弹窗确认，避免“页面以为选了二段、实际仍 geog_only”
+    const ok = window.confirm(
+      `即将压测 PERF-06\n空间模式: ${geoMode}\n下拉原始值: ${geoEl ? geoEl.value : "(无)"}\n\n` +
+        `若你选的是两段式，这里必须是 bbox_then_dwithin。\n不对请点取消，强刷后重选。`
+    );
+    if (!ok) {
+      setBusy(false);
+      setJobBadge("idle");
+      setTabPill(els.perfTabStatus, "idle", "待执行");
+      renderBenchLog(["已取消：请确认 PERF-06 空间下拉后再执行"]);
+      return;
+    }
+  }
   setBusy(true);
   setJobBadge("running");
   setTabPill(els.perfTabStatus, "running", "执行中");
@@ -2580,11 +2735,13 @@ async function startBenchmark(scenarios) {
     action: "benchmark",
     stage: perfViewStage,
     scenarios,
+    deviceLimit: benchDeviceLimitDefault(),
     writeIterations: benchWriteIterationsDefault(),
     queryIterations: benchQueryIterationsDefault(),
     queryConcurrency: benchQueryConcurrencyDefault(),
     slowSqlThresholdMs: benchSlowSqlThresholdDefault(),
     perf05AggBucketMinutes: benchPerf05AggMinutesDefault(),
+    perf06Geo: geoMode,
   };
 
   const res = await fetch("/api/jobs", {
@@ -2643,22 +2800,39 @@ async function startJob(action) {
 }
 
 async function refreshValidate() {
+  if (pollTimer) return;
   const stage = volumeViewStage || els.stage.value;
+  if (els.stage && stage) els.stage.value = stage;
+
+  // S5 等大档位 COUNT 很慢；走后台任务，可在「造数执行」页看日志
+  switchPage("load");
+  renderLog([
+    `正在启动校验: ${stage}…`,
+    "大表行数统计可能需要数分钟，请勿关闭页面；进度见下方日志。",
+  ]);
+  setBusy(true);
+  setJobBadge("running");
   setBadge(els.validationBadge, "running", "校验中…");
-  switchPage("result");
-  try {
-    const res = await fetch("/api/report", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ ...payload(), stage, validate: true, persist: true }),
-    });
-    const data = await res.json();
-    if (!res.ok) throw new Error(data.error || "report failed");
-    await renderReport(data);
-  } catch (err) {
+  setBadge(els.loadBadge, "running", "校验中");
+
+  const body = { ...payload(), action: "validate", stage };
+  const res = await fetch("/api/jobs", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(body),
+  });
+  const data = await res.json();
+  if (!res.ok) {
+    setBusy(false);
+    setJobBadge("failed");
     setBadge(els.validationBadge, "fail", "失败");
-    window.alert(err.message);
+    renderLog([data.error || "启动校验失败"]);
+    window.alert(data.error || "启动校验失败");
+    return;
   }
+  pollTimer = setInterval(() => pollJob(data.id), 800);
+  startStatusPolling();
+  pollJob(data.id);
 }
 
 async function loadCatalog() {
@@ -2725,9 +2899,25 @@ if (els.perfPagerPrev) {
 if (els.perfPagerNext) {
   els.perfPagerNext.addEventListener("click", () => changePerfPage(1));
 }
+if (els.listPageSize) {
+  els.listPageSize.addEventListener("change", () => applyListPageSizeChange());
+  els.listPageSize.addEventListener("input", () => {
+    // 输入过程中不频繁重绘；失焦/change 时再生效由 change 处理
+  });
+}
 if (els.benchWriteIterations) {
   els.benchWriteIterations.addEventListener("change", () => renderBenchScenarios());
   els.benchWriteIterations.addEventListener("input", () => renderBenchScenarios());
+}
+if (els.benchDeviceLimit) {
+  els.benchDeviceLimit.addEventListener("input", () => {
+    els.benchDeviceLimit.dataset.userEdited = "1";
+    renderBenchScenarios();
+  });
+  els.benchDeviceLimit.addEventListener("change", () => {
+    els.benchDeviceLimit.dataset.userEdited = "1";
+    renderBenchScenarios();
+  });
 }
 if (els.benchQueryIterations) {
   els.benchQueryIterations.addEventListener("change", () => renderBenchScenarios());
@@ -2744,6 +2934,9 @@ if (els.benchSlowSqlMs) {
 if (els.benchPerf05AggMinutes) {
   els.benchPerf05AggMinutes.addEventListener("change", () => renderBenchScenarios());
   els.benchPerf05AggMinutes.addEventListener("input", () => renderBenchScenarios());
+}
+if (els.benchPerf06Geo) {
+  els.benchPerf06Geo.addEventListener("change", () => renderBenchScenarios());
 }
 if (els.btnCollectResources) {
   els.btnCollectResources.addEventListener("click", collectResources);
@@ -2849,6 +3042,7 @@ els.stage.addEventListener("change", () => {
 });
 
 (async function init() {
+  restoreListPageSize();
   await loadDefaults();
   renderToolsByDialect();
   await loadCatalog();

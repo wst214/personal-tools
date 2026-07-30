@@ -33,3 +33,6 @@ leidian-perf-web-sync.tar.gz
 
 # Runtime / local data (keep structure via nested rules)
 **/.venv/
+
+# Server deployment panel local credentials and image artifacts
+stack-panel/data/

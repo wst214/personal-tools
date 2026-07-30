@@ -283,6 +283,8 @@ def resolve_scenario_slow_sql(
 
     warned_native: list[bool] | None = None,
 
+    bench_slow_count: int | None = None,
+
 ) -> tuple[int, int]:
 
     """
@@ -293,6 +295,8 @@ def resolve_scenario_slow_sql(
 
     - 压测样本：客户端 latencies 中 >= 阈值的次数（与 P95/P99 同源）
 
+    - 若传入 bench_slow_count（蓄水池抽样时），优先用精确慢计数
+
     - 库内统计：场景 started_at~finished_at 时间窗内 V$SQL_HISTORY（TIME_USED 微秒）
 
     - 库内不可用时第二项为 -1
@@ -301,7 +305,10 @@ def resolve_scenario_slow_sql(
 
     emit = log or (lambda _m: None)
 
-    bench_count = count_slow_sql_from_latencies(latencies, threshold_ms)
+    if bench_slow_count is not None:
+        bench_count = int(bench_slow_count)
+    else:
+        bench_count = count_slow_sql_from_latencies(latencies, threshold_ms)
 
     dm_count = -1
 

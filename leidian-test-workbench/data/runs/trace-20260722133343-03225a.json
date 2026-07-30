@@ -1,0 +1,116 @@
+{
+  "ok": false,
+  "traceId": "trace-20260722133343-03225a",
+  "caseId": "minio-radar-frame-full-link",
+  "caseName": "正常情况 · 雷达帧全链路成功",
+  "envName": "本地环境",
+  "startedAt": "2026-07-22T13:33:51.511Z",
+  "steps": [
+    {
+      "name": "环境预检查",
+      "ok": true,
+      "detail": "依赖均可连通",
+      "elapsedMs": 0,
+      "evidence": {
+        "checks": [
+          {
+            "name": "gateway",
+            "ok": true,
+            "detail": "HTTP 200 /actuator/health",
+            "elapsedMs": 40,
+            "evidence": {}
+          },
+          {
+            "name": "data-service",
+            "ok": true,
+            "detail": "HTTP 200 /actuator/health",
+            "elapsedMs": 26,
+            "evidence": {}
+          },
+          {
+            "name": "biz-service",
+            "ok": true,
+            "detail": "HTTP 200 /actuator/health",
+            "elapsedMs": 27,
+            "evidence": {}
+          },
+          {
+            "name": "kafka",
+            "ok": true,
+            "detail": "host.docker.internal:9092 connected",
+            "elapsedMs": 9,
+            "evidence": {}
+          },
+          {
+            "name": "database",
+            "ok": true,
+            "detail": "host.docker.internal:5432 connected",
+            "elapsedMs": 20,
+            "evidence": {}
+          },
+          {
+            "name": "minio",
+            "ok": true,
+            "detail": "HTTP 200 /minio/health/live",
+            "elapsedMs": 28,
+            "evidence": {}
+          },
+          {
+            "name": "websocket",
+            "ok": true,
+            "detail": "host.docker.internal:8080 connected",
+            "elapsedMs": 8,
+            "evidence": {}
+          }
+        ]
+      }
+    },
+    {
+      "name": "上传雷达帧文件",
+      "ok": true,
+      "detail": "upstream/radar/realtime/2026/07/22/13/radar_20260722133343.json",
+      "elapsedMs": 32,
+      "evidence": {
+        "bucket": "leidian-frame",
+        "objectKey": "upstream/radar/realtime/2026/07/22/13/radar_20260722133343.json",
+        "traceId": "trace-20260722133343-03225a"
+      }
+    },
+    {
+      "name": "检查上游 Topic",
+      "ok": true,
+      "detail": "未直接观察到消息，由下游检查确认",
+      "elapsedMs": 0,
+      "evidence": {}
+    },
+    {
+      "name": "检查文件入库",
+      "ok": false,
+      "detail": "命中 0 条",
+      "elapsedMs": 0,
+      "evidence": {
+        "rows": [
+          {
+            "count": "0"
+          }
+        ]
+      }
+    },
+    {
+      "name": "检查 WebSocket",
+      "ok": false,
+      "detail": "等待推送超时",
+      "elapsedMs": 6003,
+      "evidence": {}
+    },
+    {
+      "name": "检查查询接口",
+      "ok": true,
+      "detail": "HTTP 200",
+      "elapsedMs": 27,
+      "evidence": {
+        "body": "{\"code\":0,\"message\":\"success\",\"data\":[],\"traceId\":\"7aebea93544744f28554fb8f4caa3b72\",\"timestamp\":1784727231508}"
+      }
+    }
+  ]
+}

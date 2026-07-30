@@ -16,7 +16,8 @@ class DamengDriverNotFoundError(RuntimeError):
     pass
 
 
-DM_BENCH_DEFAULT_ARRAYSIZE = 2000
+# 过大时 20 并发 × PERF-05-AGG 易把客户端打到 OOM（子进程 exitcode=-9 / SIGKILL）
+DM_BENCH_DEFAULT_ARRAYSIZE = 500
 
 
 def dm_bench_arraysize() -> int:

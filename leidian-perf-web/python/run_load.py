@@ -5,6 +5,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import os
 import sys
 from datetime import datetime
 from pathlib import Path
@@ -39,17 +40,23 @@ def _add_db_args(parser: argparse.ArgumentParser) -> None:
 def _resolve_conn_args(args: argparse.Namespace) -> tuple[str, str, str, str, str | None]:
     dialect = str(getattr(args, "dialect", "postgres") or "postgres").strip().lower()
     if dialect == "dameng":
-        host = args.host or "127.0.0.1"
-        port = args.port or "5236"
-        database = args.database or "LEIDIAN_PERF"
-        user = args.user or "LEIDIAN_APP"
-        password = args.password if args.password is not None else None
+        host = args.host or os.environ.get("DMHOST") or "127.0.0.1"
+        port = args.port or os.environ.get("DMPORT") or "5236"
+        database = args.database or os.environ.get("DMSERVICE") or "LEIDIAN_PERF"
+        user = args.user or os.environ.get("DMUSER") or "LEIDIAN_APP"
+        if args.password is not None:
+            password = args.password
+        else:
+            password = os.environ.get("DMPASSWORD")
         return host, port, database, user, password
-    host = args.host or "localhost"
-    port = args.port or "5432"
-    database = args.database or "leidian_perf"
-    user = args.user or "leidian"
-    password = args.password if args.password is not None else None
+    host = args.host or os.environ.get("PGHOST") or "localhost"
+    port = args.port or os.environ.get("PGPORT") or "5432"
+    database = args.database or os.environ.get("PGDATABASE") or "leidian_perf"
+    user = args.user or os.environ.get("PGUSER") or "leidian"
+    if args.password is not None:
+        password = args.password
+    else:
+        password = os.environ.get("PGPASSWORD")
     return host, port, database, user, password
 
 
@@ -110,6 +117,49 @@ def cmd_load(args: argparse.Namespace) -> int:
         log=_log,
     )
     print(json.dumps(stats, ensure_ascii=False, indent=2))
+    return 0
+
+
+def cmd_append_atmosphere(args: argparse.Namespace) -> int:
+    """仅续写大气电场（std/biz/raw），真 1Hz；默认接在现有 MAX(time)+1s 之后。"""
+    dialect = normalize_dialect(args.dialect)
+    if dialect != "dameng":
+        print("目前仅支持 --dialect dameng", flush=True)
+        return 2
+
+    from generators.dameng_conn import DamengConn
+    from generators.dameng_runtime import append_atmosphere_full_1hz_dameng
+    from generators.dialect import normalize_schema
+
+    host, port, _database, user, password = _resolve_conn_args(args)
+    conn = DamengConn(
+        host=host,
+        port=port,
+        user=user,
+        password=password,
+        schema=normalize_schema(args.schema, "dameng"),
+    )
+    start = datetime.fromisoformat(args.start) if args.start else None
+    print(
+        f"PERF append-atmosphere [dameng] stage={args.stage} days={args.days} "
+        f"start={start.isoformat() if start else 'auto(MAX+1s)'} schema={conn.schema}",
+        flush=True,
+    )
+
+    def _log(msg: str) -> None:
+        print(msg, flush=True)
+
+    stats = append_atmosphere_full_1hz_dameng(
+        stage=args.stage,
+        conn=conn,
+        days=args.days,
+        start=start,
+        config_dir=args.config_dir,
+        seed=args.seed,
+        batch_size=args.batch_size,
+        log=_log,
+    )
+    print(json.dumps(stats, ensure_ascii=False, indent=2, default=str))
     return 0
 
 
@@ -232,6 +282,7 @@ def _cmd_benchmark_wrapped(args: argparse.Namespace) -> int:
             scenarios=scenarios,
             concurrency=args.concurrency,
             iterations=args.iterations,
+            perf06_geo=getattr(args, "perf06_geo", None),
             log=_log,
         )
         _maybe_persist_benchmark(result, args, scenarios)
@@ -285,7 +336,7 @@ def main() -> int:
     sub = parser.add_subparsers(dest="command", required=True)
 
     p_load = sub.add_parser("load", help="按阶段造数并 COPY 入库")
-    p_load.add_argument("--stage", required=True, choices=["S0", "S1", "S2", "S3", "S4"])
+    p_load.add_argument("--stage", required=True, choices=["S0", "S1", "S2", "S3", "S4", "S5", "S6", "S7", "S8", "S9"])
     p_load.add_argument("--t0", type=str, help="大气电场起始时间 ISO8601")
     p_load.add_argument("--truncate", action="store_true", help="加载前清空 perf 表")
     p_load.add_argument("--seed", type=int, default=42)
@@ -293,13 +344,29 @@ def main() -> int:
     _add_db_args(p_load)
     p_load.set_defaults(func=cmd_load)
 
+    p_append = sub.add_parser(
+        "append-atmosphere",
+        help="仅续写大气电场 std/biz/raw（真1Hz）；只INSERT、不清空、禁止与已有时间重叠",
+    )
+    p_append.add_argument("--stage", default="S7", choices=["S0", "S1", "S2", "S3", "S4", "S5", "S6", "S7", "S8", "S9"])
+    p_append.add_argument("--days", type=int, default=15, help="续造天数（默认 15）")
+    p_append.add_argument(
+        "--start",
+        type=str,
+        help="续造起点 ISO8601；默认取库内 ATM-DS-STD-001 的 MAX(device_upload_time)+1s",
+    )
+    p_append.add_argument("--seed", type=int, default=42)
+    p_append.add_argument("--batch-size", type=int, default=50000)
+    _add_db_args(p_append)
+    p_append.set_defaults(func=cmd_append_atmosphere)
+
     p_val = sub.add_parser("validate", help="按阶段配置校验造数结果")
-    p_val.add_argument("--stage", required=True, choices=["S0", "S1", "S2", "S3", "S4"])
+    p_val.add_argument("--stage", required=True, choices=["S0", "S1", "S2", "S3", "S4", "S5", "S6", "S7", "S8", "S9"])
     _add_db_args(p_val)
     p_val.set_defaults(func=cmd_validate)
 
     p_pf = sub.add_parser("preflight", help="前置条件检查 + 各档位入库状态")
-    p_pf.add_argument("--stage", choices=["S0", "S1", "S2", "S3", "S4"], help="当前拟造数档位")
+    p_pf.add_argument("--stage", choices=["S0", "S1", "S2", "S3", "S4", "S5", "S6", "S7", "S8", "S9"], help="当前拟造数档位")
     p_pf.add_argument("--truncate", action="store_true", help="是否计划清空后造数")
     _add_db_args(p_pf)
     p_pf.set_defaults(func=cmd_preflight)
@@ -310,15 +377,25 @@ def main() -> int:
     _add_db_args(p_init)
     p_init.set_defaults(func=cmd_init_schema)
 
-    p_bench = sub.add_parser("benchmark", help="直连 SQL 压测 PERF-01～06 + PERF-05-AGG（不经 API/解析）")
-    p_bench.add_argument("--stage", required=True, choices=["S0", "S1", "S2", "S3", "S4"])
+    p_bench = sub.add_parser(
+        "benchmark",
+        help="直连 SQL 压测 PERF-01～06 + PERF-05-AGG/PERF-05-1MIN（写入 TPS=设备台数；不经 API/解析）",
+    )
+    p_bench.add_argument("--stage", required=True, choices=["S0", "S1", "S2", "S3", "S4", "S5", "S6", "S7", "S8", "S9"])
     p_bench.add_argument(
         "--scenarios",
         type=str,
-        help="逗号分隔，默认全部：PERF-01,...,PERF-05,PERF-05-AGG,PERF-06",
+        help="逗号分隔，默认全部：PERF-01,PERF-02,...,PERF-06",
     )
     p_bench.add_argument("--concurrency", type=int, help="覆盖单场景并发（仅单场景时生效）")
     p_bench.add_argument("--iterations", type=int, help="每线程迭代次数，默认见 sql-bench.yaml")
+    p_bench.add_argument(
+        "--perf06-geo",
+        type=str,
+        default=None,
+        choices=["geog_only", "bbox_geog", "bbox_then_dwithin", "bbox", "bbox_dwithin", "haversine", "two_phase", "2phase"],
+        help="达梦 PERF-06 空间模式（默认 yaml/环境：bbox_then_dwithin 两段精确）",
+    )
     p_bench.add_argument(
         "--save-records",
         action="store_true",

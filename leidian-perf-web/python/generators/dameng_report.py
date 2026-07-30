@@ -78,9 +78,12 @@ def build_test_report_dameng(
     port: str | None = None,
     user: str | None = None,
     password: str | None = None,
+    progress=None,
 ) -> dict[str, Any]:
     root = config_dir or Path(__file__).resolve().parent.parent / "config"
     owner = catalog_schema(conn.schema, "dameng")
+    if progress:
+        progress("前置检查 / 档位探测…")
     preflight = run_preflight(
         dsn="",
         schema=owner,
@@ -97,7 +100,11 @@ def build_test_report_dameng(
     checks: list[CheckResult] = []
     if run_validate and preflight.get("prerequisitesOk"):
         try:
-            checks = validate_stage_dameng(stage=stage, conn=conn, config_dir=root)
+            if progress:
+                progress(f"开始校验 stage={stage} …")
+            checks = validate_stage_dameng(
+                stage=stage, conn=conn, config_dir=root, progress=progress
+            )
         except Exception as exc:  # noqa: BLE001
             checks = [CheckResult("report:validate_error", False, str(exc))]
 

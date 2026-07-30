@@ -141,3 +141,93 @@ stages:
     hidden_risk: 50
     repair_order: 50
     raw_kafka_message: 39000000
+
+  S5:
+    mine_site: 1
+    thunderstorm_process: 150
+    lightning_cmb: 52500
+    lightning_locator: 22500
+    biz_lightning_event: 75000
+    atmosphere_std: 100000000
+    atmosphere_biz: 100000000
+    other_device: 26000
+    warning_event: 150
+    warning_message: 750
+    device_alarm: 4500
+    notice_event: 6000
+    inspection_task: 150
+    hidden_risk: 75
+    repair_order: 75
+    raw_kafka_message: 100207258
+
+  S6:
+    mine_site: 1
+    thunderstorm_process: 225
+    lightning_cmb: 78750
+    lightning_locator: 33750
+    biz_lightning_event: 112500
+    atmosphere_std: 200000000
+    atmosphere_biz: 200000000
+    other_device: 52000
+    warning_event: 225
+    warning_message: 1125
+    device_alarm: 6750
+    notice_event: 9000
+    inspection_task: 225
+    hidden_risk: 112
+    repair_order: 112
+    raw_kafka_message: 200373921
+
+  S7:
+    mine_site: 1
+    thunderstorm_process: 225
+    lightning_cmb: 78750
+    lightning_locator: 33750
+    biz_lightning_event: 112500
+    atmosphere_std: 259200000
+    atmosphere_biz: 259200000
+    other_device: 52000
+    warning_event: 225
+    warning_message: 1125
+    device_alarm: 6750
+    notice_event: 9000
+    inspection_task: 225
+    hidden_risk: 112
+    repair_order: 112
+    raw_kafka_message: 259633200
+
+  S8:
+    mine_site: 1
+    thunderstorm_process: 225
+    lightning_cmb: 78750
+    lightning_locator: 33750
+    biz_lightning_event: 112500
+    atmosphere_std: 259200000
+    atmosphere_biz: 259200000
+    other_device: 52000
+    warning_event: 225
+    warning_message: 1125
+    device_alarm: 6750
+    notice_event: 9000
+    inspection_task: 225
+    hidden_risk: 112
+    repair_order: 112
+    raw_kafka_message: 259633200
+
+  S9:
+    mine_site: 1
+    thunderstorm_process: 225
+    lightning_cmb: 78750
+    lightning_locator: 33750
+    biz_lightning_event: 112500
+    atmosphere_std: 0
+    atmosphere_biz: 1296000000
+    other_device: 52000
+    warning_event: 225
+    warning_message: 1125
+    device_alarm: 6750
+    notice_event: 9000
+    inspection_task: 225
+    hidden_risk: 112
+    repair_order: 112
+    raw_kafka_message: 173673

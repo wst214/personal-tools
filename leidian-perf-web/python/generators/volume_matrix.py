@@ -76,6 +76,26 @@ def _load_profile(config_dir: Path, stage: str) -> dict[str, Any]:
     return cfg["stages"][stage]
 
 
+def atmosphere_biz_only(profile: dict[str, Any]) -> bool:
+    """仅写大气 biz，不写 std / 大气 raw。"""
+    return bool(profile.get("atmosphere_biz_only"))
+
+
+def atmosphere_std_biz_targets(profile: dict[str, Any]) -> tuple[int, int]:
+    """返回 (std 目标行数, biz 目标行数)。"""
+    rows = int(profile["atmosphere_rows"])
+    if atmosphere_biz_only(profile):
+        return 0, rows
+    return rows, rows
+
+
+def atmosphere_raw_contribution(profile: dict[str, Any]) -> int:
+    """计入 raw_kafka_message 预算的大气报文行数。"""
+    if atmosphere_biz_only(profile):
+        return 0
+    return int(profile["atmosphere_rows"])
+
+
 def _load_lowfreq_devices(config_dir: Path) -> list[dict[str, Any]]:
     with (config_dir / "mine-sites.yaml").open(encoding="utf-8") as f:
         return yaml.safe_load(f)["lowfreq_devices"]
@@ -132,11 +152,12 @@ def build_expected_counts(stage: str, config_dir: Path | None = None) -> dict[st
     profile = _load_profile(root, stage)
     cmb = int(profile["lightning_cmb"])
     loc = int(profile["lightning_locator"])
+    atm_std, atm_biz = atmosphere_std_biz_targets(profile)
     counts: dict[str, int] = {
         "mine_site": int(profile["mine_site"]),
         "thunderstorm_process": int(profile["thunderstorm_process"]),
-        "standard_atmosphere_electric_field": int(profile["atmosphere_rows"]),
-        "biz_atmosphere_electric_field_event": int(profile["atmosphere_rows"]),
+        "standard_atmosphere_electric_field": atm_std,
+        "biz_atmosphere_electric_field_event": atm_biz,
         "standard_lightning_strike_cmb": cmb,
         "standard_lightning_strike_locator": loc,
         "biz_lightning_event": cmb + loc,
@@ -159,7 +180,7 @@ def raw_breakdown(stage: str, config_dir: Path | None = None) -> dict[str, int]:
     root = config_dir or Path(__file__).resolve().parent.parent / "config"
     profile = _load_profile(root, stage)
     target_raw = int(profile["raw_rows"])
-    atmosphere = int(profile["atmosphere_rows"])
+    atmosphere = atmosphere_raw_contribution(profile)
     lightning = int(profile["lightning_cmb"]) + int(profile["lightning_locator"])
     lowfreq = int(profile["other_device_rows"])
     radar_cfg = int(profile.get("radar_raw_rows", 0))

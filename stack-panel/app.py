@@ -1,13 +1,15 @@
-"""Stack Panel - local Docker Compose build, restart, and lifecycle manager."""
+"""Web API for the configurable server deployment panel."""
 
 from __future__ import annotations
 
+import os
+
 from flask import Flask, jsonify, render_template, request
 
-from stack_manager import StackManager
+from deployment_manager import DeploymentManager
 
 app = Flask(__name__)
-manager = StackManager()
+manager = DeploymentManager()
 
 
 @app.after_request
@@ -27,49 +29,41 @@ def api_info():
     return jsonify(manager.info())
 
 
-@app.get("/api/stacks")
-def api_stacks():
-    return jsonify({"stacks": manager.list_stacks()})
+@app.get("/api/environments")
+def api_environments():
+    return jsonify({"environments": manager.store.list()})
 
 
-@app.get("/api/stacks/<stack_id>")
-def api_stack_detail(stack_id: str):
+@app.post("/api/environments")
+def api_save_environment():
+    payload = request.get_json(force=True) or {}
     try:
-        stacks = manager.list_stacks()
-        stack = next((item for item in stacks if item["id"] == stack_id), None)
-        if stack is None:
-            return jsonify({"error": "stack not found"}), 404
-        return jsonify(stack)
+        return jsonify({"ok": True, "environment": manager.store.save(payload)})
+    except (TypeError, ValueError) as exc:
+        return jsonify({"ok": False, "error": str(exc)}), 400
+
+
+@app.delete("/api/environments/<environment_id>")
+def api_delete_environment(environment_id: str):
+    try:
+        manager.store.delete(environment_id)
+        return jsonify({"ok": True})
     except KeyError:
-        return jsonify({"error": "stack not found"}), 404
+        return jsonify({"ok": False, "error": "环境不存在"}), 404
 
 
-@app.post("/api/stacks/<stack_id>/action")
-def api_stack_action(stack_id: str):
-    data = request.get_json(force=True) or {}
-    action = str(data.get("action", "")).strip().lower()
-    services = data.get("services") or []
-    build_mode = data.get("build_mode")
-    build_mode = str(build_mode).strip() if build_mode else None
-    tail = int(data.get("tail") or 120)
-
-    if action not in {"up", "build", "restart", "stop", "down", "logs", "pull", "package"}:
-        return jsonify({"ok": False, "error": "unsupported action"}), 400
-
-    if services and not isinstance(services, list):
-        return jsonify({"ok": False, "error": "services must be a list"}), 400
-
+@app.post("/api/deployments")
+def api_start_deployment():
+    payload = request.get_json(force=True) or {}
     try:
-        task = manager.start_action(
-            stack_id,
-            action,
-            services=[str(name) for name in services],
-            tail=tail,
-            build_mode=build_mode,
+        task = manager.start(
+            str(payload.get("environment_id") or ""),
+            [str(item) for item in payload.get("services", [])],
+            [str(item) for item in payload.get("steps", [])],
         )
         return jsonify({"ok": True, "task": task.to_dict()})
     except KeyError:
-        return jsonify({"ok": False, "error": "stack not found"}), 404
+        return jsonify({"ok": False, "error": "环境不存在"}), 404
     except ValueError as exc:
         return jsonify({"ok": False, "error": str(exc)}), 400
 
@@ -78,7 +72,7 @@ def api_stack_action(stack_id: str):
 def api_task(task_id: str):
     task = manager.get_task(task_id)
     if task is None:
-        return jsonify({"error": "task not found"}), 404
+        return jsonify({"error": "任务不存在"}), 404
     return jsonify(task.to_dict())
 
 
@@ -88,7 +82,5 @@ def api_tasks():
 
 
 if __name__ == "__main__":
-    import os
-
     port = int(os.environ.get("STACK_PANEL_PORT", "5770"))
     app.run(host="0.0.0.0", port=port, debug=False, threaded=True)

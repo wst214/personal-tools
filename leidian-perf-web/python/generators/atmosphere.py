@@ -25,6 +25,17 @@ class ProcessWindow:
     end: datetime
     strike_start: datetime
     strike_end: datetime
+    data_window_start: datetime | None = None
+    data_window_end: datetime | None = None
+
+    def curve_window(self) -> tuple[datetime, datetime]:
+        """与 PERF-05 一致：优先用过程 data_window，否则 strike ±5 分钟。"""
+        if self.data_window_start is not None and self.data_window_end is not None:
+            return self.data_window_start, self.data_window_end
+        return (
+            self.strike_start - timedelta(minutes=5),
+            self.strike_end + timedelta(minutes=5),
+        )
 
 
 STD_COLUMNS = [
@@ -233,3 +244,224 @@ def iter_atmosphere_rows(
                 ingest_delay_max_seconds,
                 rng,
             )
+
+
+def plan_atmosphere_dense_seconds(
+    process_windows: Sequence[ProcessWindow],
+    *,
+    device_count: int,
+    total_rows: int,
+    dense_minutes: int = 1,
+    dense_full_window: bool = False,
+) -> list[int]:
+    """
+    为每个过程规划稠密 1Hz 秒数（每秒写 device_count 行）。
+    优先保证每过程至少 dense_minutes；预算足够且 dense_full_window 时铺满 data_window。
+    """
+    if not process_windows or device_count <= 0 or total_rows <= 0:
+        return []
+
+    min_sec = max(1, int(dense_minutes) * 60)
+    avail_secs: list[int] = []
+    for window in process_windows:
+        start, end = window.curve_window()
+        avail_secs.append(max(0, int((end - start).total_seconds())))
+
+    if dense_full_window:
+        planned = list(avail_secs)
+    else:
+        planned = [min(min_sec, sec) for sec in avail_secs]
+
+    def _cost(secs: list[int]) -> int:
+        return sum(s * device_count for s in secs)
+
+    if _cost(planned) <= total_rows:
+        return planned
+
+    # 预算不足：退化为每过程 dense_minutes，再按过程顺序截断
+    planned = [min(min_sec, sec) for sec in avail_secs]
+    if _cost(planned) <= total_rows:
+        return planned
+
+    trimmed = [0] * len(planned)
+    remain = total_rows
+    per_process = min_sec * device_count
+    for i, sec in enumerate(planned):
+        need = min(sec, min_sec) * device_count
+        if need <= 0 or remain < device_count:
+            break
+        if need <= remain:
+            trimmed[i] = min(sec, min_sec)
+            remain -= need
+        else:
+            trimmed[i] = remain // device_count
+            break
+    return trimmed
+
+
+def count_atmosphere_dense_rows(seconds_per_window: Sequence[int], device_count: int) -> int:
+    return sum(int(s) * device_count for s in seconds_per_window)
+
+
+def iter_atmosphere_dense_1hz(
+    devices: Sequence[AtmosphereDevice],
+    process_windows: Sequence[ProcessWindow],
+    seconds_per_window: Sequence[int],
+    id_gen: SnowflakeGenerator,
+    ingest_delay_max_seconds: int,
+    rng: random.Random,
+) -> Iterator[tuple[list, list, int]]:
+    """
+    在过程 data_window 开头按 1 条/秒/台写入稠密点（供 PERF-05-1MIN）。
+    每个整秒对全部设备各写一条，时间戳对齐到秒。
+    """
+    if not devices or not process_windows:
+        return
+    for window, fill_sec in zip(process_windows, seconds_per_window):
+        if fill_sec <= 0:
+            continue
+        start, end = window.curve_window()
+        if end <= start:
+            continue
+        base = start.replace(microsecond=0)
+        if base < start:
+            base += timedelta(seconds=1)
+        for sec in range(int(fill_sec)):
+            obs_time = base + timedelta(seconds=sec)
+            if obs_time >= end:
+                break
+            for device in devices:
+                yield _emit_atmosphere_row(
+                    device,
+                    obs_time,
+                    id_gen,
+                    process_windows,
+                    ingest_delay_max_seconds,
+                    rng,
+                )
+
+
+def iter_atmosphere_with_dense(
+    devices: Sequence[AtmosphereDevice],
+    t0: datetime,
+    total_rows: int,
+    calendar_months: int,
+    id_gen: SnowflakeGenerator,
+    process_windows: Sequence[ProcessWindow],
+    ingest_delay_max_seconds: int,
+    rng: random.Random,
+    *,
+    dense_minutes: int = 1,
+    dense_full_window: bool = False,
+) -> Iterator[tuple[list, list, int]]:
+    """先写过程窗 1Hz 稠密段，再用剩余配额做按月均分铺点。"""
+    seconds = plan_atmosphere_dense_seconds(
+        process_windows,
+        device_count=len(devices),
+        total_rows=total_rows,
+        dense_minutes=dense_minutes,
+        dense_full_window=dense_full_window,
+    )
+    dense_rows = count_atmosphere_dense_rows(seconds, len(devices))
+    if dense_rows > 0:
+        yield from iter_atmosphere_dense_1hz(
+            devices,
+            process_windows,
+            seconds,
+            id_gen,
+            ingest_delay_max_seconds,
+            rng,
+        )
+    remain = max(0, int(total_rows) - dense_rows)
+    if remain > 0:
+        yield from iter_atmosphere_rows(
+            devices=devices,
+            t0=t0,
+            total_rows=remain,
+            calendar_months=calendar_months,
+            id_gen=id_gen,
+            process_windows=process_windows,
+            ingest_delay_max_seconds=ingest_delay_max_seconds,
+            rng=rng,
+        )
+
+
+def iter_atmosphere_full_1hz(
+    devices: Sequence[AtmosphereDevice],
+    start: datetime,
+    end_exclusive: datetime,
+    id_gen: SnowflakeGenerator,
+    process_windows: Sequence[ProcessWindow],
+    ingest_delay_max_seconds: int,
+    rng: random.Random,
+) -> Iterator[tuple[list, list, int]]:
+    """
+    在 [start, end) 内按秒铺满：每一秒对全部设备各写一条（真 1Hz，不去重叠秒）。
+    行数 = device_count × floor((end-start).total_seconds())。
+    """
+    if not devices or end_exclusive <= start:
+        return
+    total_secs = int((end_exclusive - start).total_seconds())
+    if total_secs <= 0:
+        return
+    base = start.replace(microsecond=0)
+    if base < start:
+        base += timedelta(seconds=1)
+        total_secs = int((end_exclusive - base).total_seconds())
+    for sec in range(max(total_secs, 0)):
+        obs_time = base + timedelta(seconds=sec)
+        if obs_time >= end_exclusive:
+            break
+        for device in devices:
+            yield _emit_atmosphere_row(
+                device,
+                obs_time,
+                id_gen,
+                process_windows,
+                ingest_delay_max_seconds,
+                rng,
+            )
+
+
+def expected_full_1hz_rows(device_count: int, days: int) -> int:
+    return max(int(device_count), 0) * max(int(days), 0) * 86400
+
+
+def expand_atmosphere_devices(
+    seed_devices: Sequence[AtmosphereDevice],
+    *,
+    target_count: int,
+    lon0: float,
+    lat0: float,
+) -> list[AtmosphereDevice]:
+    """将设备列表扩展/裁剪到 target_count；超出种子列表的用距离/方位生成。"""
+    from generators.geo import point_at_distance
+
+    n = max(int(target_count), 0)
+    if n <= 0:
+        return list(seed_devices)
+    out: list[AtmosphereDevice] = []
+    for i in range(1, n + 1):
+        if i <= len(seed_devices):
+            src = seed_devices[i - 1]
+            out.append(
+                AtmosphereDevice(
+                    device_addr=f"ATM-DS-STD-{i:03d}",
+                    type_id=src.type_id,
+                    longitude=src.longitude,
+                    latitude=src.latitude,
+                )
+            )
+            continue
+        distance_km = 0.5 + ((i - 1) % 60) * 0.45
+        bearing_deg = float((i * 37) % 360)
+        lon, lat = point_at_distance(lon0, lat0, distance_km, bearing_deg)
+        out.append(
+            AtmosphereDevice(
+                device_addr=f"ATM-DS-STD-{i:03d}",
+                type_id="01",
+                longitude=lon,
+                latitude=lat,
+            )
+        )
+    return out

@@ -97,10 +97,133 @@ stages:
     raw_rows: 39003024
     radar_raw_rows: 4000
 
+  # S5 压测加压档：大气各 1 亿；过程类按 150 过程加压；过程窗整段 1Hz 稠密
+  S5:
+    calendar_months: 12
+    mine_site: 1
+    thunderstorm_process: 150
+    lightning_cmb: 52500
+    lightning_locator: 22500
+    atmosphere_rows: 100000000
+    atmosphere_dense_minutes: 1
+    atmosphere_dense_full_window: true
+    other_device_rows: 26000
+    warning_event: 150
+    warning_message: 750
+    device_alarm: 4500
+    notice_event: 6000
+    inspection_task: 150
+    hidden_risk: 75
+    repair_order: 75
+    raw_rows: 100207258
+    radar_raw_rows: 6000
+
+  # S6 加压扩展档：大气各 2 亿；相对 S5 过程类×1.5；日历 18 月避免 1Hz×5 台同秒撞车；过程窗整段 1Hz 稠密
+  S6:
+    calendar_months: 18
+    mine_site: 1
+    thunderstorm_process: 225
+    lightning_cmb: 78750
+    lightning_locator: 33750
+    atmosphere_rows: 200000000
+    atmosphere_dense_minutes: 1
+    atmosphere_dense_full_window: true
+    other_device_rows: 52000
+    warning_event: 225
+    warning_message: 1125
+    device_alarm: 6750
+    notice_event: 9000
+    inspection_task: 225
+    hidden_risk: 112
+    repair_order: 112
+    raw_rows: 200373921
+    radar_raw_rows: 9000
+
+  # S7：200 台 × 15 天真 1Hz（跨月窗）；其它过程/闪电等仍 S6 量级；写入压测落在读窗之后
+  # 大气行数 = 200 × 86400 × 15 = 259200000（std/biz 各一份）
+  # raw ≈ 大气 + 闪电 + 低频 + 雷达 + 异常(~0.1%)
+  S7:
+    atmosphere_full_1hz: true
+    atmosphere_device_count: 200
+    atmosphere_days: 15
+    atmosphere_start: "2025-06-24T00:00:00"
+    write_after_atmosphere: true
+    calendar_months: 3
+    mine_site: 1
+    thunderstorm_process: 225
+    lightning_cmb: 78750
+    lightning_locator: 33750
+    atmosphere_rows: 259200000
+    other_device_rows: 52000
+    warning_event: 225
+    warning_message: 1125
+    device_alarm: 6750
+    notice_event: 9000
+    inspection_task: 225
+    hidden_risk: 112
+    repair_order: 112
+    raw_rows: 259633200
+    radar_raw_rows: 9000
+
+  # S8：100 台 × 30 天真 1Hz；过程/闪电等仍 S7（=S6）量级；写入压测落在读窗之后
+  # 大气行数 = 100 × 86400 × 30 = 259200000（std/biz 各一份，与 S7 每层行数相同）
+  S8:
+    atmosphere_full_1hz: true
+    atmosphere_device_count: 100
+    atmosphere_days: 30
+    atmosphere_start: "2025-06-24T00:00:00"
+    write_after_atmosphere: true
+    calendar_months: 3
+    mine_site: 1
+    thunderstorm_process: 225
+    lightning_cmb: 78750
+    lightning_locator: 33750
+    atmosphere_rows: 259200000
+    other_device_rows: 52000
+    warning_event: 225
+    warning_message: 1125
+    device_alarm: 6750
+    notice_event: 9000
+    inspection_task: 225
+    hidden_risk: 112
+    repair_order: 112
+    raw_rows: 259633200
+    radar_raw_rows: 9000
+
+  # S9（PG 加压）：500 台 × 6 月 1～30 号真 1Hz，仅写大气 biz；std/raw 不写大气
+  # 大气 biz = 500 × 86400 × 30 = 1296000000；raw ≈ 闪电+低频+雷达+异常（无大气）
+  S9:
+    atmosphere_full_1hz: true
+    atmosphere_biz_only: true
+    atmosphere_device_count: 500
+    atmosphere_days: 30
+    atmosphere_start: "2025-06-01T00:00:00"
+    write_after_atmosphere: true
+    calendar_months: 3
+    mine_site: 1
+    thunderstorm_process: 225
+    lightning_cmb: 78750
+    lightning_locator: 33750
+    atmosphere_rows: 1296000000
+    other_device_rows: 52000
+    warning_event: 225
+    warning_message: 1125
+    device_alarm: 6750
+    notice_event: 9000
+    inspection_task: 225
+    hidden_risk: 112
+    repair_order: 112
+    raw_rows: 173673
+    radar_raw_rows: 9000
+
 defaults:
   t0: "2025-06-01T00:00:00"
   timezone: "Asia/Shanghai"
   atmosphere_hz: 1
+  # 每个雷暴过程 data_window 开头按 1 条/秒/台写入稠密段（PERF-05-1MIN 依赖）
+  atmosphere_dense_minutes: 1
+  # true=尽量铺满整个 data_window（受 atmosphere_rows 预算约束）；S5/S6 建议开启
+  atmosphere_dense_full_window: false
   ingest_delay_max_seconds: 3
   thunderstorm_season_months: [6, 7, 8]
   thunderstorm_season_ratio: 0.7

@@ -1,0 +1,132 @@
+{
+  "ok": true,
+  "traceId": "len-trace-20260725145843-1f745b",
+  "caseId": "device-hex-length-boundary",
+  "caseName": "边界情况 · 报文长度边界",
+  "envName": "本地环境",
+  "startedAt": "2026-07-25T14:58:44.282Z",
+  "steps": [
+    {
+      "name": "环境预检查",
+      "ok": true,
+      "detail": "依赖均可连通",
+      "elapsedMs": 0,
+      "evidence": {
+        "checks": [
+          {
+            "name": "gateway",
+            "ok": true,
+            "detail": "HTTP 200 /actuator/health",
+            "elapsedMs": 15,
+            "evidence": {}
+          },
+          {
+            "name": "data-service",
+            "ok": true,
+            "detail": "HTTP 200 /actuator/health",
+            "elapsedMs": 17,
+            "evidence": {}
+          },
+          {
+            "name": "biz-service",
+            "ok": true,
+            "detail": "HTTP 200 /actuator/health",
+            "elapsedMs": 15,
+            "evidence": {}
+          },
+          {
+            "name": "kafka",
+            "ok": true,
+            "detail": "kafka:29092 connected",
+            "elapsedMs": 2,
+            "evidence": {}
+          },
+          {
+            "name": "database",
+            "ok": true,
+            "detail": "host.docker.internal:5432 connected",
+            "elapsedMs": 3,
+            "evidence": {}
+          }
+        ]
+      }
+    },
+    {
+      "name": "准备边界样例",
+      "ok": true,
+      "detail": "正:最短合法接地帧 24 字节；负:len 字段声明 0x40 但实际仅给短缓冲",
+      "elapsedMs": 0,
+      "evidence": {
+        "shortestHexPreview": "5A4B11030002000100010010001A003C000703E875C80D0A",
+        "overlongHexPreview": "5A4B4003000200010001AABBCCDD0D0A"
+      }
+    },
+    {
+      "name": "发送最短合法报文",
+      "ok": true,
+      "detail": "traceId=trace-20260725145843-1f745b",
+      "elapsedMs": 9,
+      "evidence": {
+        "traceId1": "trace-20260725145843-1f745b"
+      }
+    },
+    {
+      "name": "检查最短合法可解析",
+      "ok": true,
+      "detail": "process_status=PARSED_SUCCESS",
+      "elapsedMs": 0,
+      "evidence": {
+        "raw1": {
+          "process_status": "PARSED_SUCCESS",
+          "error_message": null,
+          "is_duplicate": 0,
+          "dedup_key": "trace-20260725145843-1f745b-len-pos",
+          "raw_data": "5A4B11030002000100010010001A003C000703E875C80D0A"
+        }
+      }
+    },
+    {
+      "name": "检查最短合法入库",
+      "ok": true,
+      "detail": "monitor_grounding_resistance 命中 1 条",
+      "elapsedMs": 0,
+      "evidence": {
+        "monitorCount1": 1
+      }
+    },
+    {
+      "name": "发送越界报文",
+      "ok": true,
+      "detail": "traceId=trace-20260725145843-7d2c18（len 字段不一致）",
+      "elapsedMs": 10,
+      "evidence": {
+        "traceId2": "trace-20260725145843-7d2c18",
+        "overlongHexPreview": "5A4B4003000200010001AABBCCDD0D0A"
+      }
+    },
+    {
+      "name": "检查越界被拒",
+      "ok": true,
+      "detail": "process_status=SKIPPED（命中 NO_COMPLETE_FRAME）",
+      "elapsedMs": 0,
+      "evidence": {
+        "raw2": {
+          "process_status": "SKIPPED",
+          "error_message": "跳过：无完整帧（NO_COMPLETE_FRAME）：未从流缓冲中提取到完整设备帧 | streamKey=device-raw-data:trace-20260725145843-7d2c18 frameCount=0 bufferedBytes=16",
+          "is_duplicate": 0,
+          "dedup_key": "trace-20260725145843-7d2c18-len-neg",
+          "raw_data": "5A4B4003000200010001AABBCCDD0D0A"
+        }
+      }
+    },
+    {
+      "name": "检查越界无污染",
+      "ok": true,
+      "detail": "data_standard_message 命中 0 条",
+      "elapsedMs": 0,
+      "evidence": {
+        "standardCount2": 0
+      }
+    }
+  ]
+}

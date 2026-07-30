@@ -1,6 +1,6 @@
 param(
     [Parameter(Mandatory = $true)]
-    [ValidateSet("S0", "S1", "S2", "S3", "S4")]
+    [ValidateSet("S0", "S1", "S2", "S3", "S4", "S5", "S6", "S7", "S8")]
     [string]$Stage,
     [string]$PgHost = $(if ($env:PGHOST) { $env:PGHOST } else { "localhost" }),
     [string]$PgPort = $(if ($env:PGPORT) { $env:PGPORT } else { "5432" }),

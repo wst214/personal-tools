@@ -11,7 +11,10 @@ import yaml
 from generators.db import pg_connection
 from generators.lightning import _split_total, expected_in_50km_count
 from generators.raw_budget import abnormal_raw_count
-from generators.volume_matrix import build_expected_counts
+from generators.volume_matrix import atmosphere_biz_only, build_expected_counts
+
+# 超大表跳过精确 COUNT / JOIN（S9 大气 biz 约 13 亿）
+_LARGE_EXACT_SCAN_ROWS = 50_000_000
 
 
 @dataclass
@@ -153,10 +156,20 @@ def validate_stage(
     band_high = max(int(max(per_process_expected) * 1.5), band_low) if per_process_expected else 1
 
     expected = build_expected_counts(stage, root)
+    biz_only = atmosphere_biz_only(profile)
 
     with pg_connection(dsn, schema=schema) as conn:
         with conn.cursor() as cur:
             for table, exp in expected.items():
+                if exp >= _LARGE_EXACT_SCAN_ROWS:
+                    results.append(
+                        CheckResult(
+                            f"row_count:{table}",
+                            True,
+                            f"large_table_skip_exact_count: expected={exp:,}",
+                        )
+                    )
+                    continue
                 cnt = _scalar(cur, f"SELECT count(*) FROM {schema}.{table}")
                 ok = cnt == exp
                 results.append(
@@ -215,20 +228,32 @@ def validate_stage(
                 )
             )
 
-            missing_biz, orphan_biz, dup_biz = _check_std_biz_1_1(
-                cur,
-                schema,
-                "standard_atmosphere_electric_field",
-                "biz_atmosphere_electric_field_event",
-            )
-            atm_ok = missing_biz == 0 and orphan_biz == 0 and dup_biz == 0
-            results.append(
-                CheckResult(
-                    "relation:atmosphere_std_biz_1_1",
-                    atm_ok,
-                    f"missing={missing_biz}, orphan={orphan_biz}, duplicate_key={dup_biz}",
+            if biz_only:
+                std_cnt = int(
+                    _scalar(cur, f"SELECT count(*) FROM {schema}.standard_atmosphere_electric_field") or 0
                 )
-            )
+                results.append(
+                    CheckResult(
+                        "relation:atmosphere_std_biz_1_1",
+                        std_cnt == 0,
+                        f"biz_only: skip join; std_count={std_cnt} (expect 0)",
+                    )
+                )
+            else:
+                missing_biz, orphan_biz, dup_biz = _check_std_biz_1_1(
+                    cur,
+                    schema,
+                    "standard_atmosphere_electric_field",
+                    "biz_atmosphere_electric_field_event",
+                )
+                atm_ok = missing_biz == 0 and orphan_biz == 0 and dup_biz == 0
+                results.append(
+                    CheckResult(
+                        "relation:atmosphere_std_biz_1_1",
+                        atm_ok,
+                        f"missing={missing_biz}, orphan={orphan_biz}, duplicate_key={dup_biz}",
+                    )
+                )
 
             for std_table, source_type in LIGHTNING_STD_BIZ_PAIRS:
                 missing, orphan, dup = _check_std_biz_1_1(

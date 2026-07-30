@@ -5,7 +5,7 @@ from __future__ import annotations
 import random
 from datetime import date, datetime, timedelta
 from pathlib import Path
-from typing import Any, Callable
+from typing import Any, Callable, Sequence
 
 import yaml
 
@@ -14,7 +14,12 @@ from generators.atmosphere import (
     BIZ_COLUMNS as ATM_BIZ_COLUMNS,
     STD_COLUMNS as ATM_STD_COLUMNS,
     ProcessWindow,
-    iter_atmosphere_rows,
+    count_atmosphere_dense_rows,
+    expand_atmosphere_devices,
+    expected_full_1hz_rows,
+    iter_atmosphere_full_1hz,
+    iter_atmosphere_with_dense,
+    plan_atmosphere_dense_seconds,
 )
 from generators.dameng_conn import DamengConn, DamengRuntimeNotImplementedError
 from generators.dameng_load_guard import load_advisory_lock
@@ -46,8 +51,11 @@ from generators.raw_message import (
     radar_raw_row,
 )
 from generators.time_calendar import (
+    add_months,
     calendar_data_end,
     calendar_month_start,
+    months_covering,
+    resolve_atmosphere_span,
     resolve_calendar_months,
 )
 
@@ -252,14 +260,51 @@ def load_stage_dameng(
 
     profile = volume_cfg["stages"][stage]
     defaults = volume_cfg["defaults"]
+    from generators.volume_matrix import atmosphere_biz_only
+
+    if atmosphere_biz_only(profile):
+        raise ValueError(
+            f"[DM {stage}] atmosphere_biz_only（如 S9）目前仅支持 PostgreSQL 造数，"
+            "请使用 --dialect postgres"
+        )
     t0 = t0 or _parse_t0(defaults["t0"])
     rng = random.Random(seed)
     id_gen = SnowflakeGenerator(worker_id=1)
-    devices = _build_devices(mine_cfg)
+    seed_devices = _build_devices(mine_cfg)
+    device_target = int(profile.get("atmosphere_device_count") or len(seed_devices))
+    devices = expand_atmosphere_devices(
+        seed_devices,
+        target_count=device_target,
+        lon0=float(mine_cfg["mine_site"]["dispatch_room_lon"]),
+        lat0=float(mine_cfg["mine_site"]["dispatch_room_lat"]),
+    )
     atmosphere_rows = int(profile["atmosphere_rows"])
-    calendar_months = resolve_calendar_months(stage, profile, defaults)
-    data_end = calendar_data_end(t0, calendar_months)
-    process_placement_end = data_end - timedelta(seconds=1)
+    atm_start, atm_end, full_1hz = resolve_atmosphere_span(profile, defaults, t0=t0)
+    if full_1hz:
+        days = max(int(profile.get("atmosphere_days", 1)), 1)
+        expected = expected_full_1hz_rows(len(devices), days)
+        if atmosphere_rows != expected:
+            _emit(
+                log,
+                f"[DM {stage}] 警告：atmosphere_rows={atmosphere_rows:,} 与 "
+                f"{len(devices)}台×{days}天×86400={expected:,} 不一致，按公式行数写入",
+            )
+            atmosphere_rows = expected
+        process_t0 = atm_start
+        process_placement_end = atm_end - timedelta(seconds=1)
+        partition_end_dt = add_months(atm_end.replace(day=1, hour=0, minute=0, second=0, microsecond=0), 2)
+        data_end = partition_end_dt
+        calendar_months = months_covering(atm_start, partition_end_dt)
+        _emit(
+            log,
+            f"[DM {stage}] 时间轴：真 1Hz {atm_start.isoformat(sep=' ', timespec='seconds')} ~ "
+            f"{atm_end.isoformat(sep=' ', timespec='seconds')}（{days} 天 · {len(devices)} 台）",
+        )
+    else:
+        calendar_months = resolve_calendar_months(stage, profile, defaults)
+        data_end = calendar_data_end(t0, calendar_months)
+        process_t0 = t0
+        process_placement_end = data_end - timedelta(seconds=1)
 
     _emit(log, f"[DM {stage}] 生成雷暴过程与业务事件…")
     bundle = build_process_bundle(
@@ -271,7 +316,7 @@ def load_stage_dameng(
         inspection_total=int(profile["inspection_task"]),
         hidden_risk_total=int(profile["hidden_risk"]),
         repair_total=int(profile["repair_order"]),
-        t0=t0,
+        t0=process_t0,
         atmosphere_end=process_placement_end,
         id_gen=id_gen,
         season_months=defaults["thunderstorm_season_months"],
@@ -283,7 +328,14 @@ def load_stage_dameng(
         rng=rng,
     )
     process_windows = [
-        ProcessWindow(p.process_start, p.process_end, p.strike_start, p.strike_end)
+        ProcessWindow(
+            p.process_start,
+            p.process_end,
+            p.strike_start,
+            p.strike_end,
+            p.data_window_start,
+            p.data_window_end,
+        )
         for p in bundle.processes
     ]
 
@@ -306,7 +358,8 @@ def load_stage_dameng(
     def _run() -> dict[str, int]:
         nonlocal stats
         stats = {}
-        partition_start = date(t0.year, t0.month, 1)
+        partition_anchor = atm_start if full_1hz else t0
+        partition_start = date(partition_anchor.year, partition_anchor.month, 1)
         partition_end = data_end.date()
         if partition_end < partition_start:
             partition_end = partition_start
@@ -375,17 +428,58 @@ def load_stage_dameng(
                 pct = min(100, int(done * 100 / atmosphere_rows))
                 _emit(log, f"[DM {stage}] 大气电场进度 {done:,}/{atmosphere_rows:,} ({pct}%)")
 
-        _emit(log, f"[DM {stage}] 写入大气电场（目标 {atmosphere_rows:,} 行）…")
-        for std_row, biz_row, raw_id in iter_atmosphere_rows(
-            devices=devices,
-            t0=t0,
-            total_rows=atmosphere_rows,
-            calendar_months=calendar_months,
-            id_gen=id_gen,
-            process_windows=process_windows,
-            ingest_delay_max_seconds=int(defaults["ingest_delay_max_seconds"]),
-            rng=rng,
-        ):
+        dense_minutes = int(defaults.get("atmosphere_dense_minutes", 1))
+        dense_full = bool(defaults.get("atmosphere_dense_full_window", False))
+        # 档位可覆盖 defaults
+        if "atmosphere_dense_minutes" in profile:
+            dense_minutes = int(profile["atmosphere_dense_minutes"])
+        if "atmosphere_dense_full_window" in profile:
+            dense_full = bool(profile["atmosphere_dense_full_window"])
+        if full_1hz:
+            _emit(
+                log,
+                f"[DM {stage}] 写入大气电场（真 1Hz 满密 {atmosphere_rows:,} 行 · "
+                f"{len(devices)} 台 · "
+                f"{atm_start.isoformat(sep=' ', timespec='seconds')} ~ "
+                f"{atm_end.isoformat(sep=' ', timespec='seconds')}）…",
+            )
+            atm_iter = iter_atmosphere_full_1hz(
+                devices=devices,
+                start=atm_start,
+                end_exclusive=atm_end,
+                id_gen=id_gen,
+                process_windows=process_windows,
+                ingest_delay_max_seconds=int(defaults["ingest_delay_max_seconds"]),
+                rng=rng,
+            )
+        else:
+            dense_secs = plan_atmosphere_dense_seconds(
+                process_windows,
+                device_count=len(devices),
+                total_rows=atmosphere_rows,
+                dense_minutes=dense_minutes,
+                dense_full_window=dense_full,
+            )
+            dense_rows = count_atmosphere_dense_rows(dense_secs, len(devices))
+            _emit(
+                log,
+                f"[DM {stage}] 写入大气电场（目标 {atmosphere_rows:,} 行；"
+                f"过程窗 1Hz 稠密 {dense_rows:,} 行，"
+                f"{'整窗' if dense_full else f'每过程前 {dense_minutes} 分钟'}）…",
+            )
+            atm_iter = iter_atmosphere_with_dense(
+                devices=devices,
+                t0=t0,
+                total_rows=atmosphere_rows,
+                calendar_months=calendar_months,
+                id_gen=id_gen,
+                process_windows=process_windows,
+                ingest_delay_max_seconds=int(defaults["ingest_delay_max_seconds"]),
+                rng=rng,
+                dense_minutes=dense_minutes,
+                dense_full_window=dense_full,
+            )
+        for std_row, biz_row, raw_id in atm_iter:
             std_buffer.append(std_row)
             biz_buffer.append(biz_row)
             raw_buffer.append(
@@ -416,7 +510,10 @@ def load_stage_dameng(
 
         _emit(log, f"[DM {stage}] 组装 raw / 低频设备报文（目标 {target_raw:,}）…")
         lowfreq_grouped: dict[str, dict[str, Any]] = {}
-        for item in iter_lowfreq_rows(lowfreq_devices, lowfreq_total, t0, data_end, id_gen, rng):
+        lowfreq_span_start = atm_start if full_1hz else t0
+        for item in iter_lowfreq_rows(
+            lowfreq_devices, lowfreq_total, lowfreq_span_start, data_end, id_gen, rng
+        ):
             std_table, biz_table, std_cols, std_row, biz_cols, biz_row = item
             key = std_table
             if key not in lowfreq_grouped:
@@ -535,6 +632,254 @@ def load_stage_dameng(
         stats["raw_abnormal"] = abnormal_total
         _emit(log, f"[DM {stage}] raw 报文写入完成：{stats.get('raw_kafka_message', 0):,} 行")
         _emit(log, f"[DM {stage}] 达梦造数完成")
+        return stats
+
+    try:
+        with load_advisory_lock(conn, log=log):
+            return _run()
+    except DisqlNotFoundError as exc:
+        raise RuntimeError(str(exc)) from exc
+
+
+ATM_APPEND_PARTITION_PARENTS = (
+    "raw_kafka_message",
+    "standard_atmosphere_electric_field",
+    "biz_atmosphere_electric_field_event",
+)
+
+
+def _query_max_atmosphere_upload_time(conn: DamengConn, probe_addr: str = "ATM-DS-STD-001") -> datetime | None:
+    """按单设备索引取 MAX(device_upload_time)，避免大表全扫。"""
+    from generators.dameng_db import DamengDriverNotFoundError, connect_dm
+    from generators.dialect import catalog_schema
+    from generators.dm_write import format_dm_literal
+
+    sql = (
+        "SELECT /*+ INDEX(t idx_biz_atm_field_addr_time) */ MAX(device_upload_time) "
+        f"FROM biz_atmosphere_electric_field_event t "
+        f"WHERE device_addr = {format_dm_literal(probe_addr)}"
+    )
+    try:
+        db = connect_dm(conn)
+    except DamengDriverNotFoundError as exc:
+        raise RuntimeError("续造需要 dmPython 查询 MAX(device_upload_time)") from exc
+    try:
+        cur = db.cursor()
+        try:
+            owner = catalog_schema(conn.schema, "dameng")
+            cur.execute(f'ALTER SESSION SET CURRENT_SCHEMA = "{owner}"')
+            cur.execute(sql)
+            row = cur.fetchone()
+            if not row or row[0] is None:
+                return None
+            val = row[0]
+            if isinstance(val, datetime):
+                return val.replace(microsecond=0)
+            return datetime.fromisoformat(str(val)[:19])
+        finally:
+            try:
+                cur.close()
+            except Exception:
+                pass
+    finally:
+        try:
+            db.close()
+        except Exception:
+            pass
+
+
+def _existing_atmosphere_max_upload_time(
+    conn: DamengConn,
+    devices: Sequence[AtmosphereDevice],
+    *,
+    sample: int = 5,
+) -> datetime | None:
+    """抽查首/中/尾若干设备的 MAX，取全局最大，防止续造起点踩到已有秒。"""
+    if not devices:
+        return None
+    idxs = {0, len(devices) // 2, len(devices) - 1}
+    step = max(len(devices) // max(sample, 1), 1)
+    for i in range(0, len(devices), step):
+        idxs.add(i)
+        if len(idxs) >= sample:
+            break
+    tmax: datetime | None = None
+    for i in sorted(idxs):
+        if i < 0 or i >= len(devices):
+            continue
+        cur = _query_max_atmosphere_upload_time(conn, devices[i].device_addr)
+        if cur is None:
+            continue
+        if tmax is None or cur > tmax:
+            tmax = cur
+    return tmax
+
+
+def append_atmosphere_full_1hz_dameng(
+    *,
+    stage: str,
+    conn: DamengConn,
+    days: int = 15,
+    start: datetime | None = None,
+    config_dir: Path | None = None,
+    seed: int = 42,
+    batch_size: int = 500,
+    log: Callable[[str], None] | None = None,
+) -> dict[str, Any]:
+    """
+    仅续写大气三层（std/biz/raw），真 1Hz 满铺。
+
+    安全约束（不影响已造数据）：
+    - 绝不 TRUNCATE / DELETE / UPDATE 已有行，只 INSERT 新时间段
+    - 不写过程/闪电/低频等其它表
+    - 起点必须严格晚于已有大气 MAX(device_upload_time)，禁止时间重叠
+    """
+    root = config_dir or Path(__file__).resolve().parent.parent / "config"
+    mine_cfg = _load_yaml(root / "mine-sites.yaml")
+    volume_cfg = _load_yaml(root / "volume-profiles.yaml")
+    if stage not in volume_cfg["stages"]:
+        raise ValueError(f"unknown stage: {stage}")
+    profile = volume_cfg["stages"][stage]
+    defaults = volume_cfg["defaults"]
+    days = max(int(days), 1)
+    rng = random.Random(seed)
+    id_gen = SnowflakeGenerator(worker_id=7)
+
+    seed_devices = _build_devices(mine_cfg)
+    device_target = int(profile.get("atmosphere_device_count") or len(seed_devices) or 200)
+    devices = expand_atmosphere_devices(
+        seed_devices,
+        target_count=device_target,
+        lon0=float(mine_cfg["mine_site"]["dispatch_room_lon"]),
+        lat0=float(mine_cfg["mine_site"]["dispatch_room_lat"]),
+    )
+    if not devices:
+        raise RuntimeError("无大气设备列表，无法续造")
+
+    existing_max = _existing_atmosphere_max_upload_time(conn, devices)
+    if existing_max is None:
+        raise RuntimeError("库内无大气数据，无法续造（续造不得从空库起铺，以免误当全量）")
+
+    if start is None:
+        atm_start = existing_max + timedelta(seconds=1)
+        _emit(
+            log,
+            f"[DM append] 自动接续：已有 MAX={existing_max.isoformat(sep=' ', timespec='seconds')} "
+            f"→ start={atm_start.isoformat(sep=' ', timespec='seconds')}（不改动已有行）",
+        )
+    else:
+        atm_start = start.replace(microsecond=0)
+        if atm_start <= existing_max:
+            raise RuntimeError(
+                f"续造起点 {atm_start.isoformat(sep=' ', timespec='seconds')} "
+                f"不晚于已有大气 MAX {existing_max.isoformat(sep=' ', timespec='seconds')}，"
+                f"会与已造数据重叠；请改用更晚起点或省略 --start 自动接续"
+            )
+        _emit(
+            log,
+            f"[DM append] 使用指定起点 {atm_start.isoformat(sep=' ', timespec='seconds')} "
+            f"（已有 MAX={existing_max.isoformat(sep=' ', timespec='seconds')}，无重叠）",
+        )
+
+    atm_end = atm_start + timedelta(days=days)
+    atmosphere_rows = expected_full_1hz_rows(len(devices), days)
+    process_windows: list[ProcessWindow] = []
+
+    _emit(
+        log,
+        f"[DM append] 仅大气 INSERT 续造（不 truncate/不改旧数据）："
+        f"{atm_start.isoformat(sep=' ', timespec='seconds')} ~ "
+        f"{atm_end.isoformat(sep=' ', timespec='seconds')}（{days} 天 · {len(devices)} 台 · "
+        f"每层 {atmosphere_rows:,} 行）",
+    )
+
+    def _run() -> dict[str, Any]:
+        stats: dict[str, Any] = {}
+        partition_start = date(atm_start.year, atm_start.month, 1)
+        partition_end = atm_end.date()
+        if partition_end < partition_start:
+            partition_end = partition_start
+        _emit(log, f"[DM append] 检查/创建月分区 {partition_start} ~ {partition_end}…")
+        for parent in ATM_APPEND_PARTITION_PARENTS:
+            call_create_monthly_partitions(conn, parent, partition_start, partition_end)
+
+        offset_no = int(atm_start.timestamp()) % 1_000_000_000
+        std_buffer: list[list] = []
+        biz_buffer: list[list] = []
+        raw_buffer: list[list] = []
+
+        def flush_atmosphere() -> None:
+            nonlocal std_buffer, biz_buffer, raw_buffer
+            if std_buffer:
+                stats["standard_atmosphere_electric_field"] = stats.get(
+                    "standard_atmosphere_electric_field", 0
+                ) + insert_rows(
+                    conn,
+                    "standard_atmosphere_electric_field",
+                    ATM_STD_COLUMNS,
+                    std_buffer,
+                    batch_size=batch_size,
+                )
+                std_buffer = []
+            if biz_buffer:
+                stats["biz_atmosphere_electric_field_event"] = stats.get(
+                    "biz_atmosphere_electric_field_event", 0
+                ) + insert_rows(
+                    conn,
+                    "biz_atmosphere_electric_field_event",
+                    ATM_BIZ_COLUMNS,
+                    biz_buffer,
+                    batch_size=batch_size,
+                )
+                biz_buffer = []
+            if raw_buffer:
+                stats["raw_kafka_message"] = stats.get("raw_kafka_message", 0) + insert_rows(
+                    conn, "raw_kafka_message", RAW_COLUMNS, raw_buffer, batch_size=batch_size
+                )
+                raw_buffer = []
+            done = stats.get("standard_atmosphere_electric_field", 0)
+            if atmosphere_rows and done:
+                pct = min(100, int(done * 100 / atmosphere_rows))
+                _emit(log, f"[DM append] 大气电场进度 {done:,}/{atmosphere_rows:,} ({pct}%)")
+
+        atm_iter = iter_atmosphere_full_1hz(
+            devices=devices,
+            start=atm_start,
+            end_exclusive=atm_end,
+            id_gen=id_gen,
+            process_windows=process_windows,
+            ingest_delay_max_seconds=int(defaults["ingest_delay_max_seconds"]),
+            rng=rng,
+        )
+        for std_row, biz_row, raw_id in atm_iter:
+            std_buffer.append(std_row)
+            biz_buffer.append(biz_row)
+            raw_buffer.append(
+                device_raw_row(
+                    raw_id=raw_id,
+                    device_addr=str(std_row[2]),
+                    receive_time=std_row[21],
+                    offset_no=offset_no,
+                )
+            )
+            offset_no += 1
+            if len(std_buffer) >= batch_size:
+                flush_atmosphere()
+        flush_atmosphere()
+
+        stats["existing_max_before_append"] = existing_max.isoformat(sep=" ", timespec="seconds")
+        stats["append_start"] = atm_start.isoformat(sep=" ", timespec="seconds")
+        stats["append_end_exclusive"] = atm_end.isoformat(sep=" ", timespec="seconds")
+        stats["append_days"] = days
+        stats["device_count"] = len(devices)
+        stats["atmosphere_rows_per_layer"] = atmosphere_rows
+        stats["mode"] = "insert_only_no_overlap"
+        _emit(
+            log,
+            f"[DM append] 完成（仅 INSERT，未改已有数据）：std={stats.get('standard_atmosphere_electric_field', 0):,} "
+            f"biz={stats.get('biz_atmosphere_electric_field_event', 0):,} "
+            f"raw={stats.get('raw_kafka_message', 0):,}",
+        )
         return stats
 
     try:

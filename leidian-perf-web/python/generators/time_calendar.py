@@ -49,3 +49,45 @@ def split_count_evenly(total: int, parts: int) -> list[int]:
 
 def span_seconds(t0: datetime, span_end: datetime) -> int:
     return max(int((span_end - t0).total_seconds()), 1)
+
+
+def parse_iso_datetime(value: str) -> datetime:
+    return datetime.fromisoformat(str(value).replace("Z", "+00:00").split("+")[0])
+
+
+def resolve_atmosphere_span(
+    profile: dict,
+    defaults: dict,
+    t0: datetime | None = None,
+) -> tuple[datetime, datetime, bool]:
+    """
+    返回 (atm_start, atm_end_exclusive, full_1hz)。
+    full_1hz 时按 atmosphere_start + atmosphere_days 连续铺秒；否则沿用日历月轴。
+    """
+    base_t0 = t0 or parse_iso_datetime(defaults["t0"])
+    if not bool(profile.get("atmosphere_full_1hz")):
+        months = resolve_calendar_months("", profile, defaults)
+        return base_t0, calendar_data_end(base_t0, months), False
+
+    start = (
+        parse_iso_datetime(profile["atmosphere_start"])
+        if profile.get("atmosphere_start")
+        else base_t0
+    )
+    days = max(int(profile.get("atmosphere_days", 1)), 1)
+    end = start + timedelta(days=days)
+    return start, end, True
+
+
+def months_covering(start: datetime, end_exclusive: datetime) -> int:
+    """覆盖 [start, end) 所需的自然月个数（含起止月）。"""
+    cur = start.replace(day=1, hour=0, minute=0, second=0, microsecond=0)
+    end_month = end_exclusive.replace(day=1, hour=0, minute=0, second=0, microsecond=0)
+    if end_exclusive > end_month:
+        # end 落在某月内时仍需该月分区；若恰好月初则上一月已够
+        pass
+    n = 0
+    while cur <= end_month and n < 120:
+        n += 1
+        cur = add_months(cur, 1)
+    return max(n, 1)

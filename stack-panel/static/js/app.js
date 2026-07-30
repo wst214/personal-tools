@@ -1,354 +1,315 @@
-const $ = (sel) => document.querySelector(sel);
+const $ = (selector) => document.querySelector(selector);
 
-const stackList = $("#stackList");
+const form = $("#environmentForm");
+const environmentSelect = $("#environmentSelect");
+const serviceEditorList = $("#serviceEditorList");
+const serviceEditorTemplate = $("#serviceEditorTemplate");
+const serviceList = $("#serviceList");
+const stepList = $("#stepList");
+const taskSteps = $("#taskSteps");
 const logBox = $("#logBox");
 const taskStatus = $("#taskStatus");
-const envBadge = $("#envBadge");
-const rootPath = $("#rootPath");
-const dockerVersion = $("#dockerVersion");
-const stackCount = $("#stackCount");
-const runningCount = $("#runningCount");
-const stackTemplate = $("#stackTemplate");
+const runtimeBadge = $("#runtimeBadge");
 
-const STATUS_LABEL = {
-  idle: "空闲",
-  running: "执行中…",
-  done: "完成",
-  error: "失败",
+const STEP_OPTIONS = [
+  ["preflight", "环境检查", "校验本机 Docker、SSH、远端 Compose 和配置差异", true],
+  ["build", "构建镜像", "慢步骤；需要重新生成 jar / 镜像时再勾选", false],
+  ["package_upload", "上传镜像包", "默认直接上传 exports 中已有 tar，不跑 Maven", true],
+  ["sync_config", "同步 Compose / .env", "默认不传；仅在配置确实变化时勾选", false],
+  ["load", "加载镜像", "远端 docker load", true],
+  ["migration", "执行 db-migration", "默认不执行；有迁移变更时再勾选", false],
+  ["restart", "重启业务服务", "仅更新选中的常驻服务", true],
+  ["verify", "验证服务", "检查容器和健康检查 URL", true],
+];
+
+const STATUS_LABEL = { pending: "等待", running: "执行中", done: "成功", error: "失败", skipped: "跳过", idle: "空闲" };
+const FIXED_DEFAULTS = {
+  local_image_dir: "exports",
+  local_compose_file: "deployments/docker-compose/docker-compose.yml",
+  local_env_file: "deployments/docker-compose/.env",
+  remote_deploy_root: "/opt/leidian/deploy",
+  remote_image_dir: "/opt/leidian/deploy/images",
+  remote_compose_file: "compose/s3/docker-compose.yml",
+  remote_env_file: "compose/s3/.env",
 };
-
-const modeMemory = new Map();
-
-function escapeHtml(value) {
-  return String(value)
-    .replaceAll("&", "&amp;")
-    .replaceAll("<", "&lt;")
-    .replaceAll(">", "&gt;")
-    .replaceAll('"', "&quot;");
-}
-
-function escapeAttr(value) {
-  return escapeHtml(value).replaceAll("'", "&#39;");
-}
-
-function shortImage(image) {
-  if (!image) return "";
-  const value = String(image);
-  if (value.startsWith("sha256:")) return `${value.slice(0, 19)}…`;
-  const parts = value.split("/");
-  return parts[parts.length - 1];
-}
-
-function modeStorageKey(stackId) {
-  return `stack-panel-build-mode:${stackId}`;
-}
-
-function getSelectedMode(stack) {
-  const modes = stack.build_modes || [];
-  if (!modes.length) return "";
-  const remembered = modeMemory.get(stack.id) || localStorage.getItem(modeStorageKey(stack.id));
-  if (remembered && modes.some((mode) => mode.id === remembered)) {
-    return remembered;
-  }
-  const fallback = modes.find((mode) => mode.default) || modes[0];
-  return fallback.id;
-}
-
-function setSelectedMode(stackId, modeId) {
-  modeMemory.set(stackId, modeId);
-  localStorage.setItem(modeStorageKey(stackId), modeId);
-}
-
-let pollTimer = null;
+let environments = [];
+let currentEnvironment = null;
 let activeTaskId = null;
+let pollingTimer = null;
 let busy = false;
 
 async function api(path, options = {}) {
-  const res = await fetch(path, {
-    headers: { "Content-Type": "application/json" },
-    ...options,
-  });
-  const data = await res.json();
-  if (!res.ok && !data.error) {
-    throw new Error(`请求失败 (${res.status})`);
-  }
+  const response = await fetch(path, { headers: { "Content-Type": "application/json" }, ...options });
+  const data = await response.json();
+  if (!response.ok || data.ok === false) throw new Error(data.error || `请求失败 (${response.status})`);
   return data;
 }
 
+function value(id) { return $(id).value.trim(); }
+function setValue(id, next) { $(id).value = next || ""; }
+function checkbox(id) { return $(id).checked; }
+function escapeHtml(input) { return String(input).replaceAll("&", "&amp;").replaceAll("<", "&lt;").replaceAll(">", "&gt;").replaceAll('"', "&quot;"); }
+
 function setBusy(next) {
   busy = next;
-  document.querySelectorAll("button[data-action], button[data-quick], input[name^='build-mode-']").forEach((el) => {
-    el.disabled = next;
+  document.querySelectorAll("button, select, input").forEach((element) => {
+    if (element.id === "logBox") return;
+    element.disabled = next;
   });
 }
 
-function renderEnv(info) {
-  rootPath.textContent = info.mytools_root || "--";
-  dockerVersion.textContent = info.docker_ok
-    ? `Docker ${info.docker_version || "ready"} · Compose ${info.compose_ok ? "ready" : "missing"}`
-    : "Docker 不可用";
-
-  envBadge.className = "badge";
-  if (info.docker_ok && info.compose_ok) {
-    envBadge.classList.add("badge-ok");
-    envBadge.textContent = "Docker ready";
-  } else if (info.docker_ok) {
-    envBadge.classList.add("badge-warn");
-    envBadge.textContent = "Compose missing";
-  } else {
-    envBadge.classList.add("badge-error");
-    envBadge.textContent = "Docker offline";
-  }
+function renderRuntime(info) {
+  const ready = info.docker_available && info.paramiko_available;
+  runtimeBadge.className = `badge ${ready ? "badge-ok" : "badge-error"}`;
+  runtimeBadge.textContent = ready ? `本机依赖就绪 · ${info.environment_count} 个环境` : "缺少 Docker CLI 或 Paramiko";
 }
 
-function renderSummary(stacks) {
-  stackCount.textContent = String(stacks.length);
-  runningCount.textContent = String(
-    stacks.reduce((sum, stack) => sum + (stack.running_count || 0), 0),
-  );
-}
-
-function serviceActions(stackId, service, canPackage) {
-  const actions = [];
-  if (canPackage) {
-    actions.push({ action: "package", label: "Maven 打包" });
-  }
-  actions.push(
-    { action: "up", label: "构建启动", primary: true },
-    { action: "build", label: "构建" },
-    { action: "restart", label: "重启" },
-    { action: "logs", label: "日志" },
-    { action: "stop", label: "停止" },
-  );
-  return actions
-    .map(
-      (item) =>
-        `<button type="button" class="btn ${item.primary ? "btn-dark" : "btn-ghost"}" data-stack="${stackId}" data-service="${service.name}" data-action="${item.action}">${item.label}</button>`,
-    )
-    .join("");
-}
-
-function renderServiceCard(stackId, service, packageServices = []) {
-  const state = service.state || "stopped";
-  const port = service.port ? `端口 ${service.port}` : "无固定端口";
-  const imageName = shortImage(service.image);
-  const image = imageName
-    ? `<code title="${escapeAttr(service.image)}">${escapeHtml(imageName)}</code>`
-    : "<code>—</code>";
-  const link = service.url
-    ? `<a class="service-link" href="${service.url}" target="_blank" rel="noreferrer">打开 ↗</a>`
-    : "";
-  const canPackage = packageServices.includes(service.name);
-  return `
-    <article class="service-card ${state}">
-      <div class="service-top">
-        <div>
-          <h3>${service.label}</h3>
-          <div class="service-meta">
-            <span>${port}</span>
-            <span>${image}</span>
-            <span>${service.status || "未运行"}</span>
-          </div>
-        </div>
-        <span class="service-state ${state}">${state === "running" ? "在线" : "离线"}</span>
-      </div>
-      ${link}
-      <div class="service-actions">${serviceActions(stackId, service, canPackage)}</div>
-    </article>
-  `;
-}
-
-function selectedModeHasMaven(stack) {
-  const modes = stack.build_modes || [];
-  if (!modes.length) return (stack.package_services || []).length > 0;
-  const selected = getSelectedMode(stack);
-  const current = modes.find((mode) => mode.id === selected) || modes[0];
-  return Boolean(current?.has_maven);
-}
-
-function syncPackageButtons(node, stack) {
-  const showPackage =
-    selectedModeHasMaven(stack) && (stack.package_services || []).length > 0;
-  const packageBtn = node.querySelector("[data-package-btn]");
-  if (packageBtn) {
-    packageBtn.classList.toggle("hidden", !showPackage);
-  }
-  node.querySelectorAll('.service-actions [data-action="package"]').forEach((btn) => {
-    btn.classList.toggle("hidden", !showPackage);
+function createServiceEditor(service = {}) {
+  const row = serviceEditorTemplate.content.firstElementChild.cloneNode(true);
+  Object.entries(service).forEach(([field, fieldValue]) => {
+    const input = row.querySelector(`[data-field="${field}"]`);
+    if (!input) return;
+    if (input.type === "checkbox") input.checked = Boolean(fieldValue);
+    else input.value = fieldValue || "";
   });
+  row.querySelector("[data-remove-service]").addEventListener("click", () => row.remove());
+  serviceEditorList.appendChild(row);
 }
 
-function renderBuildModes(node, stack) {
-  const row = node.querySelector("[data-build-modes]");
-  const modes = stack.build_modes || [];
-  if (!modes.length) {
-    row.classList.add("hidden");
-    row.innerHTML = "";
-    return;
+function collectServices() {
+  return [...serviceEditorList.querySelectorAll(".service-editor-row")]
+    .map((row) => ({
+      name: row.querySelector('[data-field="name"]').value.trim(),
+      label: row.querySelector('[data-field="label"]').value.trim(),
+      image: row.querySelector('[data-field="image"]').value.trim(),
+      maven_module: row.querySelector('[data-field="maven_module"]').value.trim(),
+      health_url: row.querySelector('[data-field="health_url"]').value.trim(),
+      default_selected: row.querySelector('[data-field="default_selected"]').checked,
+      restart: row.querySelector('[data-field="restart"]').checked,
+    }))
+    .filter((service) => service.name);
+}
+
+function environmentPayload() {
+  return {
+    id: value("#environmentId"),
+    name: value("#environmentName"),
+    host: value("#host"),
+    port: Number(value("#port") || 22),
+    username: value("#username"),
+    auth_method: value("#authMethod"),
+    password: value("#password"),
+    private_key_path: value("#privateKeyPath"),
+    private_key_passphrase: value("#privateKeyPassphrase"),
+    use_sudo: checkbox("#useSudo"),
+    sudo_password: value("#sudoPassword"),
+    project_path: value("#projectPath"),
+    local_image_dir: value("#localImageDir") || FIXED_DEFAULTS.local_image_dir,
+    local_compose_file: value("#localComposeFile") || FIXED_DEFAULTS.local_compose_file,
+    local_env_file: value("#localEnvFile") || FIXED_DEFAULTS.local_env_file,
+    remote_deploy_root: value("#remoteDeployRoot") || FIXED_DEFAULTS.remote_deploy_root,
+    remote_image_dir: value("#remoteImageDir") || FIXED_DEFAULTS.remote_image_dir,
+    remote_compose_file: value("#remoteComposeFile") || FIXED_DEFAULTS.remote_compose_file,
+    remote_env_file: value("#remoteEnvFile") || FIXED_DEFAULTS.remote_env_file,
+    services: collectServices(),
+  };
+}
+
+function setSecretHint(id, configured) {
+  const element = $(id);
+  if (!element) return;
+  element.textContent = configured ? "（已保存，留空不覆盖）" : "";
+}
+
+function renderEnvironment(environment) {
+  currentEnvironment = environment;
+  setValue("#environmentId", environment.id);
+  setValue("#environmentName", environment.name);
+  setValue("#host", environment.host);
+  setValue("#port", environment.port || 22);
+  setValue("#username", environment.username);
+  setValue("#authMethod", environment.auth_method === "key" ? "password" : environment.auth_method || "password");
+  setValue("#password", "");
+  setValue("#privateKeyPath", environment.private_key_path);
+  setValue("#privateKeyPassphrase", "");
+  $("#useSudo").checked = Boolean(environment.use_sudo);
+  setValue("#sudoPassword", "");
+  setValue("#projectPath", environment.project_path);
+  setValue("#localImageDir", environment.local_image_dir || FIXED_DEFAULTS.local_image_dir);
+  setValue("#localComposeFile", environment.local_compose_file || FIXED_DEFAULTS.local_compose_file);
+  setValue("#localEnvFile", environment.local_env_file || FIXED_DEFAULTS.local_env_file);
+  setValue("#remoteDeployRoot", environment.remote_deploy_root || FIXED_DEFAULTS.remote_deploy_root);
+  setValue("#remoteImageDir", environment.remote_image_dir || FIXED_DEFAULTS.remote_image_dir);
+  setValue("#remoteComposeFile", environment.remote_compose_file || FIXED_DEFAULTS.remote_compose_file);
+  setValue("#remoteEnvFile", environment.remote_env_file || FIXED_DEFAULTS.remote_env_file);
+  setSecretHint("#passwordHint", environment.password_configured);
+  setSecretHint("#sudoHint", environment.sudo_password_configured);
+  serviceEditorList.innerHTML = "";
+  (environment.services || []).forEach(createServiceEditor);
+  renderDeploymentChoices(environment);
+}
+
+function renderEnvironmentSelect(selectedId) {
+  environmentSelect.innerHTML = environments.map((environment) => `<option value="${escapeHtml(environment.id)}">${escapeHtml(environment.name)}</option>`).join("");
+  environmentSelect.value = selectedId || environments[0]?.id || "";
+}
+
+function renderDeploymentChoices(environment) {
+  serviceList.innerHTML = (environment.services || []).map((service) => `
+    <label class="choice-card service-choice">
+      <input type="checkbox" data-service="${escapeHtml(service.name)}" ${service.default_selected ? "checked" : ""} />
+      <span><strong>${escapeHtml(service.label)}</strong><small>${escapeHtml(service.image || service.name)} · ${escapeHtml(service.archive_file || "")}</small></span>
+      ${service.restart ? "<em>常驻</em>" : "<em>任务</em>"}
+    </label>`).join("");
+  stepList.innerHTML = STEP_OPTIONS.map(([id, label, description, checked], index) => `
+    <label class="choice-card step-choice">
+      <input type="checkbox" data-step="${id}" ${checked ? "checked" : ""} />
+      <span class="step-number">${String(index + 1).padStart(2, "0")}</span>
+      <span><strong>${label}</strong><small>${description}</small></span>
+    </label>`).join("");
+  document.querySelectorAll("[data-service], [data-step]").forEach((input) => input.addEventListener("change", updateSelectionSummary));
+  updateSelectionSummary();
+}
+
+function selectedServices() { return [...document.querySelectorAll("[data-service]:checked")].map((input) => input.dataset.service); }
+function selectedSteps() { return [...document.querySelectorAll("[data-step]:checked")].map((input) => input.dataset.step); }
+
+function updateSelectionSummary() {
+  const serviceCount = selectedServices().length;
+  const stepCount = selectedSteps().length;
+  $("#selectionSummary").textContent = `${serviceCount} 个服务 · ${stepCount} 个步骤`;
+}
+
+async function loadEnvironments(selectId) {
+  const data = await api("/api/environments");
+  environments = data.environments;
+  const nextId = selectId || environmentSelect.value || environments[0]?.id;
+  renderEnvironmentSelect(nextId);
+  const environment = environments.find((item) => item.id === nextId) || environments[0];
+  if (environment) renderEnvironment(environment);
+}
+
+async function saveEnvironment(showMessage = true) {
+  const payload = environmentPayload();
+  if (!payload.name || !payload.host || !payload.username || !payload.project_path) throw new Error("请填写环境名称、服务器地址、SSH 用户和本地项目目录");
+  if (!payload.services.length) throw new Error("至少保留一个服务配置");
+  const data = await api("/api/environments", { method: "POST", body: JSON.stringify(payload) });
+  await loadEnvironments(data.environment.id);
+  if (showMessage) {
+    logBox.textContent = "环境配置已保存在本机（敏感字段已隐藏）。";
   }
-
-  const selected = getSelectedMode(stack);
-  setSelectedMode(stack.id, selected);
-  const current = modes.find((mode) => mode.id === selected) || modes[0];
-
-  row.classList.remove("hidden");
-  row.innerHTML = `
-    ${modes
-      .map(
-        (mode) => `
-      <label class="${mode.id === selected ? "active" : ""}" title="${escapeAttr(mode.hint || "")}">
-        <input type="radio" name="build-mode-${stack.id}" value="${escapeAttr(mode.id)}" ${mode.id === selected ? "checked" : ""} />
-        ${escapeHtml(mode.label)}
-      </label>
-    `,
-      )
-      .join("")}
-    <p class="build-mode-hint">${escapeHtml(current.hint || "")}</p>
-  `;
-
-  row.querySelectorAll("input[type='radio']").forEach((input) => {
-    input.addEventListener("change", () => {
-      setSelectedMode(stack.id, input.value);
-      const next = modes.find((mode) => mode.id === input.value);
-      row.querySelectorAll("label").forEach((label) => {
-        label.classList.toggle("active", label.querySelector("input")?.value === input.value);
-      });
-      const hint = row.querySelector(".build-mode-hint");
-      if (hint) hint.textContent = next?.hint || "";
-      syncPackageButtons(node, stack);
-    });
-  });
-}
-
-function renderStacks(stacks) {
-  stackList.innerHTML = "";
-  stacks.forEach((stack) => {
-    const node = stackTemplate.content.firstElementChild.cloneNode(true);
-    node.dataset.stackId = stack.id;
-    node.querySelector(".stack-kicker").textContent = stack.project.toUpperCase();
-    node.querySelector(".stack-title").textContent = stack.label;
-    node.querySelector(".stack-desc").textContent = stack.description;
-    node.querySelector(".stack-count").textContent = `${stack.running_count}/${stack.service_count} 服务在线`;
-
-    node.querySelectorAll(".stack-actions [data-action]").forEach((btn) => {
-      btn.dataset.stack = stack.id;
-    });
-
-    renderBuildModes(node, stack);
-
-    const grid = node.querySelector(".service-grid");
-    grid.innerHTML = (stack.services || [])
-      .map((service) => renderServiceCard(stack.id, service, stack.package_services || []))
-      .join("");
-
-    syncPackageButtons(node, stack);
-    stackList.appendChild(node);
-  });
+  return data.environment;
 }
 
 function renderTask(task) {
   taskStatus.textContent = STATUS_LABEL[task.status] || task.status;
   taskStatus.className = `status-pill ${task.status}`;
-  if (task.logs?.length) {
-    logBox.textContent = task.logs.join("\n");
-    logBox.scrollTop = logBox.scrollHeight;
-  }
+  taskSteps.innerHTML = task.steps.map((step) => `
+    <article class="task-step ${step.status}">
+      <span class="step-state">${STATUS_LABEL[step.status] || step.status}</span>
+      <div><strong>${escapeHtml(step.label)}</strong><small>${escapeHtml(step.description)}</small></div>
+    </article>`).join("");
+  const logs = task.steps.flatMap((step) => step.logs.length ? [`\n### ${step.label}`, ...step.logs] : []);
+  logBox.textContent = logs.join("\n").trim() || "任务已创建，等待执行…";
+  logBox.scrollTop = logBox.scrollHeight;
 }
 
-async function refreshStacks() {
-  const data = await api("/api/stacks");
-  renderSummary(data.stacks);
-  renderStacks(data.stacks);
-}
-
-async function runAction(stackId, action, services = []) {
-  if (busy) return;
-  setBusy(true);
-  taskStatus.textContent = STATUS_LABEL.running;
-  taskStatus.className = "status-pill running";
-  const buildMode = modeMemory.get(stackId) || localStorage.getItem(modeStorageKey(stackId)) || "";
-  const modeLabel = buildMode ? ` [${buildMode}]` : "";
-  logBox.textContent = `$ ${action}${modeLabel} ${services.join(" ") || "(all)"}\n`;
-
-  try {
-    const data = await api(`/api/stacks/${stackId}/action`, {
-      method: "POST",
-      body: JSON.stringify({ action, services, build_mode: buildMode || null }),
-    });
-    if (!data.ok) {
-      throw new Error(data.error || "操作失败");
-    }
-    activeTaskId = data.task.id;
-    startPolling();
-  } catch (error) {
-    taskStatus.textContent = STATUS_LABEL.error;
-    taskStatus.className = "status-pill error";
-    logBox.textContent += `\n[error] ${error.message}`;
-    setBusy(false);
-  }
-}
-
-function startPolling() {
-  if (pollTimer) return;
-  pollTimer = setInterval(async () => {
-    if (!activeTaskId) {
-      clearInterval(pollTimer);
-      pollTimer = null;
-      return;
-    }
+function pollTask() {
+  if (pollingTimer) return;
+  pollingTimer = setInterval(async () => {
+    if (!activeTaskId) return;
     try {
       const task = await api(`/api/tasks/${activeTaskId}`);
       renderTask(task);
       if (task.status !== "running") {
-        clearInterval(pollTimer);
-        pollTimer = null;
+        clearInterval(pollingTimer);
+        pollingTimer = null;
         activeTaskId = null;
         setBusy(false);
-        await refreshStacks();
       }
-    } catch (_error) {
-      clearInterval(pollTimer);
-      pollTimer = null;
+    } catch (error) {
+      clearInterval(pollingTimer);
+      pollingTimer = null;
       activeTaskId = null;
       setBusy(false);
+      logBox.textContent += `\n[获取任务失败] ${error.message}`;
     }
-  }, 900);
+  }, 800);
+}
+
+async function startDeployment(steps) {
+  if (busy) return;
+  try {
+    setBusy(true);
+    const services = selectedServices();
+    if (!services.length) throw new Error("请至少选择一个服务");
+    const environment = await saveEnvironment(false);
+    const data = await api("/api/deployments", { method: "POST", body: JSON.stringify({ environment_id: environment.id, services, steps }) });
+    activeTaskId = data.task.id;
+    renderTask(data.task);
+    pollTask();
+  } catch (error) {
+    setBusy(false);
+    taskStatus.textContent = "失败";
+    taskStatus.className = "status-pill error";
+    logBox.textContent = `[错误] ${error.message}`;
+  }
+}
+
+function newEnvironment() {
+  currentEnvironment = null;
+  form.reset();
+  setValue("#environmentId", "");
+  setValue("#port", "22");
+  setValue("#projectPath", "D:\\workspace\\leidian\\leidan-pgsql");
+  setValue("#localImageDir", FIXED_DEFAULTS.local_image_dir);
+  setValue("#localComposeFile", FIXED_DEFAULTS.local_compose_file);
+  setValue("#localEnvFile", FIXED_DEFAULTS.local_env_file);
+  setValue("#remoteDeployRoot", FIXED_DEFAULTS.remote_deploy_root);
+  setValue("#remoteImageDir", FIXED_DEFAULTS.remote_image_dir);
+  setValue("#remoteComposeFile", FIXED_DEFAULTS.remote_compose_file);
+  setValue("#remoteEnvFile", FIXED_DEFAULTS.remote_env_file);
+  serviceEditorList.innerHTML = "";
+  createServiceEditor();
+  serviceList.innerHTML = "<p class='empty-state'>填写服务清单并保存后，即可选择更新服务。</p>";
+  stepList.innerHTML = "";
 }
 
 function bindEvents() {
-  document.addEventListener("click", (event) => {
-    const target = event.target.closest("button[data-action], button[data-quick], button[data-refresh]");
-    if (!target || target.disabled) return;
-
-    if (target.hasAttribute("data-refresh")) {
-      refreshStacks().catch((error) => {
-        logBox.textContent = `[error] ${error.message}`;
-      });
-      return;
-    }
-
-    const stackId = target.dataset.stack || target.dataset.quick;
-    const action = target.dataset.action;
-    const service = target.dataset.service;
-    if (!stackId || !action) return;
-
-    const services = service ? [service] : [];
-    const label = service ? `${action} ${service}` : `${action} (stack)`;
-    logBox.textContent = `准备执行：${label}\n`;
-    runAction(stackId, action, services);
+  form.addEventListener("submit", async (event) => {
+    event.preventDefault();
+    try { await saveEnvironment(); } catch (error) { logBox.textContent = `[错误] ${error.message}`; }
+  });
+  environmentSelect.addEventListener("change", () => {
+    const environment = environments.find((item) => item.id === environmentSelect.value);
+    if (environment) renderEnvironment(environment);
+  });
+  $("#newEnvironment").addEventListener("click", newEnvironment);
+  $("#addService").addEventListener("click", () => createServiceEditor());
+  $("#toggleAllServices").addEventListener("click", () => {
+    const inputs = [...document.querySelectorAll("[data-service]")];
+    const allChecked = inputs.length && inputs.every((input) => input.checked);
+    inputs.forEach((input) => { input.checked = !allChecked; });
+    $("#toggleAllServices").textContent = allChecked ? "全选" : "取消全选";
+    updateSelectionSummary();
+  });
+  $("#runPreflight").addEventListener("click", () => startDeployment(["preflight"]));
+  $("#startDeployment").addEventListener("click", () => startDeployment(selectedSteps()));
+  $("#deleteEnvironment").addEventListener("click", async () => {
+    if (!currentEnvironment || !confirm(`删除环境“${currentEnvironment.name}”？`)) return;
+    try { await api(`/api/environments/${currentEnvironment.id}`, { method: "DELETE" }); await loadEnvironments(); } catch (error) { logBox.textContent = `[错误] ${error.message}`; }
   });
 }
 
 async function boot() {
   bindEvents();
   try {
-    const info = await api("/api/info");
-    renderEnv(info);
-    await refreshStacks();
+    renderRuntime(await api("/api/info"));
+    await loadEnvironments();
   } catch (error) {
-    envBadge.className = "badge badge-error";
-    envBadge.textContent = "Panel error";
-    logBox.textContent = `[error] ${error.message}`;
+    runtimeBadge.className = "badge badge-error";
+    runtimeBadge.textContent = "面板初始化失败";
+    logBox.textContent = `[错误] ${error.message}`;
   }
 }
 

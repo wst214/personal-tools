@@ -30,6 +30,8 @@ body {
   margin: 10px auto 28px;
   display: grid;
   gap: 12px;
+  max-width: 100%;
+  overflow-x: clip;
 }
 
 .panel {
@@ -37,6 +39,8 @@ body {
   background: rgba(251, 252, 249, 0.94);
   box-shadow: var(--shadow);
   border-radius: 14px;
+  max-width: 100%;
+  min-width: 0;
 }
 
 .app-header {
@@ -250,6 +254,8 @@ body {
 .head-actions {
   display: flex;
   align-items: center;
+  flex-wrap: wrap;
+  justify-content: flex-end;
   gap: 8px;
 }
 
@@ -263,6 +269,18 @@ body {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
   gap: 10px;
+  min-width: 0;
+}
+
+.form-grid > label {
+  min-width: 0;
+}
+
+.form-grid input,
+.form-grid select {
+  width: 100%;
+  min-width: 0;
+  max-width: 100%;
 }
 
 label {
@@ -270,6 +288,21 @@ label {
   gap: 5px;
   font-size: 0.8rem;
   color: var(--muted);
+}
+
+.inline-field {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  margin: 0;
+  font-size: 0.8rem;
+  color: var(--muted);
+  white-space: nowrap;
+}
+
+.inline-field input {
+  width: 3.6rem;
+  padding: 4px 6px;
 }
 
 input,

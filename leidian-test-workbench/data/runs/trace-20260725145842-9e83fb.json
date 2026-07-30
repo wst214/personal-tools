@@ -1,0 +1,117 @@
+{
+  "ok": false,
+  "traceId": "trace-20260725145842-9e83fb",
+  "caseId": "device-hex-checksum-error",
+  "caseName": "异常情况 · 校验码错误",
+  "envName": "本地环境",
+  "startedAt": "2026-07-25T14:58:43.074Z",
+  "steps": [
+    {
+      "name": "环境预检查",
+      "ok": true,
+      "detail": "依赖均可连通",
+      "elapsedMs": 0,
+      "evidence": {
+        "checks": [
+          {
+            "name": "gateway",
+            "ok": true,
+            "detail": "HTTP 200 /actuator/health",
+            "elapsedMs": 16,
+            "evidence": {}
+          },
+          {
+            "name": "data-service",
+            "ok": true,
+            "detail": "HTTP 200 /actuator/health",
+            "elapsedMs": 16,
+            "evidence": {}
+          },
+          {
+            "name": "biz-service",
+            "ok": true,
+            "detail": "HTTP 200 /actuator/health",
+            "elapsedMs": 15,
+            "evidence": {}
+          },
+          {
+            "name": "kafka",
+            "ok": true,
+            "detail": "kafka:29092 connected",
+            "elapsedMs": 3,
+            "evidence": {}
+          },
+          {
+            "name": "database",
+            "ok": true,
+            "detail": "host.docker.internal:5432 connected",
+            "elapsedMs": 3,
+            "evidence": {}
+          }
+        ]
+      }
+    },
+    {
+      "name": "篡改校验位",
+      "ok": true,
+      "detail": "翻转 CRC 低位，触发 INVALID_CRC",
+      "elapsedMs": 0,
+      "evidence": {
+        "originalHexPreview": "5A4B11030002000100010010001A003C000703E875C80D0A",
+        "corruptedHexPreview": "5A4B11030002000100010010001A003C000703E88AC80D0A"
+      }
+    },
+    {
+      "name": "发送报文",
+      "ok": true,
+      "detail": "已发送到 device-raw-data",
+      "elapsedMs": 7,
+      "evidence": {
+        "traceId": "trace-20260725145842-9e83fb",
+        "dedupKey": "trace-20260725145842-9e83fb-checksum-error"
+      }
+    },
+    {
+      "name": "检查校验失败",
+      "ok": false,
+      "detail": "process_status=SKIPPED（未命中预期原因）",
+      "elapsedMs": 0,
+      "evidence": {
+        "raw": {
+          "process_status": "SKIPPED",
+          "error_message": "跳过：未写入监测记录（HANDLER_NO_PERSIST）：已解析出帧但未写入任何监测记录 | streamKey=device-raw-data:trace-20260725145842-9e83fb frameCount=1 bufferedBytes=0 deviceType=03 commandType=0001 frameStatus=CRC校验失败",
+          "is_duplicate": 0,
+          "dedup_key": "trace-20260725145842-9e83fb-checksum-error",
+          "raw_data": "5A4B11030002000100010010001A003C000703E88AC80D0A"
+        }
+      }
+    },
+    {
+      "name": "检查标准层无污染",
+      "ok": true,
+      "detail": "data_standard_message 命中 0 条",
+      "elapsedMs": 0,
+      "evidence": {
+        "standardCount": 0
+      }
+    },
+    {
+      "name": "检查 monitor 无污染",
+      "ok": true,
+      "detail": "monitor_grounding_resistance 命中 0 条",
+      "elapsedMs": 0,
+      "evidence": {
+        "monitorCount": 0
+      }
+    },
+    {
+      "name": "检查异常留痕",
+      "ok": true,
+      "detail": "data_exception 命中 1 条",
+      "elapsedMs": 0,
+      "evidence": {
+        "exceptionCount": 1
+      }
+    }
+  ]
+}

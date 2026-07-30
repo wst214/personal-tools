@@ -4,26 +4,32 @@
 
 defaults:
   iterations: 50
+  query_iterations: 500
   warmup: 5
   slow_sql_threshold_ms: 500
-  perf05_agg_bucket_minutes: 10
+  perf05_agg_bucket_minutes: 1
+  # 达梦 PERF-06 默认两段精确（bbox→ROWID→ST_DWithin）
+  perf06_geo: bbox_then_dwithin
   # 查询类：S0～S2 用 query_low；S3/S4 用 query_high（Word §并发设置说明）
   stage_concurrency:
     query_low: 20
     query_high: 50
 
 scenarios:
+  # 目标 TPS = 页面「设备台数」（模拟 N 台×1Hz 扇入）；PERF-01 另在设备池内轮转 device_addr
   PERF-01:
     name: 大气电场持续写入
     kind: write
-    concurrency: 5
+    concurrency: 20
+    pace_from_devices: true
     p95_limit_ms: 1000
     p99_limit_ms: 2000
     table: standard_atmosphere_electric_field
   PERF-02:
     name: 原始报文持续写入
     kind: write
-    concurrency: 5
+    concurrency: 20
+    pace_from_devices: true
     p95_limit_ms: 1000
     p99_limit_ms: 2000
     table: raw_kafka_message
@@ -40,18 +46,37 @@ scenarios:
     p95_limit_ms: 1000
     p99_limit_ms: 2000
     table: biz_atmosphere_electric_field_event
+    # 曲线设备与写入轮转同一设备池（档位 atmosphere_device_count / 场景 device_limit）
   PERF-05:
     name: 多电场仪雷暴过程窗曲线查询
     kind: read
+    # 查询并发以页面「查询并发」为准
     p95_limit_ms: 1500
     p99_limit_ms: 3000
     table: biz_atmosphere_electric_field_event
   PERF-05-AGG:
-    name: 多电场仪雷暴过程窗曲线查询（10分钟聚合）
+    # 口径：多台 IN 过滤后只按时间桶 GROUP BY，跨设备合成一条曲线（不按 device_addr 分桶）
+    name: 多电场仪过程窗时间桶聚合（跨设备合成一条）
     kind: read
+    # 查询并发以页面「查询并发」为准；AGG 建议 ≤20
     p95_limit_ms: 1500
     p99_limit_ms: 3000
     table: biz_atmosphere_electric_field_event
+  PERF-05-AGG-MV:
+    # 对照：读分钟物化视图（需先建 perf.biz_atm_field_agg_1min）；不改原 AGG
+    name: 过程窗分钟聚合（读物化视图）
+    kind: read
+    p95_limit_ms: 1500
+    p99_limit_ms: 3000
+    table: biz_atm_field_agg_1min
+  PERF-05-1MIN:
+    name: 单电场仪1分钟窗秒级曲线查询
+    kind: read
+    p95_limit_ms: 1000
+    p99_limit_ms: 2000
+    table: biz_atmosphere_electric_field_event
+    # 在过程 data_window 内取连续 1 分钟，按 1 条/秒明细返回（不聚合）
+    window_minutes: 1
   PERF-06:
     name: 闪电事件时空统计查询
     kind: read

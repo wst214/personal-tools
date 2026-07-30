@@ -25,8 +25,27 @@ def _shanghai_display_tz() -> timezone:
 
 _DISPLAY_TZ = _shanghai_display_tz()
 
-PERF_IDS = ("PERF-01", "PERF-02", "PERF-03", "PERF-04", "PERF-05", "PERF-05-AGG", "PERF-06")
-PERF_SCENARIO_IDS_BASE = ("PERF-01", "PERF-02", "PERF-03", "PERF-04", "PERF-05", "PERF-05-AGG")
+PERF_IDS = (
+    "PERF-01",
+    "PERF-02",
+    "PERF-03",
+    "PERF-04",
+    "PERF-05",
+    "PERF-05-AGG",
+    "PERF-05-AGG-MV",
+    "PERF-05-1MIN",
+    "PERF-06",
+)
+PERF_SCENARIO_IDS_BASE = (
+    "PERF-01",
+    "PERF-02",
+    "PERF-03",
+    "PERF-04",
+    "PERF-05",
+    "PERF-05-AGG",
+    "PERF-05-AGG-MV",
+    "PERF-05-1MIN",
+)
 PERF06_SUB_TAGS = ("count", "source_dist", "type_dist")
 
 

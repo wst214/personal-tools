@@ -1,0 +1,60 @@
+{
+  "name": "dev-toolbox",
+  "version": "0.1.0",
+  "description": "开发者工具箱 - MooTool 风格的桌面端工具集",
+  "main": "electron/main.cjs",
+  "author": "mytools",
+  "license": "MIT",
+  "scripts": {
+    "dev:web": "vite",
+    "dev": "concurrently -k -n web,app -c cyan,green \"vite\" \"wait-on tcp:5173 && cross-env ELECTRON_MIRROR=https://npmmirror.com/mirrors/electron/ NODE_ENV=development electron .\"",
+    "build": "vite build",
+    "dist": "vite build && cross-env ELECTRON_MIRROR=https://npmmirror.com/mirrors/electron/ ELECTRON_BUILDER_BINARIES_MIRROR=https://npmmirror.com/mirrors/electron-builder-binaries/ electron-builder"
+  },
+  "devDependencies": {
+    "concurrently": "^10.0.4",
+    "cross-env": "^10.1.0",
+    "electron": "^43.2.0",
+    "electron-builder": "^26.15.3",
+    "rcedit": "^5.0.1",
+    "sharp": "^0.35.3",
+    "to-ico": "^1.1.5",
+    "vite": "^8.1.5",
+    "wait-on": "^9.1.0"
+  },
+  "dependencies": {
+    "cron-parser": "^5.6.2",
+    "cronstrue": "^3.24.0",
+    "crypto-js": "^4.2.0",
+    "dayjs": "^1.11.21",
+    "jsencrypt": "^3.5.4",
+    "jsqr": "^1.4.0",
+    "mermaid": "^11.16.0",
+    "opencc-js": "^1.4.1",
+    "qrcode": "^1.5.4",
+    "sm-crypto": "^0.5.3",
+    "sql-formatter": "^15.8.2",
+    "uuid": "^14.0.1"
+  },
+  "build": {
+    "appId": "com.mytools.devtoolbox",
+    "productName": "开发者工具箱",
+    "icon": "build/icon.ico",
+    "files": [
+      "dist/**/*",
+      "electron/**/*"
+    ],
+    "win": {
+      "target": [
+        "portable"
+      ]
+    },
+    "portable": {
+      "artifactName": "DevToolbox-${version}.exe"
+    },
+    "directories": {
+      "output": "release",
+      "buildResources": "build"
+    }
+  }
+}

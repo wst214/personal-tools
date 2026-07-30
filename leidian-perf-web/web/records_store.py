@@ -16,7 +16,7 @@ RECORDS_FILE_POSTGRES = DATA_DIR / "stage-records.postgres.json"
 RECORDS_FILE_DAMENG = DATA_DIR / "stage-records.dameng.json"
 _lock = threading.RLock()
 
-STAGE_CODES = ("S0", "S1", "S2", "S3", "S4")
+STAGE_CODES = ("S0", "S1", "S2", "S3", "S4", "S5", "S6", "S7", "S8", "S9")
 DIALECT_CODES = ("postgres", "dameng")
 
 
@@ -451,7 +451,16 @@ def merge_benchmark_results(
     return doc
 
 
-PERF_SCENARIO_IDS_BASE = ("PERF-01", "PERF-02", "PERF-03", "PERF-04", "PERF-05", "PERF-05-AGG")
+PERF_SCENARIO_IDS_BASE = (
+    "PERF-01",
+    "PERF-02",
+    "PERF-03",
+    "PERF-04",
+    "PERF-05",
+    "PERF-05-AGG",
+    "PERF-05-AGG-MV",
+    "PERF-05-1MIN",
+)
 PERF06_SUB_TAGS = ("count", "source_dist", "type_dist")
 PERF06_RESOURCE_SUB_IDS = tuple(f"PERF-06·{tag}" for tag in PERF06_SUB_TAGS)
 # 达梦压测将 PERF-06 拆为独立子场景 ID（与 PG compound 行不同）

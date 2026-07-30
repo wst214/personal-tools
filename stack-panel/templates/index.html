@@ -4,8 +4,8 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <meta name="theme-color" content="#f3f4f1" />
-    <title>Stack 运维面板 · WST Lab</title>
-    <meta name="description" content="WST Lab 本机 Docker 打包、构建镜像与容器重启面板" />
+    <title>服务器更新工具 · WST Lab</title>
+    <meta name="description" content="可配置环境的镜像构建、上传、服务更新与验证工具" />
     <link rel="stylesheet" href="/static/css/style.css" />
   </head>
   <body>
@@ -13,108 +13,111 @@
       <aside class="sidebar">
         <a class="identity" href="http://127.0.0.1:8090" aria-label="返回个人开发工作台">
           <span class="identity-mark">W</span>
-          <span>
-            <strong>WST Lab</strong>
-            <small>Personal workspace</small>
-          </span>
+          <span><strong>WST Lab</strong><small>Deployment Console</small></span>
         </a>
-
         <nav class="side-nav" aria-label="工具导航">
-          <a href="http://127.0.0.1:8090"><span aria-hidden="true">⌂</span>工作台首页</a>
-          <a class="active" href="#stacks"><span aria-hidden="true">◫</span>服务栈</a>
-          <a href="#logs"><span aria-hidden="true">_</span>执行日志</a>
+          <a class="active" href="#environment"><span>01</span>环境配置</a>
+          <a href="#deployment"><span>02</span>更新流程</a>
+          <a href="#logs"><span>03</span>执行日志</a>
         </nav>
-
-        <div class="sidebar-service">
-          <span class="presence-dot"></span>
-          <div>
-            <strong>本地服务</strong>
-            <small>端口 5770</small>
-          </div>
-        </div>
+        <div class="sidebar-service"><i></i><div><strong>本地控制台</strong><small>端口 5770</small></div></div>
       </aside>
 
       <main>
         <header class="topbar">
-          <div class="mobile-brand"><span>W</span><strong>WST Lab</strong></div>
-          <div class="breadcrumb"><span>工具</span><b>/</b><strong>Stack 运维</strong></div>
-          <div id="envBadge" class="badge badge-warn"><i></i>检测中…</div>
+          <div class="breadcrumb"><span>工具</span><b>/</b><strong>服务器系统更新</strong></div>
+          <div id="runtimeBadge" class="badge badge-warn">检测运行环境…</div>
         </header>
 
         <div class="workspace">
-          <section class="intro" id="stacks">
+          <section class="intro">
             <div>
-              <p class="kicker">STACK OPERATIONS</p>
-              <h1>本机构建，<br />一键重启。</h1>
-              <p>集中管理 mytools 主栈与雷电工具 Compose 项目：打包镜像、启动、停止与查看日志。</p>
+              <p class="kicker">SERVER DEPLOYMENT</p>
+              <h1>构建、上传、更新，<br />每一步都有结果。</h1>
+              <p>选择目标环境和服务，按需勾选镜像、配置同步、迁移、重启与验证。密码和密钥只保存在本机，页面与日志不会显示明文。</p>
             </div>
-            <div class="intro-meta">
-              <span><i></i>Panel active</span>
-              <strong id="rootPath">--</strong>
-              <small id="dockerVersion">Docker 检测中</small>
-            </div>
+            <div class="intro-note"><span>固定链路</span><strong>检查 → 构建 → 上传 → 加载 → 迁移 → 重启 → 验证</strong></div>
           </section>
 
-          <section class="summary-row">
-            <div class="summary-card">
-              <p>STACKS</p>
-              <strong id="stackCount">0</strong>
-              <small>Compose 项目</small>
-            </div>
-            <div class="summary-card">
-              <p>RUNNING</p>
-              <strong id="runningCount">0</strong>
-              <small>容器在线</small>
-            </div>
-            <div class="summary-card accent">
-              <p>QUICK</p>
-              <div class="quick-actions">
-                <button type="button" class="btn btn-dark" data-quick="mytools-stack" data-action="up">主栈构建启动</button>
-                <button type="button" class="btn btn-ghost" data-refresh>刷新状态</button>
-              </div>
-            </div>
-          </section>
-
-          <div id="stackList" class="stack-list"></div>
-
-          <section class="log-panel" id="logs">
+          <section id="environment" class="panel environment-panel">
             <div class="panel-heading">
-              <div>
-                <p>EXECUTION LOG</p>
-                <h2>执行日志</h2>
+              <div><p>01 · ENVIRONMENT</p><h2>环境配置</h2></div>
+              <div class="inline-actions">
+                <select id="environmentSelect" aria-label="选择环境"></select>
+                <button class="btn btn-dark" type="submit" form="environmentForm">保存环境配置</button>
+                <button id="newEnvironment" class="btn btn-ghost" type="button">新建环境</button>
+                <button id="deleteEnvironment" class="btn btn-danger" type="button">删除</button>
               </div>
-              <span id="taskStatus" class="status-pill idle">空闲</span>
             </div>
+            <form id="environmentForm">
+              <input id="environmentId" type="hidden" />
+              <div class="form-grid">
+                <label><span>环境名称</span><input id="environmentName" required placeholder="例如：生产 S3" /></label>
+                <label><span>服务器地址</span><input id="host" required placeholder="IP 或域名" /></label>
+                <label><span>SSH 端口</span><input id="port" type="number" min="1" max="65535" value="22" /></label>
+                <label><span>SSH 用户</span><input id="username" required placeholder="ubuntu" /></label>
+                <label><span>认证方式</span><select id="authMethod"><option value="password">密码</option></select></label>
+                <label><span>SSH 密码 <em id="passwordHint"></em></span><input id="password" type="password" autocomplete="new-password" placeholder="留空则保留已存密码" /></label>
+                <input id="privateKeyPath" type="hidden" />
+                <input id="privateKeyPassphrase" type="hidden" />
+                <label class="check-field"><input id="useSudo" type="checkbox" /><span>远端 Docker/文件操作使用 sudo</span></label>
+                <label><span>Sudo 密码 <em id="sudoHint"></em></span><input id="sudoPassword" type="password" autocomplete="new-password" placeholder="仅启用 sudo 时填写" /></label>
+                <label class="wide"><span>本地项目目录</span><input id="projectPath" required placeholder="D:\\workspace\\leidian\\leidan-pgsql" /></label>
+                <label class="wide"><span>本地镜像包目录</span><input id="localImageDir" placeholder="exports 或 D:\\workspace\\leidian\\leidan-pgsql\\exports" /></label>
+                <input id="localComposeFile" type="hidden" />
+                <input id="localEnvFile" type="hidden" />
+                <input id="remoteDeployRoot" type="hidden" />
+                <input id="remoteImageDir" type="hidden" />
+                <input id="remoteComposeFile" type="hidden" />
+                <input id="remoteEnvFile" type="hidden" />
+              </div>
+              <div class="service-editor">
+                <div class="section-label"><span>服务清单</span><button id="addService" class="text-button" type="button">+ 添加服务</button></div>
+                <p>“常驻服务”会参与重启与健康检查；迁移服务通常关闭此项。</p>
+                <div id="serviceEditorList"></div>
+              </div>
+              <div class="form-footer"><span>敏感配置只会写入被 Git 忽略的本机文件。</span><button class="btn btn-dark" type="submit">保存环境配置</button></div>
+            </form>
+          </section>
+
+          <section id="deployment" class="panel deployment-panel">
+            <div class="panel-heading"><div><p>02 · DEPLOYMENT PLAN</p><h2>选择服务和步骤</h2></div><span id="selectionSummary" class="status-pill idle">尚未选择</span></div>
+            <div class="deployment-grid">
+              <div>
+                <div class="section-label"><span>更新服务</span><button id="toggleAllServices" class="text-button" type="button">全选</button></div>
+                <div id="serviceList" class="service-list"></div>
+              </div>
+              <div>
+                <div class="section-label"><span>执行步骤</span><small>“同步配置”和“db-migration”默认不选</small></div>
+                <div id="stepList" class="step-list"></div>
+              </div>
+            </div>
+            <div class="deployment-actions">
+              <button id="runPreflight" class="btn btn-ghost" type="button">仅检查环境</button>
+              <button id="startDeployment" class="btn btn-dark" type="button">执行所选步骤</button>
+            </div>
+          </section>
+
+          <section id="logs" class="panel log-panel">
+            <div class="panel-heading"><div><p>03 · EXECUTION LOG</p><h2>任务进度与日志</h2></div><span id="taskStatus" class="status-pill idle">空闲</span></div>
+            <div id="taskSteps" class="task-steps"><p class="empty-state">选择服务和步骤后执行，过程会在这里实时更新。</p></div>
             <pre id="logBox" class="log-box">等待操作…</pre>
           </section>
         </div>
       </main>
     </div>
-
-    <template id="stackTemplate">
-      <article class="stack-card">
-        <div class="stack-head">
-          <div>
-            <p class="stack-kicker"></p>
-            <h2 class="stack-title"></h2>
-            <p class="stack-desc"></p>
-          </div>
-          <div class="stack-meta">
-            <span class="stack-count"></span>
-            <div class="build-mode-row hidden" data-build-modes></div>
-            <div class="stack-actions">
-              <button type="button" class="btn btn-ghost hidden" data-action="package" data-package-btn>Maven 打包</button>
-              <button type="button" class="btn btn-dark" data-action="up">构建并启动</button>
-              <button type="button" class="btn btn-ghost" data-action="build">仅构建</button>
-              <button type="button" class="btn btn-ghost" data-action="restart">全部重启</button>
-              <button type="button" class="btn btn-danger" data-action="down">停止栈</button>
-            </div>
-          </div>
-        </div>
-        <div class="service-grid"></div>
-      </article>
+    <template id="serviceEditorTemplate">
+      <div class="service-editor-row">
+        <input data-field="name" placeholder="服务名" />
+        <input data-field="label" placeholder="显示名" />
+        <input data-field="image" placeholder="镜像:tag" />
+        <input data-field="maven_module" placeholder="Maven 模块" />
+        <input data-field="health_url" placeholder="健康检查 URL（可留空）" />
+        <label class="tiny-check"><input data-field="default_selected" type="checkbox" />默认选中</label>
+        <label class="tiny-check"><input data-field="restart" type="checkbox" checked />常驻服务</label>
+        <button class="icon-button" data-remove-service type="button" aria-label="删除服务">×</button>
+      </div>
     </template>
-
     <script src="/static/js/app.js"></script>
   </body>
 </html>

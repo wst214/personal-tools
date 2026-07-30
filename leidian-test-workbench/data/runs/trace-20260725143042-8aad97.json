@@ -1,0 +1,111 @@
+{
+  "ok": true,
+  "traceId": "trace-20260725143042-8aad97",
+  "caseId": "device-hex-full-link",
+  "caseName": "???? ? ?? HEX ????",
+  "envName": "本地环境",
+  "startedAt": "2026-07-25T14:30:45.485Z",
+  "steps": [
+    {
+      "name": "环境预检查",
+      "ok": true,
+      "detail": "依赖均可连通",
+      "elapsedMs": 0,
+      "evidence": {
+        "checks": [
+          {
+            "name": "gateway",
+            "ok": true,
+            "detail": "HTTP 200 /actuator/health",
+            "elapsedMs": 48,
+            "evidence": {}
+          },
+          {
+            "name": "data-service",
+            "ok": true,
+            "detail": "HTTP 200 /actuator/health",
+            "elapsedMs": 23,
+            "evidence": {}
+          },
+          {
+            "name": "biz-service",
+            "ok": true,
+            "detail": "HTTP 200 /actuator/health",
+            "elapsedMs": 21,
+            "evidence": {}
+          },
+          {
+            "name": "kafka",
+            "ok": true,
+            "detail": "kafka:29092 connected",
+            "elapsedMs": 2,
+            "evidence": {}
+          },
+          {
+            "name": "database",
+            "ok": true,
+            "detail": "host.docker.internal:5432 connected",
+            "elapsedMs": 6,
+            "evidence": {}
+          }
+        ]
+      }
+    },
+    {
+      "name": "选择样例 HEX",
+      "ok": true,
+      "detail": "样例文件 03_grounding.jsonl",
+      "elapsedMs": 0,
+      "evidence": {
+        "sampleFile": "03_grounding.jsonl",
+        "hexPreview": "5A4B11030002000100010010001A003C000703E875C80D0A"
+      }
+    },
+    {
+      "name": "发送设备报文",
+      "ok": true,
+      "detail": "已发送到 device-raw-data",
+      "elapsedMs": 34,
+      "evidence": {
+        "traceId": "trace-20260725143042-8aad97",
+        "sampleFile": "03_grounding.jsonl",
+        "hexPreview": "5A4B11030002000100010010001A003C000703E875C80D0A"
+      }
+    },
+    {
+      "name": "检查 raw 入库",
+      "ok": true,
+      "detail": "命中 761 条",
+      "elapsedMs": 0,
+      "evidence": {
+        "rows": [
+          {
+            "count": "761"
+          }
+        ]
+      }
+    },
+    {
+      "name": "检查标准层",
+      "ok": true,
+      "detail": "命中 631 条",
+      "elapsedMs": 0,
+      "evidence": {
+        "rows": [
+          {
+            "count": "631"
+          }
+        ]
+      }
+    },
+    {
+      "name": "检查接口返回",
+      "ok": true,
+      "detail": "HTTP 200",
+      "elapsedMs": 21,
+      "evidence": {
+        "body": "{\"code\":0,\"message\":\"success\",\"data\":[{\"id\":2081024348565622786,\"tableName\":\"monitor_grounding_resistance\",\"monitorType\":\"GROUNDING_RESISTANCE\",\"deviceAddr\":\"00020001\",\"typeId\":\"03\",\"commandType\":\"0001\",\"qualityStatus\":\"NORMAL\",\"createTime\":\"2026-07-25T14:30:42.917541\",\"schemaVersion\":\"v1\",\"fieldSummary\":\"resistance=16.000000 temp=26.000000 soilPh=7.000000 soilResistivity=1000.000000\"},{\"id\":2081023672695476226,\"tableName\":\"monitor_grounding_resistance\",\"monitorType\":\"GROUNDING_RESISTANCE\",\"deviceAddr\":\"00020001\",\"typeId\":\"03\",\"commandType\":\"0001\",\"qualityStatus\":\"NORMAL\",\"createTime\":\"2026-07-25T14:28:01.778638\",\"schemaVersion\":\"v1\",\"fieldSummary\":\"resistance=16.000000 temp=26.000000 soilPh=7.000000 soilResistivity=1000.000000\"},{\"id\":9100000000000000410,\"tableName\":\"monitor_grounding_res"
+      }
+    }
+  ]
+}

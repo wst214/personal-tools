@@ -35,6 +35,12 @@ services:
       DMSCHEMA: ${DMSCHEMA:-PERF}
       PROMETHEUS_URL: ${PROMETHEUS_URL:-http://host.docker.internal:9090}
       PROMETHEUS_INSTANCE: ${PROMETHEUS_INSTANCE:-192.168.1.41:9100}
+      # 达梦压测场景硬超时（秒）；AGG/1MIN 等重查询默认代码侧已≥1800，仍可用此覆盖
+      DM_BENCH_SCENARIO_TIMEOUT_SEC: ${DM_BENCH_SCENARIO_TIMEOUT_SEC:-3600}
+      # 读游标 fetch 批次；过大时高并发 AGG 易 OOM（exit -9）
+      DM_BENCH_ARRAYSIZE: ${DM_BENCH_ARRAYSIZE:-500}
+      # 场景子进程启动方式：spawn（默认，适配多线程 Web）；勿轻易改回 fork
+      DM_BENCH_MP_START: ${DM_BENCH_MP_START:-spawn}
     extra_hosts:
       - "host.docker.internal:host-gateway"
     volumes:

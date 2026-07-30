@@ -98,8 +98,39 @@ def _parse_explain_text_dm(plan_text: str) -> dict[str, str]:
     }
 
 
+def _strip_sql_line_comments(sql: str) -> str:
+    """去掉整行 -- 注释（含预览头 -- perf06_geo_mode=...），避免 EXPLAIN FOR 单行化后整句被注释掉。"""
+    lines: list[str] = []
+    for line in (sql or "").splitlines():
+        if line.lstrip().startswith("--"):
+            continue
+        lines.append(line)
+    return "\n".join(lines).strip()
+
+
+def _prepare_explain_sql_dameng(sql: str) -> tuple[str, str]:
+    """
+    准备可 EXPLAIN FOR 的单句 SQL，并附带备注。
+    两段式只分析第 1 段 bbox 候选扫描（INSERT…SELECT 中的 SELECT）；
+    第 2 段 JOIN+ST_DWithin 在备注中说明。
+    """
+    note = ""
+    raw = sql or ""
+    if "--__PERF06_TWO_PHASE__" in raw or "perf06_cand_rowid" in raw.lower():
+        note = "two-phase GTT: EXPLAIN phase1(bbox→ROWID); phase2=JOIN+ST_DWithin"
+        phase1 = raw.split("--__PERF06_TWO_PHASE__", 1)[0]
+        phase1 = _strip_sql_line_comments(phase1)
+        # INSERT INTO gtt SELECT … → 只 EXPLAIN SELECT，才能看到索引
+        m = re.search(r"\bSELECT\b", phase1, re.IGNORECASE)
+        if m:
+            return phase1[m.start() :].strip(), note
+        return phase1, note
+    return _strip_sql_line_comments(raw), note
+
+
 def _explain_one_dameng(conn: DamengConn, sql: str) -> dict[str, str]:
-    cleaned = " ".join(sql.split())
+    explain_sql, phase2_note = _prepare_explain_sql_dameng(sql)
+    cleaned = " ".join(explain_sql.split())
     if not cleaned:
         return {
             "partitionPrune": "—",
@@ -131,7 +162,11 @@ def _explain_one_dameng(conn: DamengConn, sql: str) -> dict[str, str]:
                 "indexHit": "失败",
                 "explainNote": "EXPLAIN 无结果",
             }
-        return _parse_explain_text_dm("\n".join(lines))
+        parsed = _parse_explain_text_dm("\n".join(lines))
+        if phase2_note:
+            note = parsed.get("explainNote") or ""
+            parsed["explainNote"] = f"{phase2_note}; {note}" if note else phase2_note
+        return parsed
     except Exception as exc:  # noqa: BLE001
         return {
             "partitionPrune": "失败",
@@ -146,13 +181,48 @@ def _base_scenario_id(sid: str) -> str:
     return sid.split("·", 1)[0]
 
 
+def _infer_perf06_geo_mode(scenario_results: list[dict[str, Any]]) -> str | None:
+    """从压测结果 SQL 预览推断本轮 PERF-06 空间模式（与页面/环境变量一致）。"""
+    for raw in scenario_results:
+        preview = str(raw.get("sqlPreview") or raw.get("sql_preview") or "")
+        if not preview:
+            continue
+        if (
+            "--__PERF06_TWO_PHASE__" in preview
+            or "perf06_cand_rowid" in preview.lower()
+            or "__CAND_IDS__" in preview
+        ):
+            return "bbox_then_dwithin"
+        # bbox_geog：lon/lat BETWEEN + Haversine（ASIN），无 ST_DWithin
+        if "BETWEEN" in preview.upper() and "ASIN" in preview.upper():
+            return "bbox_geog"
+        if "ST_DWithin" in preview or "ST_GeomToGeog" in preview:
+            return "geog_only"
+    return None
+
+
+def _sql_from_scenario_result(raw: dict[str, Any] | None) -> str:
+    if not raw:
+        return ""
+    return str(raw.get("sqlPreview") or raw.get("sql_preview") or "").strip()
+
+
 def collect_explain_for_run_dameng(
     conn: DamengConn,
     scenario_results: list[dict[str, Any]],
 ) -> dict[str, dict[str, str]]:
     """按场景 id 返回达梦 EXPLAIN 摘要（PERF-06 按子 SQL）。"""
     assert_no_load_in_progress(conn, "执行 EXPLAIN 分析")
-    ctx = resolve_context_dameng(conn)
+    selected = [
+        _base_scenario_id(str(r.get("id") or ""))
+        for r in scenario_results
+        if r.get("id")
+    ]
+    ctx = resolve_context_dameng(conn, scenarios=selected or None)
+    geo_mode = _infer_perf06_geo_mode(scenario_results)
+    if geo_mode:
+        ctx.perf06_geo_mode = geo_mode
+    by_id = {str(r.get("id")): r for r in scenario_results if r.get("id")}
     out: dict[str, dict[str, str]] = {}
 
     for sid in _collect_scenario_ids(scenario_results):
@@ -165,16 +235,19 @@ def collect_explain_for_run_dameng(
             }
             continue
 
-        builder = _resolve_builder(sid)
-        if not builder:
-            out[sid] = {
-                "partitionPrune": "—",
-                "indexHit": "—",
-                "explainNote": "无 SQL 构建器",
-            }
-            continue
+        # 优先使用压测当时 SQL，避免默认 geog_only 与 bbox 轮次不一致
+        sql = _sql_from_scenario_result(by_id.get(sid))
+        if not sql:
+            builder = _resolve_builder(sid)
+            if not builder:
+                out[sid] = {
+                    "partitionPrune": "—",
+                    "indexHit": "—",
+                    "explainNote": "无 SQL 构建器",
+                }
+                continue
+            sql = builder(ctx, 0, 0).strip()
 
-        sql = builder(ctx, 0, 0).strip()
         out[sid] = _explain_one_dameng(conn, sql)
 
     return out

@@ -1,7 +1,7 @@
-﻿{
+{
   "environments": {
     "local": {
-      "name": "Local",
+      "name": "本地环境",
       "desc": "localhost stack",
       "base": {
         "gatewayUrl": "http://localhost:8080",
@@ -16,7 +16,7 @@
       "capabilities": {
         "kafka": {
           "enabled": true,
-          "bootstrapServers": "localhost:9092",
+          "bootstrapServers": "kafka:29092",
           "upstreamTopic": "radar-frame-upstream",
           "standardTopic": "leidian.realtime.standard"
         },
@@ -51,7 +51,7 @@
       }
     },
     "dev": {
-      "name": "Dev",
+      "name": "开发环境",
       "desc": "integration env",
       "base": {
         "gatewayUrl": "http://dev-gateway:8080",
@@ -101,7 +101,7 @@
       }
     },
     "test": {
-      "name": "Test",
+      "name": "测试环境",
       "desc": "test env",
       "base": {
         "gatewayUrl": "http://test-gateway:8080",
@@ -152,5 +152,5 @@
     }
   },
   "activeEnv": "local",
-  "updatedAt": "2026-07-16T08:05:00.000Z"
+  "updatedAt": "2026-07-23T06:51:54.415Z"
 }

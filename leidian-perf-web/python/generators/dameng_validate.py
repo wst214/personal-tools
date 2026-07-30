@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from collections.abc import Callable
 from pathlib import Path
 from typing import Any
 
@@ -22,6 +23,11 @@ from generators.validate import (
 from generators.volume_matrix import build_expected_counts
 
 DM_VALIDATE_STAGES = frozenset()  # 已支持全档位，保留常量兼容
+
+# 超过该目标行数的大表：跳过全表 JOIN / DISTINCT（S3+ 大气/raw 会卡数小时）
+_LARGE_EXACT_SCAN_ROWS = 1_000_000
+
+ProgressFn = Callable[[str], None]
 
 
 def _load_profile(config_dir: Path, stage: str) -> dict[str, Any]:
@@ -78,6 +84,20 @@ def _check_std_biz_1_1_dm(
     return missing, orphan, dup
 
 
+def _check_std_biz_counts_only_dm(
+    conn: DamengConn,
+    std_table: str,
+    biz_table: str,
+    expected: int,
+) -> tuple[bool, str]:
+    """大表不做全表 JOIN/DISTINCT，只核对双方行数与目标。"""
+    std_cnt = int(dm_scalar(conn, f"SELECT count(*) FROM {std_table}") or 0)
+    biz_cnt = int(dm_scalar(conn, f"SELECT count(*) FROM {biz_table}") or 0)
+    ok = std_cnt == expected and biz_cnt == expected and std_cnt == biz_cnt
+    detail = f"large_table_skip_join: expected={expected}, std={std_cnt}, biz={biz_cnt}"
+    return ok, detail
+
+
 def _lowfreq_raw_id_expr(column: str = "raw_message_id") -> str:
     """DM 低频表 raw_message_id 存 JSON 数组字符串，如 [123]。"""
     return (
@@ -90,7 +110,12 @@ def validate_stage_dameng(
     stage: str,
     conn: DamengConn,
     config_dir: Path | None = None,
+    progress: ProgressFn | None = None,
 ) -> list[CheckResult]:
+    def _log(msg: str) -> None:
+        if progress:
+            progress(msg)
+
     root = config_dir or Path(__file__).resolve().parent.parent / "config"
     profile = _load_profile(root, stage)
     defaults = _load_defaults(root)
@@ -113,9 +138,14 @@ def validate_stage_dameng(
 
     expected = build_expected_counts(stage, root)
     msg_per = per_proc["msg_per"]
+    atm_expected = int(profile["atmosphere_rows"])
+    raw_expected = int(profile["raw_rows"])
+    skip_heavy_atm = atm_expected >= _LARGE_EXACT_SCAN_ROWS
+    skip_heavy_raw = raw_expected >= _LARGE_EXACT_SCAN_ROWS
 
     try:
         for table, exp in expected.items():
+            _log(f"行数统计: {table} (目标 {exp:,}) …")
             cnt = dm_scalar(conn, f"SELECT count(*) FROM {table}")
             ok = cnt == exp
             results.append(
@@ -125,7 +155,9 @@ def validate_stage_dameng(
                     f"expected={exp}, actual={cnt}",
                 )
             )
+            _log(f"  → actual={cnt:,} {'OK' if ok else 'FAIL'}")
 
+        _log("地理边界与矿区几何校验…")
         invalid_lightning = dm_scalar(
             conn,
             """
@@ -171,21 +203,41 @@ def validate_stage_dameng(
             )
         )
 
-        missing_biz, orphan_biz, dup_biz = _check_std_biz_1_1_dm(
-            conn,
-            "standard_atmosphere_electric_field",
-            "biz_atmosphere_electric_field_event",
-        )
-        atm_ok = missing_biz == 0 and orphan_biz == 0 and dup_biz == 0
-        results.append(
-            CheckResult(
-                "relation:atmosphere_std_biz_1_1",
-                atm_ok,
-                f"missing={missing_biz}, orphan={orphan_biz}, duplicate_key={dup_biz}",
+        if skip_heavy_atm:
+            _log(
+                f"大气 std/biz 1:1：大表跳过全表 JOIN/DISTINCT（目标≥{_LARGE_EXACT_SCAN_ROWS:,}），仅核行数"
             )
-        )
+            atm_ok, atm_detail = _check_std_biz_counts_only_dm(
+                conn,
+                "standard_atmosphere_electric_field",
+                "biz_atmosphere_electric_field_event",
+                atm_expected,
+            )
+            results.append(
+                CheckResult(
+                    "relation:atmosphere_std_biz_1_1",
+                    atm_ok,
+                    atm_detail,
+                )
+            )
+        else:
+            _log("大气 std/biz 1:1 全表核对…")
+            missing_biz, orphan_biz, dup_biz = _check_std_biz_1_1_dm(
+                conn,
+                "standard_atmosphere_electric_field",
+                "biz_atmosphere_electric_field_event",
+            )
+            atm_ok = missing_biz == 0 and orphan_biz == 0 and dup_biz == 0
+            results.append(
+                CheckResult(
+                    "relation:atmosphere_std_biz_1_1",
+                    atm_ok,
+                    f"missing={missing_biz}, orphan={orphan_biz}, duplicate_key={dup_biz}",
+                )
+            )
 
         for std_table, source_type in LIGHTNING_STD_BIZ_PAIRS:
+            _log(f"闪电关联 1:1: {std_table} …")
             missing, orphan, dup = _check_std_biz_1_1_dm(
                 conn,
                 std_table,
@@ -201,25 +253,37 @@ def validate_stage_dameng(
                 )
             )
 
-        raw_dup = dm_scalar(
-            conn,
-            """
-            SELECT count(*) FROM (
-                SELECT topic, partition_no, offset_no
-                FROM raw_kafka_message
-                GROUP BY topic, partition_no, offset_no
-                HAVING count(*) > 1
-            ) t
-            """,
-        )
-        results.append(
-            CheckResult(
-                "dedup:raw_kafka_tpo",
-                raw_dup == 0,
-                f"duplicate_groups={raw_dup}",
+        if skip_heavy_raw:
+            _log("raw 去重：大表跳过全表 GROUP BY（依赖唯一约束 uq_raw_kafka_message_tpo）")
+            results.append(
+                CheckResult(
+                    "dedup:raw_kafka_tpo",
+                    True,
+                    f"large_table_skip_groupby: raw_rows={raw_expected}",
+                )
             )
-        )
+        else:
+            _log("raw topic/partition/offset 去重核对…")
+            raw_dup = dm_scalar(
+                conn,
+                """
+                SELECT count(*) FROM (
+                    SELECT topic, partition_no, offset_no
+                    FROM raw_kafka_message
+                    GROUP BY topic, partition_no, offset_no
+                    HAVING count(*) > 1
+                ) t
+                """,
+            )
+            results.append(
+                CheckResult(
+                    "dedup:raw_kafka_tpo",
+                    raw_dup == 0,
+                    f"duplicate_groups={raw_dup}",
+                )
+            )
 
+        _log("过程窗/预警时间线与闭合关系…")
         invalid_window = dm_scalar(
             conn,
             """
@@ -327,6 +391,7 @@ def validate_stage_dameng(
             )
         )
 
+        _log("闪电过程窗与低频 raw 关联…")
         zero_lightning_processes = dm_scalar(
             conn,
             f"""
@@ -378,6 +443,7 @@ def validate_stage_dameng(
         )
 
         for std_table, biz_table in LOWFREQ_PAIRS:
+            _log(f"低频关联 1:1: {std_table} …")
             missing, orphan, dup = _check_std_biz_1_1_dm(conn, std_table, biz_table)
             ok = missing == 0 and orphan == 0 and dup == 0
             results.append(
@@ -411,6 +477,7 @@ def validate_stage_dameng(
             )
         )
 
+        _log("raw 异常比例…")
         raw_total = int(profile["raw_rows"])
         abnormal_cnt = dm_scalar(
             conn,
@@ -429,7 +496,11 @@ def validate_stage_dameng(
                 ),
             )
         )
+        _log("校验 SQL 全部完成")
     except DisqlNotFoundError as exc:
         raise RuntimeError(str(exc)) from exc
+    except Exception as exc:  # noqa: BLE001
+        _log(f"校验异常: {exc}")
+        results.append(CheckResult("validate:error", False, str(exc)))
 
     return results

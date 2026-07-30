@@ -219,14 +219,37 @@ def dm_within_50km_from_point_relaxed_bbox_dwithin_sql(
     radius_m: float = _DEFAULT_RADIUS_M,
     bbox_prefilter_m: float = _DEFAULT_BBOX_PREFILTER_M,
 ) -> str:
-    """60km lon/lat bbox 预筛 + Geography ST_DWithin 精算（压测默认）。"""
-    min_lon, max_lon, min_lat, max_lat = dm_bbox_for_radius_m(lon, lat, bbox_prefilter_m)
-    ref = f"DMGEO2.ST_PointFromText('POINT({lon} {lat})', 4326)"
-    bbox = dm_bbox_prefilter_sql(min_lon, max_lon, min_lat, max_lat)
+    """
+    扁平写法：60km lon/lat bbox + Geography ST_DWithin。
+
+    注意：达梦优化器常忽略 bbox 而只走 strike_time 索引；压测 bbox 模式请用
+    子查询 + INDEX(idx_biz_lightning_time_lon_lat)（见 dameng_sql_bench）。
+    """
+    bbox = dm_bbox_prefilter_for_point(lon, lat, bbox_prefilter_m=bbox_prefilter_m)
+    ref = dm_point_from_text_sql(lon, lat)
     return (
         f"{bbox} "
         f"AND l.lightning_point IS NOT NULL "
         f"AND {dm_geo_dwithin_sql('l.lightning_point', ref, radius_m)}"
+    )
+
+
+def dm_point_from_text_sql(lon: float, lat: float, *, srid: int = 4326) -> str:
+    return f"DMGEO2.ST_PointFromText('POINT({lon} {lat})', {srid})"
+
+
+def dm_bbox_prefilter_for_point(
+    lon: float,
+    lat: float,
+    *,
+    bbox_prefilter_m: float = _DEFAULT_BBOX_PREFILTER_M,
+    lon_col: str = "l.longitude",
+    lat_col: str = "l.latitude",
+) -> str:
+    """以圆心半径生成 lon/lat BETWEEN 预筛条件。"""
+    min_lon, max_lon, min_lat, max_lat = dm_bbox_for_radius_m(lon, lat, bbox_prefilter_m)
+    return dm_bbox_prefilter_sql(
+        min_lon, max_lon, min_lat, max_lat, lon_col=lon_col, lat_col=lat_col
     )
 
 

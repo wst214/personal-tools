@@ -1,0 +1,19 @@
+{
+  "ok": false,
+  "traceId": "trace-20260725142722-ada602",
+  "caseId": "device-hex-full-link",
+  "caseName": "???? ? ?? HEX ????",
+  "envName": "本地环境",
+  "startedAt": "2026-07-25T14:27:22.747Z",
+  "steps": [
+    {
+      "name": "环境预检查",
+      "ok": false,
+      "detail": "部分依赖不可达",
+      "elapsedMs": 0,
+      "evidence": {
+        "checks": []
+      }
+    }
+  ]
+}

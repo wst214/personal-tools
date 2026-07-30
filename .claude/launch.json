@@ -1,0 +1,11 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    {
+      "name": "dev-toolbox",
+      "runtimeExecutable": "npm",
+      "runtimeArgs": ["--prefix", "dev-toolbox", "run", "dev:web"],
+      "port": 5173
+    }
+  ]
+}

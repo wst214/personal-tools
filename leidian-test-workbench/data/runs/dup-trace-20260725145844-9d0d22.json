@@ -1,0 +1,128 @@
+{
+  "ok": true,
+  "traceId": "dup-trace-20260725145844-9d0d22",
+  "caseId": "device-hex-duplicate-message",
+  "caseName": "边界情况 · 重复报文处理",
+  "envName": "本地环境",
+  "startedAt": "2026-07-25T14:58:47.858Z",
+  "steps": [
+    {
+      "name": "环境预检查",
+      "ok": true,
+      "detail": "依赖均可连通",
+      "elapsedMs": 0,
+      "evidence": {
+        "checks": [
+          {
+            "name": "gateway",
+            "ok": true,
+            "detail": "HTTP 200 /actuator/health",
+            "elapsedMs": 18,
+            "evidence": {}
+          },
+          {
+            "name": "data-service",
+            "ok": true,
+            "detail": "HTTP 200 /actuator/health",
+            "elapsedMs": 19,
+            "evidence": {}
+          },
+          {
+            "name": "biz-service",
+            "ok": true,
+            "detail": "HTTP 200 /actuator/health",
+            "elapsedMs": 19,
+            "evidence": {}
+          },
+          {
+            "name": "kafka",
+            "ok": true,
+            "detail": "kafka:29092 connected",
+            "elapsedMs": 2,
+            "evidence": {}
+          },
+          {
+            "name": "database",
+            "ok": true,
+            "detail": "host.docker.internal:5432 connected",
+            "elapsedMs": 4,
+            "evidence": {}
+          }
+        ]
+      }
+    },
+    {
+      "name": "发送首条报文",
+      "ok": true,
+      "detail": "traceId=trace-20260725145844-9d0d22 dedupKey=dup-trace-20260725145844-9d0d22",
+      "elapsedMs": 10,
+      "evidence": {
+        "traceId1": "trace-20260725145844-9d0d22",
+        "dedupKey": "dup-trace-20260725145844-9d0d22"
+      }
+    },
+    {
+      "name": "检查首条处理",
+      "ok": true,
+      "detail": "process_status=PARSED_SUCCESS",
+      "elapsedMs": 0,
+      "evidence": {
+        "raw1": {
+          "process_status": "PARSED_SUCCESS",
+          "error_message": null,
+          "is_duplicate": 0,
+          "dedup_key": "dup-trace-20260725145844-9d0d22",
+          "raw_data": "5A4B11030002000100010010001A003C000703E875C80D0A"
+        }
+      }
+    },
+    {
+      "name": "重复发送同 dedupKey",
+      "ok": true,
+      "detail": "traceId=trace-20260725145844-4db1a7 dedupKey=dup-trace-20260725145844-9d0d22",
+      "elapsedMs": 16,
+      "evidence": {
+        "traceId2": "trace-20260725145844-4db1a7",
+        "dedupKey": "dup-trace-20260725145844-9d0d22"
+      }
+    },
+    {
+      "name": "检查去重入库数量",
+      "ok": true,
+      "detail": "dedup_key=dup-trace-20260725145844-9d0d22 命中 1 条 raw（应为 1）",
+      "elapsedMs": 0,
+      "evidence": {
+        "dedupKey": "dup-trace-20260725145844-9d0d22",
+        "rawByDedup": 1
+      }
+    },
+    {
+      "name": "检查重复报文未入库",
+      "ok": true,
+      "detail": "trace_id=trace-20260725145844-4db1a7 命中 0 条 raw（应为 0）",
+      "elapsedMs": 0,
+      "evidence": {
+        "traceId2": "trace-20260725145844-4db1a7",
+        "rawByTrace2": 0
+      }
+    },
+    {
+      "name": "检查重复报文无标准层",
+      "ok": true,
+      "detail": "data_standard_message trace_id=trace-20260725145844-4db1a7 命中 0 条",
+      "elapsedMs": 0,
+      "evidence": {
+        "standardByTrace2": 0
+      }
+    },
+    {
+      "name": "检查重复报文无异常留痕",
+      "ok": true,
+      "detail": "data_exception trace_id=trace-20260725145844-4db1a7 命中 0 条（应为 0，重复静默跳过）",
+      "elapsedMs": 0,
+      "evidence": {
+        "exceptionByTrace2": 0
+      }
+    }
+  ]
+}

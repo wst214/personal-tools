@@ -129,6 +129,16 @@ PARTITION BY RANGE (device_upload_time)
 
 CREATE INDEX IF NOT EXISTS idx_biz_atm_field_addr_time ON biz_atmosphere_electric_field_event (device_addr, device_upload_time);
 CREATE INDEX IF NOT EXISTS idx_biz_atm_field_upload_time ON biz_atmosphere_electric_field_event (device_upload_time);
+-- PERF-05-AGG 瘦覆盖索引（相对 page_cover 少 id/event_status 等列，减轻叶块）
+CREATE INDEX IF NOT EXISTS idx_biz_atm_field_agg_cover ON biz_atmosphere_electric_field_event (
+    device_addr,
+    device_upload_time,
+    instantaneous_value,
+    average_value,
+    warning_level,
+    rate_change,
+    risk_level
+);
 
 -- ============================================================
 -- standard_lightning_strike_cmb：按月 RANGE(strike_time) + lightning_point
@@ -244,3 +254,7 @@ PARTITION BY RANGE (strike_time)
 CREATE INDEX IF NOT EXISTS idx_biz_lightning_strike_time ON biz_lightning_event (strike_time);
 CREATE INDEX IF NOT EXISTS idx_biz_lightning_source ON biz_lightning_event (source_type);
 CREATE SPATIAL INDEX idx_biz_lightning_point_sp ON biz_lightning_event (lightning_point);
+CREATE INDEX IF NOT EXISTS idx_biz_lightning_time_lon_lat ON biz_lightning_event (strike_time, longitude, latitude);
+-- PERF-06 bbox_geog GROUP BY 覆盖索引（避免 source/type 分布回表 BLKUP）
+CREATE INDEX IF NOT EXISTS idx_biz_lightning_perf06_cover
+ON biz_lightning_event (strike_time, longitude, latitude, source_type, lightning_type);

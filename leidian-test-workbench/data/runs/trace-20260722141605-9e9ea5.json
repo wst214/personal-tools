@@ -1,0 +1,135 @@
+{
+  "ok": true,
+  "traceId": "trace-20260722141605-9e9ea5",
+  "caseId": "minio-radar-large-payload",
+  "caseName": "边界情况 · 10MB 大文件上传",
+  "envName": "本地环境",
+  "startedAt": "2026-07-22T14:16:06.328Z",
+  "steps": [
+    {
+      "name": "环境预检查",
+      "ok": true,
+      "detail": "依赖均可连通",
+      "elapsedMs": 0,
+      "evidence": {
+        "checks": [
+          {
+            "name": "gateway",
+            "ok": true,
+            "detail": "HTTP 200 /actuator/health",
+            "elapsedMs": 20,
+            "evidence": {}
+          },
+          {
+            "name": "data-service",
+            "ok": true,
+            "detail": "HTTP 200 /actuator/health",
+            "elapsedMs": 35,
+            "evidence": {}
+          },
+          {
+            "name": "biz-service",
+            "ok": true,
+            "detail": "HTTP 200 /actuator/health",
+            "elapsedMs": 21,
+            "evidence": {}
+          },
+          {
+            "name": "kafka",
+            "ok": true,
+            "detail": "host.docker.internal:9092 connected",
+            "elapsedMs": 4,
+            "evidence": {}
+          },
+          {
+            "name": "database",
+            "ok": true,
+            "detail": "host.docker.internal:5432 connected",
+            "elapsedMs": 14,
+            "evidence": {}
+          },
+          {
+            "name": "minio",
+            "ok": true,
+            "detail": "HTTP 200 /minio/health/live",
+            "elapsedMs": 11,
+            "evidence": {}
+          },
+          {
+            "name": "websocket",
+            "ok": true,
+            "detail": "host.docker.internal:8080 connected",
+            "elapsedMs": 4,
+            "evidence": {}
+          }
+        ]
+      }
+    },
+    {
+      "name": "生成大文件",
+      "ok": true,
+      "detail": "约 10240 KB",
+      "elapsedMs": 0,
+      "evidence": {
+        "objectKey": "upstream/radar/realtime/2026/07/22/14/radar_20260722141605.json",
+        "sizeBytes": 10485774
+      }
+    },
+    {
+      "name": "上传文件",
+      "ok": true,
+      "detail": "upstream/radar/realtime/2026/07/22/14/radar_20260722141605.json",
+      "elapsedMs": 282,
+      "evidence": {
+        "bucket": "leidian-frame",
+        "objectKey": "upstream/radar/realtime/2026/07/22/14/radar_20260722141605.json",
+        "traceId": "trace-20260722141605-9e9ea5",
+        "uploadMs": 282,
+        "sizeBytes": 10485774
+      }
+    },
+    {
+      "name": "检查异步消费",
+      "ok": true,
+      "detail": "file_frame_index 命中，trace_id=trace-20260722141605-9e9ea5",
+      "elapsedMs": 37,
+      "evidence": {
+        "indexRow": {
+          "trace_id": "trace-20260722141605-9e9ea5",
+          "object_key": "upstream/radar/realtime/2026/07/22/14/radar_20260722141605.json",
+          "parse_status": "SUCCESS"
+        },
+        "indexMs": 37
+      }
+    },
+    {
+      "name": "检查 WebSocket",
+      "ok": true,
+      "detail": "已收到推送消息",
+      "elapsedMs": 409,
+      "evidence": {
+        "message": "{\"type\":\"RADAR_FRAME_READY\",\"timestamp\":1784729766269,\"data\":{\"frameId\":\"radar-20260722141605\",\"traceId\":\"trace-20260722141605-9e9ea5\",\"eventTime\":1784729765000,\"objectKey\":\"upstream/radar/realtime/2026/07/22/14/radar_20260722141605.json\",\"downloadUrl\":\"http://minio:9000/leidian-frame/upstream/radar/realtime/2026/07/22/14/radar_20260722141605.json?X-Amz-Algorithm=AWS4-HMAC-SHA256&X-Amz-Credential=minioadmin%2F20260722%2Fus-east-1%2Fs3%2Faws4_request&X-Amz-Date=20260722T141606Z&X-Amz-Expires=3600"
+      }
+    },
+    {
+      "name": "检查查询接口",
+      "ok": true,
+      "detail": "HTTP 200",
+      "elapsedMs": 55,
+      "evidence": {
+        "body": "{\"code\":0,\"message\":\"success\",\"data\":[{\"frameId\":\"radar-20260722141539\",\"traceId\":\"trace-20260722141539-f12e1a\",\"eventTime\":1784729739000,\"objectKey\":\"upstream/radar/realtime/2026/07/22/14/radar_20260722141539.json\",\"downloadUrl\":\"http://minio:9000/leidian-frame/upstream/radar/realtime/2026/07/22/14/radar_20260722141539.json?X-Amz-Algorithm=AWS4-HMAC-SHA256&X-Amz-Credential=minioadmin%2F20260722%2Fus-east-1%2Fs3%2Faws4_request&X-Amz-Date=20260722T141606Z&X-Amz-Expires=3600&X-Amz-SignedHeaders=host&X-Amz-Signature=1fd1e2cfe1e87b34dd426a81df6e978facd368e04fc12bbbdef017a472a96022\"},{\"frameId\":\"radar-20260722141604\",\"traceId\":\"trace-20260722141603-8f1ba8\",\"eventTime\":1784729764000,\"objectKey\":\"upstream/radar/realtime/2026/07/22/14/radar_20260722141604.json\",\"downloadUrl\":\"http://minio:9000/lei"
+      }
+    },
+    {
+      "name": "汇总时延",
+      "ok": true,
+      "detail": "上传 282ms / 端到端 37ms",
+      "elapsedMs": 0,
+      "evidence": {
+        "uploadMs": 282,
+        "indexMs": 37,
+        "sizeBytes": 10485774
+      }
+    }
+  ]
+}

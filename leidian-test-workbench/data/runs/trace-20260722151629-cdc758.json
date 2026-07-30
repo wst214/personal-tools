@@ -1,0 +1,113 @@
+{
+  "ok": true,
+  "traceId": "trace-20260722151629-cdc758",
+  "caseId": "minio-radar-invalid-json",
+  "caseName": "异常情况 · 文件内容不是合法 JSON",
+  "envName": "本地环境",
+  "startedAt": "2026-07-22T15:16:37.605Z",
+  "steps": [
+    {
+      "name": "环境预检查",
+      "ok": true,
+      "detail": "依赖均可连通",
+      "elapsedMs": 0,
+      "evidence": {
+        "checks": [
+          {
+            "name": "gateway",
+            "ok": true,
+            "detail": "HTTP 200 /actuator/health",
+            "elapsedMs": 29,
+            "evidence": {}
+          },
+          {
+            "name": "data-service",
+            "ok": true,
+            "detail": "HTTP 200 /actuator/health",
+            "elapsedMs": 20,
+            "evidence": {}
+          },
+          {
+            "name": "biz-service",
+            "ok": true,
+            "detail": "HTTP 200 /actuator/health",
+            "elapsedMs": 21,
+            "evidence": {}
+          },
+          {
+            "name": "kafka",
+            "ok": true,
+            "detail": "host.docker.internal:9092 connected",
+            "elapsedMs": 9,
+            "evidence": {}
+          },
+          {
+            "name": "database",
+            "ok": true,
+            "detail": "host.docker.internal:5432 connected",
+            "elapsedMs": 8,
+            "evidence": {}
+          },
+          {
+            "name": "minio",
+            "ok": true,
+            "detail": "HTTP 200 /minio/health/live",
+            "elapsedMs": 17,
+            "evidence": {}
+          }
+        ]
+      }
+    },
+    {
+      "name": "准备异常文件",
+      "ok": true,
+      "detail": "已构造不可解析 JSON",
+      "elapsedMs": 0,
+      "evidence": {
+        "traceId": "trace-20260722151629-cdc758",
+        "objectKey": "upstream/radar/realtime/2026/07/22/15/radar_invalid_json_20260722151629443_d7bfc0.json",
+        "payloadPreview": "{\"traceId\":\"trace-20260722151629-cdc758\",\"objectKey\":\"upstream/radar/realtime/2026/07/22/15/radar_invalid_json_20260722151629443_d7bfc0.json\","
+      }
+    },
+    {
+      "name": "上传到 MinIO",
+      "ok": true,
+      "detail": "upstream/radar/realtime/2026/07/22/15/radar_invalid_json_20260722151629443_d7bfc0.json",
+      "elapsedMs": 33,
+      "evidence": {
+        "bucket": "leidian-frame",
+        "objectKey": "upstream/radar/realtime/2026/07/22/15/radar_invalid_json_20260722151629443_d7bfc0.json",
+        "traceId": "trace-20260722151629-cdc758"
+      }
+    },
+    {
+      "name": "等待下游处理",
+      "ok": true,
+      "detail": "未直接观察到对象事件，继续检查下游状态",
+      "elapsedMs": 0,
+      "evidence": {}
+    },
+    {
+      "name": "检查正常索引",
+      "ok": true,
+      "detail": "未写入正常雷达帧索引",
+      "elapsedMs": 0,
+      "evidence": {
+        "rows": [
+          {
+            "count": "0"
+          }
+        ]
+      }
+    },
+    {
+      "name": "检查查询接口",
+      "ok": true,
+      "detail": "HTTP 200，未暴露异常数据",
+      "elapsedMs": 81,
+      "evidence": {
+        "body": "{\"code\":0,\"message\":\"success\",\"data\":[{\"frameId\":\"radar-20260722144244\",\"traceId\":\"trace-20260722144244-00e61d\",\"eventTime\":1784731364000,\"objectKey\":\"upstream/radar/realtime/2026/07/22/14/radar_20260722144244.json\",\"downloadUrl\":\"http://minio:9000/leidian-frame/upstream/radar/realtime/2026/07/22/14/radar_20260722144244.json?X-Amz-Algorithm=AWS4-HMAC-SHA256&X-Amz-Credential=minioadmin%2F20260722%2Fus-east-1%2Fs3%2Faws4_request&X-Amz-Date=20260722T151637Z&X-Amz-Expires=3600&X-Amz-SignedHeaders=host&X-Amz-Signature=c6f4b1937ce3be91969a4b4ed5073856b9120e40f50481adfa9f7bb5665d5dca\"},{\"frameId\":\"radar-20260722144309\",\"traceId\":\"trace-20260722144309-ff763c\",\"eventTime\":1784731389000,\"objectKey\":\"upstream/radar/realtime/2026/07/22/14/radar_20260722144309.json\",\"downloadUrl\":\"http://minio:9000/lei"
+      }
+    }
+  ]
+}

@@ -262,7 +262,11 @@ def _preflight_for_payload(payload: dict[str, Any]) -> dict[str, Any]:
     )
 
 
-def _build_report(payload: dict[str, Any], run_validate: bool = True) -> dict[str, Any]:
+def _build_report(
+    payload: dict[str, Any],
+    run_validate: bool = True,
+    progress=None,
+) -> dict[str, Any]:
     stage = str(payload.get("stage", "S0"))
     config_dir = PYTHON_DIR / "config"
     if _is_dameng(payload):
@@ -279,6 +283,7 @@ def _build_report(payload: dict[str, Any], run_validate: bool = True) -> dict[st
             port=port,
             user=user,
             password=password,
+            progress=progress,
         )
 
     from generators.report import build_test_report
@@ -333,24 +338,44 @@ def _run_validate_for_payload(payload: dict[str, Any]):
 def _validate_and_attach(job: Job, payload: dict[str, Any]) -> None:
     stage = str(payload.get("stage", "S0"))
     job.append_log("")
-    job.append_log(f"--- 自动校验 stage={stage} [{_payload_dialect(payload)}] ---")
+    job.append_log(f"--- 校验 stage={stage} [{_payload_dialect(payload)}] ---")
+    job.append_log("开始统计行数并生成报告（大档位可能较久）…")
     try:
-        results = _run_validate_for_payload(payload)
+        # 只跑一轮：build_report 内含 validate，避免 S5 等大表重复 COUNT
+        job.report = _build_report(
+            payload, run_validate=True, progress=job.append_log
+        )
     except DamengRuntimeBlockedError as exc:
         job.status = "failed"
         job.exit_code = 2
         job.error = str(exc)
         job.append_log(f"BLOCKED: {exc}")
         return
-    job.validation = [asdict(r) for r in results]
-    failed = sum(1 for r in results if not r.passed)
-    job.append_log(f"校验完成：{len(results) - failed}/{len(results)} 项通过")
-    try:
-        job.report = _build_report(payload, run_validate=True)
-        if job.report:
-            _persist_report(stage, job.report)
     except Exception as exc:  # noqa: BLE001
-        job.append_log(f"WARN: 生成 §11 报告失败 — {exc}")
+        job.status = "failed"
+        job.exit_code = 1
+        job.error = str(exc)
+        job.append_log(f"ERROR: 校验/报告失败 — {exc}")
+        return
+
+    raw_checks = job.report.get("rawChecks") or []
+    job.validation = [
+        {"name": c.get("name"), "passed": c.get("passed"), "detail": c.get("detail")}
+        for c in raw_checks
+        if isinstance(c, dict)
+    ]
+    failed = sum(1 for r in job.validation if not r.get("passed"))
+    total = len(job.validation)
+    if total:
+        job.append_log(f"校验完成：{total - failed}/{total} 项通过")
+    else:
+        job.append_log("校验完成（无明细项，以报告体积行为准）")
+    try:
+        if job.report.get("section11_2"):
+            _persist_report(stage, job.report)
+            job.append_log(f"已写入造数结果记录: {stage}")
+    except Exception as exc:  # noqa: BLE001
+        job.append_log(f"WARN: 持久化测试记录失败 — {exc}")
     if failed:
         job.status = "failed"
         job.exit_code = 1
@@ -476,6 +501,9 @@ def _execute_job(job: Job, payload: dict[str, Any]) -> None:
                 scenarios = [s.strip() for s in scenarios.split(",") if s.strip()]
 
             job.append_log(f"--- 直连 SQL 压测 stage={stage} [{_payload_dialect(payload)}] ---")
+            job.append_log(
+                f"[DEBUG] payload.perf06Geo={payload.get('perf06Geo')!r} dialect={payload.get('dialect')!r}"
+            )
             query_concurrency = None
             if payload.get("queryConcurrency") is not None:
                 query_concurrency = int(payload["queryConcurrency"])
@@ -500,6 +528,16 @@ def _execute_job(job: Job, payload: dict[str, Any]) -> None:
                     payload["perf05AggBucketMinutes"]
                 )
                 job.append_log(f"PERF-05-AGG 聚合间隔: {perf05_agg_bucket_minutes} 分钟")
+            perf06_geo = None
+            if payload.get("perf06Geo") is not None:
+                from generators.sql_bench import normalize_perf06_geo_mode
+
+                perf06_geo = normalize_perf06_geo_mode(str(payload["perf06Geo"]))
+                job.append_log(f"PERF-06 空间模式: {perf06_geo}")
+            device_limit = None
+            if payload.get("deviceLimit") is not None:
+                device_limit = max(1, min(500, int(payload["deviceLimit"])))
+                job.append_log(f"设备台数: {device_limit}（读写同池）")
             try:
                 if _is_dameng(payload):
                     from generators.dameng_sql_bench import run_sql_benchmark_dameng
@@ -516,6 +554,8 @@ def _execute_job(job: Job, payload: dict[str, Any]) -> None:
                         query_iterations=query_iterations,
                         slow_sql_threshold_ms=slow_sql_threshold_ms,
                         perf05_agg_bucket_minutes=perf05_agg_bucket_minutes,
+                        perf06_geo=perf06_geo,
+                        device_limit=device_limit,
                         log=job.append_log,
                     )
                 else:
@@ -536,6 +576,7 @@ def _execute_job(job: Job, payload: dict[str, Any]) -> None:
                         query_iterations=query_iterations,
                         slow_sql_threshold_ms=slow_sql_threshold_ms,
                         perf05_agg_bucket_minutes=perf05_agg_bucket_minutes,
+                        device_limit=device_limit,
                         log=job.append_log,
                     )
                 job.benchmark = result
@@ -1128,6 +1169,11 @@ class Handler(BaseHTTPRequestHandler):
         self.send_response(200)
         self.send_header("Content-Type", content_type)
         self.send_header("Content-Length", str(len(data)))
+        # 避免浏览器强刷后仍用旧 app.js（此前会导致 bbox_then_dwithin 回落 geog_only）
+        name = target.name.lower()
+        if name.endswith((".js", ".css", ".html")):
+            self.send_header("Cache-Control", "no-store, no-cache, must-revalidate, max-age=0")
+            self.send_header("Pragma", "no-cache")
         self.end_headers()
         self.wfile.write(data)
 

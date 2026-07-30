@@ -14,7 +14,12 @@ from generators.atmosphere import (
     BIZ_COLUMNS as ATM_BIZ_COLUMNS,
     STD_COLUMNS as ATM_STD_COLUMNS,
     ProcessWindow,
-    iter_atmosphere_rows,
+    count_atmosphere_dense_rows,
+    expand_atmosphere_devices,
+    expected_full_1hz_rows,
+    iter_atmosphere_full_1hz,
+    iter_atmosphere_with_dense,
+    plan_atmosphere_dense_seconds,
 )
 from generators.db import copy_rows, ensure_monthly_partitions, pg_connection
 from generators.load_guard import load_advisory_lock
@@ -38,10 +43,14 @@ from generators.raw_message import (
     radar_raw_row,
 )
 from generators.time_calendar import (
+    add_months,
     calendar_data_end,
     calendar_month_start,
+    months_covering,
+    resolve_atmosphere_span,
     resolve_calendar_months,
 )
+from generators.volume_matrix import atmosphere_biz_only, atmosphere_raw_contribution
 
 PARTITIONED_PARENTS = [
     "raw_kafka_message",
@@ -155,19 +164,52 @@ def load_stage(
     t0 = t0 or _parse_t0(defaults["t0"])
     rng = random.Random(seed)
     id_gen = SnowflakeGenerator(worker_id=1)
-    devices = _build_devices(mine_cfg)
+    seed_devices = _build_devices(mine_cfg)
+    device_target = int(profile.get("atmosphere_device_count") or len(seed_devices))
+    devices = expand_atmosphere_devices(
+        seed_devices,
+        target_count=device_target,
+        lon0=float(mine_cfg["mine_site"]["dispatch_room_lon"]),
+        lat0=float(mine_cfg["mine_site"]["dispatch_room_lat"]),
+    )
     device_count = len(devices)
 
+    atm_start, atm_end, full_1hz = resolve_atmosphere_span(profile, defaults, t0=t0)
     atmosphere_rows = int(profile["atmosphere_rows"])
-    calendar_months = resolve_calendar_months(stage, profile, defaults)
-    data_end = calendar_data_end(t0, calendar_months)
-    process_placement_end = data_end - timedelta(seconds=1)
-
-    _emit(
-        log,
-        f"[{stage}] 时间轴：{t0.date()} 起 {calendar_months} 个自然月（至 "
-        f"{calendar_month_start(t0, calendar_months - 1).strftime('%Y-%m')}），大气按月均分",
-    )
+    biz_only = atmosphere_biz_only(profile)
+    if full_1hz:
+        days = max(int(profile.get("atmosphere_days", 1)), 1)
+        expected = expected_full_1hz_rows(device_count, days)
+        if atmosphere_rows != expected:
+            _emit(
+                log,
+                f"[{stage}] 警告：atmosphere_rows={atmosphere_rows:,} 与 "
+                f"{device_count}台×{days}天×86400={expected:,} 不一致，按公式行数写入",
+            )
+            atmosphere_rows = expected
+        # 过程落在满密窗内，保证 PERF-05 有 1Hz；分区多留 1 个月供写入压测
+        process_t0 = atm_start
+        process_placement_end = atm_end - timedelta(seconds=1)
+        partition_end = add_months(atm_end.replace(day=1, hour=0, minute=0, second=0, microsecond=0), 2)
+        data_end = partition_end
+        calendar_months = months_covering(atm_start, partition_end)
+        layer_note = "仅 biz" if biz_only else "行/层"
+        _emit(
+            log,
+            f"[{stage}] 时间轴：真 1Hz {atm_start.isoformat(sep=' ', timespec='seconds')} ~ "
+            f"{atm_end.isoformat(sep=' ', timespec='seconds')}（{days} 天 · {device_count} 台 · "
+            f"目标 {atmosphere_rows:,} {layer_note}）",
+        )
+    else:
+        calendar_months = resolve_calendar_months(stage, profile, defaults)
+        data_end = calendar_data_end(t0, calendar_months)
+        process_t0 = t0
+        process_placement_end = data_end - timedelta(seconds=1)
+        _emit(
+            log,
+            f"[{stage}] 时间轴：{t0.date()} 起 {calendar_months} 个自然月（至 "
+            f"{calendar_month_start(t0, calendar_months - 1).strftime('%Y-%m')}），大气按月均分",
+        )
     _emit(log, f"[{stage}] 生成雷暴过程与业务事件…")
     bundle = build_process_bundle(
         mine_code=mine_cfg["mine_site"]["mine_code"],
@@ -178,7 +220,7 @@ def load_stage(
         inspection_total=int(profile["inspection_task"]),
         hidden_risk_total=int(profile["hidden_risk"]),
         repair_total=int(profile["repair_order"]),
-        t0=t0,
+        t0=process_t0,
         atmosphere_end=process_placement_end,
         id_gen=id_gen,
         season_months=defaults["thunderstorm_season_months"],
@@ -191,7 +233,14 @@ def load_stage(
     )
 
     process_windows = [
-        ProcessWindow(p.process_start, p.process_end, p.strike_start, p.strike_end)
+        ProcessWindow(
+            p.process_start,
+            p.process_end,
+            p.strike_start,
+            p.strike_end,
+            p.data_window_start,
+            p.data_window_end,
+        )
         for p in bundle.processes
     ]
 
@@ -214,7 +263,14 @@ def load_stage(
     )
 
     stats: dict[str, int] = {}
-    _emit(log, f"[{stage}] 目标：大气电场 {atmosphere_rows:,} 行 · raw {int(profile['raw_rows']):,} 行")
+    if biz_only:
+        _emit(
+            log,
+            f"[{stage}] 目标：大气电场 biz {atmosphere_rows:,} 行（跳过 std/raw 大气）· "
+            f"raw {int(profile['raw_rows']):,} 行",
+        )
+    else:
+        _emit(log, f"[{stage}] 目标：大气电场 {atmosphere_rows:,} 行 · raw {int(profile['raw_rows']):,} 行")
 
     with load_advisory_lock(dsn, log=log):
         return _load_stage_body(
@@ -231,8 +287,12 @@ def load_stage(
             devices=devices,
             device_count=device_count,
             atmosphere_rows=atmosphere_rows,
+            biz_only=biz_only,
             calendar_months=calendar_months,
             data_end=data_end,
+            atm_start=atm_start,
+            atm_end=atm_end,
+            full_1hz=full_1hz,
             bundle=bundle,
             lightning=lightning,
             process_windows=process_windows,
@@ -256,8 +316,12 @@ def _load_stage_body(
     devices: list[AtmosphereDevice],
     device_count: int,
     atmosphere_rows: int,
+    biz_only: bool,
     calendar_months: int,
     data_end: datetime,
+    atm_start: datetime,
+    atm_end: datetime,
+    full_1hz: bool,
     bundle: Any,
     lightning: Any,
     process_windows: list[ProcessWindow],
@@ -269,7 +333,8 @@ def _load_stage_body(
     with pg_connection(dsn, schema=schema) as conn:
         with conn.cursor() as cur:
             _emit(log, f"[{stage}] 检查/创建月分区…")
-            partition_start = date(t0.year, t0.month, 1)
+            partition_anchor = atm_start if full_1hz else t0
+            partition_start = date(partition_anchor.year, partition_anchor.month, 1)
             # data_end 为时间轴上界（不含）；raw.receive_time 可能因 ingest_delay 或
             # padding 随机到该月初，须建到 data_end 所在月（含），不能只建到最后数据月。
             partition_end = data_end.date()
@@ -417,7 +482,6 @@ def _load_stage_body(
             _commit_phase(conn, log, "闪电数据")
 
             offset_no = 0
-            _emit(log, f"[{stage}] 写入大气电场（目标 {atmosphere_rows:,} 行）…")
             raw_rows_buffer: list[list] = []
 
             def flush_raw() -> None:
@@ -445,33 +509,82 @@ def _load_stage_body(
                     biz_buffer = []
                 flush_raw()
                 conn.commit()
-                done = stats.get("standard_atmosphere_electric_field", 0)
+                done = stats.get(
+                    "biz_atmosphere_electric_field_event"
+                    if biz_only
+                    else "standard_atmosphere_electric_field",
+                    0,
+                )
                 if atmosphere_rows:
                     pct = min(100, int(done * 100 / atmosphere_rows))
                     _emit(log, f"[{stage}] 大气电场进度 {done:,}/{atmosphere_rows:,} ({pct}%)")
 
-            for std_row, biz_row, raw_id in iter_atmosphere_rows(
-                devices=devices,
-                t0=t0,
-                total_rows=atmosphere_rows,
-                calendar_months=calendar_months,
-                id_gen=id_gen,
-                process_windows=process_windows,
-                ingest_delay_max_seconds=int(defaults["ingest_delay_max_seconds"]),
-                rng=rng,
-            ):
-                std_buffer.append(std_row)
-                biz_buffer.append(biz_row)
-                raw_rows_buffer.append(
-                    device_raw_row(
-                        raw_id=raw_id,
-                        device_addr=str(std_row[2]),
-                        receive_time=std_row[21],
-                        offset_no=offset_no,
-                    )
+            if full_1hz:
+                mode_note = "仅 biz，跳过 std/raw 大气" if biz_only else "std+biz+raw"
+                _emit(
+                    log,
+                    f"[{stage}] 写入大气电场（真 1Hz 满密 {atmosphere_rows:,} 行 · "
+                    f"{device_count} 台 · {mode_note} · "
+                    f"{atm_start.isoformat(sep=' ', timespec='seconds')} ~ "
+                    f"{atm_end.isoformat(sep=' ', timespec='seconds')}）…",
                 )
-                offset_no += 1
-                if len(std_buffer) >= batch_size:
+                atm_iter = iter_atmosphere_full_1hz(
+                    devices=devices,
+                    start=atm_start,
+                    end_exclusive=atm_end,
+                    id_gen=id_gen,
+                    process_windows=process_windows,
+                    ingest_delay_max_seconds=int(defaults["ingest_delay_max_seconds"]),
+                    rng=rng,
+                )
+            else:
+                dense_minutes = int(defaults.get("atmosphere_dense_minutes", 1))
+                dense_full = bool(defaults.get("atmosphere_dense_full_window", False))
+                if "atmosphere_dense_minutes" in profile:
+                    dense_minutes = int(profile["atmosphere_dense_minutes"])
+                if "atmosphere_dense_full_window" in profile:
+                    dense_full = bool(profile["atmosphere_dense_full_window"])
+                dense_secs = plan_atmosphere_dense_seconds(
+                    process_windows,
+                    device_count=len(devices),
+                    total_rows=atmosphere_rows,
+                    dense_minutes=dense_minutes,
+                    dense_full_window=dense_full,
+                )
+                dense_rows = count_atmosphere_dense_rows(dense_secs, len(devices))
+                _emit(
+                    log,
+                    f"[{stage}] 写入大气电场（目标 {atmosphere_rows:,} 行；"
+                    f"过程窗 1Hz 稠密 {dense_rows:,} 行，"
+                    f"{'整窗' if dense_full else f'每过程前 {dense_minutes} 分钟'}）…",
+                )
+                atm_iter = iter_atmosphere_with_dense(
+                    devices=devices,
+                    t0=t0,
+                    total_rows=atmosphere_rows,
+                    calendar_months=calendar_months,
+                    id_gen=id_gen,
+                    process_windows=process_windows,
+                    ingest_delay_max_seconds=int(defaults["ingest_delay_max_seconds"]),
+                    rng=rng,
+                    dense_minutes=dense_minutes,
+                    dense_full_window=dense_full,
+                )
+
+            for std_row, biz_row, raw_id in atm_iter:
+                biz_buffer.append(biz_row)
+                if not biz_only:
+                    std_buffer.append(std_row)
+                    raw_rows_buffer.append(
+                        device_raw_row(
+                            raw_id=raw_id,
+                            device_addr=str(std_row[2]),
+                            receive_time=std_row[21],
+                            offset_no=offset_no,
+                        )
+                    )
+                    offset_no += 1
+                if len(biz_buffer) >= batch_size:
                     flush_atmosphere()
 
             flush_atmosphere()
@@ -480,7 +593,7 @@ def _load_stage_body(
                 f"[{stage}] 大气电场完成：standard {stats.get('standard_atmosphere_electric_field', 0):,} · "
                 f"biz {stats.get('biz_atmosphere_electric_field_event', 0):,}",
             )
-            _commit_phase(conn, log, "大气电场 + 关联 raw")
+            _commit_phase(conn, log, "大气电场" + ("" if biz_only else " + 关联 raw"))
 
             target_raw = int(profile["raw_rows"])
             _emit(log, f"[{stage}] 组装 raw / 低频设备报文（目标 {target_raw:,}）…")
@@ -488,16 +601,23 @@ def _load_stage_body(
             lowfreq_total = int(profile["other_device_rows"])
             lowfreq_devices = mine_cfg.get("lowfreq_devices", [])
             radar_configured = int(profile.get("radar_raw_rows", 0))
+            atm_raw_rows = atmosphere_raw_contribution(profile)
+            # biz_only 时 atmosphere_rows 仅表示 biz 目标，不计入 raw 预算
+            if biz_only:
+                atm_raw_rows = 0
             radar_total, padding, abnormal_total = plan_raw_rows(
                 target_raw=target_raw,
-                atmosphere_rows=atmosphere_rows,
+                atmosphere_rows=atm_raw_rows,
                 lightning_raw_count=lightning_raw_count,
                 lowfreq_raw_count=lowfreq_total,
                 radar_configured=radar_configured,
             )
 
             lowfreq_grouped: dict[str, dict[str, Any]] = {}
-            for item in iter_lowfreq_rows(lowfreq_devices, lowfreq_total, t0, data_end, id_gen, rng):
+            lowfreq_span_start = atm_start if full_1hz else t0
+            for item in iter_lowfreq_rows(
+                lowfreq_devices, lowfreq_total, lowfreq_span_start, data_end, id_gen, rng
+            ):
                 std_table, biz_table, std_cols, std_row, biz_cols, biz_row = item
                 key = std_table
                 if key not in lowfreq_grouped:
