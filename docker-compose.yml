@@ -72,15 +72,16 @@ services:
 
       - /var/run/docker.sock:/var/run/docker.sock
       - .:/workspace
-      # Mount leidian backend for Compose ops + local Maven target output
-      - ${LEIDIAN_BACKEND_HOST_PATH:-D:/workspace/leidian/leidian-backend}:/leidian-backend
+      - ./stack-panel/data:/app/data
+      - ${LEIDIAN_MAVEN_CACHE_HOST_PATH:-C:/Users/61021/.m2}:/root/.m2
+      # Current deployment project; configure the host path without editing the panel.
+      - ${LEIDIAN_DEPLOY_PROJECT_HOST_PATH:-D:/workspace/leidian/leidan-pgsql}:/deploy-project
 
     environment:
 
       - MYTOOLS_ROOT=/workspace
-      - LEIDIAN_BACKEND_ROOT=/leidian-backend
-      - LEIDIAN_BACKEND_HOST_PATH=${LEIDIAN_BACKEND_HOST_PATH:-D:/workspace/leidian/leidian-backend}
-      - OPS_LEIDIAN_OVERRIDES=/workspace/stack-panel/leidian-overrides
+      - DEPLOY_PROJECT_HOST_PATH=${LEIDIAN_DEPLOY_PROJECT_HOST_PATH:-D:/workspace/leidian/leidan-pgsql}
+      - DEPLOY_PROJECT_ROOT=/deploy-project
       - STACK_PANEL_PORT=5770
 
     restart: unless-stopped
