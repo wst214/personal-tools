@@ -1,0 +1,47 @@
+id: wb-11-result-no-side-effect
+name: 回测不得写入正式预警事件
+description: 【暂不执行】验收：回测不得写入正式预警事件。
+skip: true
+skipReason: 能力未上线；本用例按验收标准编写，上线后取消 skip 即可跑
+steps:
+- method: POST
+  service: biz
+  path: /warning/rules
+  expect:
+    status: 200
+    fields:
+      code: 0
+  body:
+    ruleName: 验收-回测无副作用-${rand}
+    conditionJson: '{}'
+    actionJson: '{"actionType":"WARNING","warningLevel":"BLUE"}'
+    scheduleType: ALWAYS
+  capture:
+    ruleId: data.id
+- method: POST
+  service: biz
+  path: /warning/rules/${ruleId}/submit
+  expect:
+    status: 200
+    fields:
+      code: 0
+- method: POST
+  service: biz
+  path: /warning/rules/${ruleId}/test
+  expect:
+    status: 200
+    fields:
+      code: 0
+  body:
+    from: ${now-1d}
+    to: ${now+0s}
+  capture:
+    testId: data.id
+- method: GET
+  service: biz
+  path: /warning/events?pageNum=1&pageSize=20&keyword=验收-回测无副作用
+  expect:
+    status: 200
+    fields:
+      code: 0
+      data.total: 0

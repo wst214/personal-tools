@@ -8,7 +8,7 @@ export const sysInfoTool = {
   keywords: 'system cpu memory os info 系统信息',
   desc: '本机系统信息',
   render(c) {
-    const out = el('div', { class: 'kv-grid' });
+    const out = el('div', { class: 'kv-grid kv-grid-2' });
     const load = async () => {
       out.innerHTML = '';
       if (!isDesktop()) { out.append(el('div', { class: 'err', text: '需在桌面端运行' })); return; }
@@ -27,7 +27,13 @@ export const sysInfoTool = {
       rows.forEach(([k, v]) => out.append(kvRow(k, v)));
       s.network.forEach((n) => n.addrs.forEach((a) => out.append(kvRow(`${n.name} ${a.family}`, a.address))));
     };
-    c.append(el('div', { class: 'card' }, [el('div', { class: 'form-row' }, [el('div', { class: 'card-title', text: '系统信息', style: { flex: '1' } }), btn('刷新', load)]), out]));
+    c.append(el('div', { class: 'card sysinfo-card' }, [
+      el('div', { class: 'form-row', style: { flexShrink: '0' } }, [
+        el('div', { class: 'card-title', text: '系统信息', style: { flex: '1' } }),
+        btn('刷新', load),
+      ]),
+      out,
+    ]));
     load();
   },
 };

@@ -1,0 +1,15 @@
+id: li-11-recent-network
+name: 三网最近记录可查
+description: 按网络展开：/ingest/standard/{network}/recent（接入验证摘要）。
+skip: false
+skipReason: ''
+expandByNetwork: true
+steps:
+- name: 查最近记录
+  method: GET
+  service: data
+  path: ${recentPath}
+  expect:
+    status: 200
+    fields:
+      code: 0

@@ -1,0 +1,22 @@
+id: wr-detail
+name: 规则详情
+description: 烟测：先分页取一条规则 id，再查详情，期望成功。
+skip: false
+skipReason: ''
+steps:
+- method: GET
+  service: biz
+  path: /warning/rules?pageNum=1&pageSize=10
+  expect:
+    status: 200
+    fields:
+      code: 0
+  capture:
+    ruleId: data.list.0.id
+- method: GET
+  service: biz
+  path: /warning/rules/${ruleId}
+  expect:
+    status: 200
+    fields:
+      code: 0

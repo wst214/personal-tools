@@ -1,0 +1,15 @@
+id: di-30-biz-page
+name: 业务监测列表可分页
+description: 通用：按所选类型展开 biz 列表（无 BFF 的类型自动跳过）。
+skip: false
+skipReason: ''
+expandByDeviceType: true
+expandRequiresBiz: true
+steps:
+- method: GET
+  service: biz
+  path: ${bizPath}
+  expect:
+    status: 200
+    fields:
+      code: 0

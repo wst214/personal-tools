@@ -1,0 +1,15 @@
+id: li-12-invalid-param
+name: 非法分页参数被拒
+description: 通用：雷电分页接口传非法分页参数（pageNum=0）应返回错误码。
+skip: false
+skipReason: ''
+expandByNetwork: true
+steps:
+- name: 传非法分页参数
+  method: GET
+  service: biz
+  path: ${bizPath}&pageNum=0
+  expect:
+    status: 400
+    fields:
+      code: 400

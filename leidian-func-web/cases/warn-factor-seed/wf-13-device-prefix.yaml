@@ -1,0 +1,42 @@
+id: wf-13-device-prefix
+name: 跨设备同名列因子编码应带设备前缀
+description: 验收：多设备同源字段（如 leakage_current、battery_voltage）因子编码应带设备前缀。
+skip: false
+skipReason: ''
+steps:
+- method: GET
+  service: biz
+  path: /warning/factors/by-code/ISPD_LEAKAGE_CURRENT
+  expect:
+    status: 200
+    fields:
+      code: 0
+      data.factorCode: ISPD_LEAKAGE_CURRENT
+      data.sourceColumn: leakage_current
+- method: GET
+  service: biz
+  path: /warning/factors/by-code/SM_LEAKAGE_CURRENT
+  expect:
+    status: 200
+    fields:
+      code: 0
+      data.factorCode: SM_LEAKAGE_CURRENT
+      data.sourceColumn: leakage_current
+- method: GET
+  service: biz
+  path: /warning/factors/by-code/SURGE_BATTERY_VOLTAGE
+  expect:
+    status: 200
+    fields:
+      code: 0
+      data.factorCode: SURGE_BATTERY_VOLTAGE
+      data.sourceColumn: battery_voltage
+- method: GET
+  service: biz
+  path: /warning/factors/by-code/DISCONNECT_BATTERY_VOLTAGE
+  expect:
+    status: 200
+    fields:
+      code: 0
+      data.factorCode: DISCONNECT_BATTERY_VOLTAGE
+      data.sourceColumn: battery_voltage

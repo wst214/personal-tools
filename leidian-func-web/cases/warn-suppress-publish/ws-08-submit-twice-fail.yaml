@@ -1,0 +1,36 @@
+id: ws-08-submit-twice-fail
+name: 重复提交失败
+description: 负向：已提交/已生效后再次 submit，期望失败。
+skip: false
+skipReason: ''
+steps:
+- method: POST
+  service: biz
+  path: /warning/suppress
+  body:
+    siteId: 1
+    suppressName: 功能测-重复提交-${rand}
+    suppressScope: FULL
+    timeMode: PERMANENT
+    targets:
+    - targetType: WARNING_LEVEL
+      targetCode: ORANGE
+  expect:
+    status: 200
+    fields:
+      code: 0
+  capture:
+    suppressId: data.id
+- method: POST
+  service: biz
+  path: /warning/suppress/${suppressId}/submit
+  expect:
+    status: 200
+    fields:
+      code: 0
+      data.suppressStatus: ACTIVE
+- method: POST
+  service: biz
+  path: /warning/suppress/${suppressId}/submit
+  expect:
+    status: 400

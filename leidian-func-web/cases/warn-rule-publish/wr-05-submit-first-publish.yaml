@@ -1,0 +1,41 @@
+id: wr-05-submit-first-publish
+name: 提交即生效（首发）
+description: 草稿首次 submit：P0 下直接视为审核通过，规则变为 ENABLED，当前版本 ACTIVE。
+skip: false
+skipReason: ''
+steps:
+- method: POST
+  service: biz
+  path: /warning/rules
+  body:
+    ruleName: 功能测-首发-${rand}
+    conditionJson: '{"logic":"OR"}'
+    actionJson: '{"actionType":"WARNING","warningLevel":"BLUE"}'
+    foreseeMinutes: 60
+    scheduleType: ALWAYS
+  expect:
+    status: 200
+    fields:
+      code: 0
+      data.ruleStatus: DRAFT
+  capture:
+    ruleId: data.id
+- method: POST
+  service: biz
+  path: /warning/rules/${ruleId}/submit
+  expect:
+    status: 200
+    fields:
+      code: 0
+      data.ruleStatus: ENABLED
+      data.versionStatus: ACTIVE
+      data.warningLevel: BLUE
+- method: GET
+  service: biz
+  path: /warning/rules/${ruleId}
+  expect:
+    status: 200
+    fields:
+      code: 0
+      data.ruleStatus: ENABLED
+      data.draftVersionId: null

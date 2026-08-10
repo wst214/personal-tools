@@ -1,0 +1,29 @@
+id: wr-create-submit
+name: 新建草稿并提交生效（兼容旧用例）
+description: 兼容旧路径：创建草稿后立即 submit，串联验证「新建即生效」。
+skip: false
+skipReason: ''
+steps:
+- method: POST
+  service: biz
+  path: /warning/rules
+  body:
+    ruleName: func-web-auto-${rand}
+    ruleDesc: leidian-func-web
+    conditionJson: '{"logic":"AND","children":[]}'
+    actionJson: '{"actionType":"WARNING","warningLevel":"BLUE"}'
+    foreseeMinutes: 30
+    scheduleType: ALWAYS
+  expect:
+    status: 200
+    fields:
+      code: 0
+  capture:
+    ruleId: data.id
+- method: POST
+  service: biz
+  path: /warning/rules/${ruleId}/submit
+  expect:
+    status: 200
+    fields:
+      code: 0

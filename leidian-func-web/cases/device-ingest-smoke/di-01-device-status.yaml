@@ -1,0 +1,14 @@
+id: di-01-device-status
+name: 设备 monitor 分类型统计可用
+description: 通用烟测：不依赖具体设备类型。
+skip: false
+skipReason: ''
+expandByDeviceType: false
+steps:
+- method: GET
+  service: data
+  path: /ingest/device/status
+  expect:
+    status: 200
+    fields:
+      code: 0

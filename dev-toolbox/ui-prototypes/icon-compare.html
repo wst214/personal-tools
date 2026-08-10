@@ -1,0 +1,161 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<title>图标风格对比 — 4 套</title>
+<style>
+* { margin:0; padding:0; box-sizing:border-box; }
+body { font-family:"Segoe UI","Microsoft YaHei",system-ui,sans-serif; background:#f5f5f7; color:#1d1d1f; padding:30px 36px; }
+h1 { font-size:20px; margin-bottom:6px; }
+.sub { color:#86868b; font-size:12.5px; margin-bottom:24px; }
+.styles { display:grid; grid-template-columns:repeat(auto-fit,minmax(300px,1fr)); gap:18px; }
+.style { background:#fff; border:1px solid #e3e3e8; border-radius:14px; padding:18px; }
+.style h3 { font-size:14px; margin-bottom:14px; display:flex; align-items:center; gap:8px; }
+.style h3 .tag { font-size:10px; color:#86868b; background:#f0f0f4; border-radius:4px; padding:2px 6px; }
+.rows { display:flex; flex-direction:column; gap:10px; }
+.row { display:flex; align-items:center; gap:12px; padding:6px 4px; border-bottom:1px solid #f0f0f4; }
+.row:last-child { border-bottom:none; }
+.row .name { font-size:12px; color:#4a4a50; }
+.row .ic-wrap { display:flex; align-items:center; justify-content:center; flex-shrink:0; }
+.sec { font-size:10.5px; font-weight:600; color:#86868b; margin:14px 0 6px; letter-spacing:.03em; }
+svg { display:block; }
+
+/* 风格1：简单线性 */
+.s1 .ic { width:28px; height:28px; border-radius:8px; background:#f0f0f4; display:flex; align-items:center; justify-content:center; color:#4a4a50; }
+.s1 .ic svg { width:16px; height:16px; }
+.s1 .ic-big { width:42px; height:42px; border-radius:11px; background:#f0f0f4; display:flex; align-items:center; justify-content:center; color:#3d6fd8; }
+.s1 .ic-big svg { width:21px; height:21px; }
+
+/* 风格2：彩色圆角方块 */
+.s2 .ic { width:28px; height:28px; border-radius:8px; display:flex; align-items:center; justify-content:center; color:#fff; }
+.s2 .ic svg { width:16px; height:16px; }
+.s2 .ic-big { width:42px; height:42px; border-radius:11px; display:flex; align-items:center; justify-content:center; color:#fff; }
+.s2 .ic-big svg { width:21px; height:21px; }
+
+/* 风格3：圆形底+单色 */
+.s3 .ic { width:30px; height:30px; border-radius:50%; background:#ececf1; display:flex; align-items:center; justify-content:center; color:#0071e3; }
+.s3 .ic svg { width:16px; height:16px; }
+.s3 .ic-big { width:44px; height:44px; border-radius:50%; background:#e8f0fe; display:flex; align-items:center; justify-content:center; color:#0071e3; }
+.s3 .ic-big svg { width:22px; height:22px; }
+
+/* 风格4：纯描边无底色 */
+.s4 .ic { width:28px; height:28px; display:flex; align-items:center; justify-content:center; color:#3a3a42; }
+.s4 .ic svg { width:18px; height:18px; }
+.s4 .ic-big { width:42px; height:42px; display:flex; align-items:center; justify-content:center; color:#3d6fd8; }
+.s4 .ic-big svg { width:24px; height:24px; }
+</style>
+</head>
+<body>
+<h1>图标风格对比</h1>
+<div class="sub">同一批图标 × 4 种风格，左右对比选一套</div>
+
+<!-- 图标定义 -->
+<svg width="0" height="0" style="position:absolute">
+  <defs>
+    <g id="i-note"><path d="M7 3.5h8.5L19 7v13.5H7z"/><path d="M15.5 3.5V7H19"/><path d="M10 11h6M10 14h5M10 17h3"/></g>
+    <g id="i-json"><path d="M8 7 4 12l4 5M16 7l4 5-4 5"/><path d="m13.5 5-3 14"/></g>
+    <g id="i-lock"><rect x="5" y="10" width="14" height="10" rx="2"/><path d="M8 10V8a4 4 0 0 1 8 0v2"/><path d="M12 14v2"/></g>
+    <g id="i-base"><circle cx="12" cy="12" r="8.5"/><path d="M8.5 9.5h.1M8.5 12h.1M8.5 14.5h.1"/><path d="M12.5 9.5h3M12.5 12h3M12.5 14.5h3"/><path d="M15.5 9.5l-6 5"/></g>
+    <g id="i-time"><circle cx="12" cy="12" r="8"/><path d="M12 7v5l3.2 2"/></g>
+    <g id="i-sql"><ellipse cx="12" cy="6" rx="7" ry="3"/><path d="M5 6v6c0 1.7 3.1 3 7 3s7-1.3 7-3V6"/><path d="M5 12v6c0 1.7 3.1 3 7 3s7-1.3 7-3v-6"/></g>
+    <g id="i-regex"><path d="M8 4.5v15M16 4.5v15"/><path d="M4.5 8.5c-1 .9-1.5 2-1.5 3.5s.5 2.6 1.5 3.5M19.5 8.5c1 .9 1.5 2 1.5 3.5s-.5 2.6-1.5 3.5"/><path d="M12 8.5v7M9.5 11h5"/></g>
+    <g id="i-ssh"><path d="M4 6h16M4 12h16M4 18h10"/><path d="m19 16 2.5 2.5L19 21"/></g>
+    <g id="i-http"><path d="M5 8h14M5 16h14"/><path d="m8 5-3 3 3 3M16 13l3 3-3 3"/></g>
+    <g id="i-deploy"><path d="M12 3c2.5 1.8 4 4.5 4 8l3 3v2l-3.5-1c-.4 1-.9 1.9-1.5 2.7L12 20l-2-2.3c-.6-.8-1.1-1.7-1.5-2.7L5 16v-2l3-3c0-3.5 1.5-6.2 4-8Z"/><path d="M12 3v2M12 13v4M9.5 9.5h5"/></g>
+    <g id="i-sys"><rect x="4" y="5" width="16" height="11" rx="2"/><path d="M8 20h8M12 16v4"/><path d="M8 9h2M8 12h5"/></g>
+    <g id="i-indent"><path d="M4 5h16M4 19h16"/><path d="M10 9l3 3-3 3"/><path d="M13 9l3 3-3 3"/></g>
+    <g id="i-compress"><path d="M9 4v5H4M15 4v5h5"/><path d="M9 20v-5H4M15 20v-5h5"/></g>
+    <g id="i-tree"><path d="M4 6h6M4 12h6M4 18h6"/><path d="M14 6h6M14 12h6M14 18h6"/></g>
+    <g id="i-in"><path d="M12 3v12"/><path d="m7 10 5 5 5-5"/><path d="M4 21h16"/></g>
+    <g id="i-out"><path d="M12 15V3"/><path d="m7 8 5-5 5 5"/><path d="M4 21h16"/></g>
+  </defs>
+</svg>
+
+<div class="styles">
+  <!-- 风格 1 -->
+  <div class="style s1">
+    <h3>① 简单线性 <span class="tag">浅灰底+描边</span></h3>
+    <div class="sec">工具</div>
+    <div class="rows" id="t1"></div>
+    <div class="sec">操作卡</div>
+    <div class="rows" id="a1"></div>
+  </div>
+
+  <!-- 风格 2 -->
+  <div class="style s2">
+    <h3>② 彩色圆角方块 <span class="tag">渐变底+白图标</span></h3>
+    <div class="sec">工具</div>
+    <div class="rows" id="t2"></div>
+    <div class="sec">操作卡</div>
+    <div class="rows" id="a2"></div>
+  </div>
+
+  <!-- 风格 3 -->
+  <div class="style s3">
+    <h3>③ 圆形底+单色 <span class="tag">iOS 设置风</span></h3>
+    <div class="sec">工具</div>
+    <div class="rows" id="t3"></div>
+    <div class="sec">操作卡</div>
+    <div class="rows" id="a3"></div>
+  </div>
+
+  <!-- 风格 4 -->
+  <div class="style s4">
+    <h3>④ 纯描边无底色 <span class="tag">Notion 风</span></h3>
+    <div class="sec">工具</div>
+    <div class="rows" id="t4"></div>
+    <div class="sec">操作卡</div>
+    <div class="rows" id="a4"></div>
+  </div>
+</div>
+
+<script>
+// 工具图标：id + 名称
+const TOOLS = [
+  ['i-note','随手记'],['i-json','JSON 格式化'],['i-lock','加解密'],['i-base','进制转换'],
+  ['i-time','时间戳'],['i-sql','SQL'],['i-regex','正则'],['i-ssh','SSH 终端'],
+  ['i-http','HTTP 工具'],['i-deploy','部署工作台'],['i-sys','系统信息'],
+];
+const ACTIONS = [
+  ['i-indent','缩进 2 空格'],['i-compress','压缩'],['i-tree','折叠视图'],
+];
+// 彩色风格配色（风格2）
+const COLORS = [
+  ['#7c4dff','#5b2df5'],['#0071e3','#0050b3'],['#0e9f6e','#0b7d56'],['#f59e0b','#d97706'],
+  ['#ec4899','#db2777'],['#06b6d4','#0891b2'],['#6366f1','#4f46e5'],['#10b981','#059669'],
+  ['#f43f5e','#e11d48'],['#f97316','#ea580c'],['#8b5cf6','#7c3aed'],
+];
+const svg = (id, size) => `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" width="${size}" height="${size}"><use href="#${id}"/></svg>`;
+
+function render() {
+  // 风格1/3/4 用同一批图标（颜色不同）
+  [1,3,4].forEach(s => {
+    const t = document.getElementById('t'+s), a = document.getElementById('a'+s);
+    TOOLS.forEach(([id,name]) => {
+      const row = document.createElement('div'); row.className='row';
+      row.innerHTML = `<div class="ic">${svg(id,16)}</div><div class="name">${name}</div>`;
+      t.appendChild(row);
+    });
+    ACTIONS.forEach(([id,name]) => {
+      const row = document.createElement('div'); row.className='row';
+      row.innerHTML = `<div class="ic-big">${svg(id,21)}</div><div class="name">${name}</div>`;
+      a.appendChild(row);
+    });
+  });
+  // 风格2 彩色
+  const t2 = document.getElementById('t2'), a2 = document.getElementById('a2');
+  TOOLS.forEach(([id,name],i) => {
+    const row = document.createElement('div'); row.className='row';
+    row.innerHTML = `<div class="ic" style="background:linear-gradient(135deg,${COLORS[i][0]},${COLORS[i][1]})">${svg(id,16)}</div><div class="name">${name}</div>`;
+    t2.appendChild(row);
+  });
+  ACTIONS.forEach(([id,name],i) => {
+    const row = document.createElement('div'); row.className='row';
+    row.innerHTML = `<div class="ic-big" style="background:linear-gradient(135deg,${COLORS[i+2][0]},${COLORS[i+2][1]})">${svg(id,21)}</div><div class="name">${name}</div>`;
+    a2.appendChild(row);
+  });
+}
+render();
+</script>
+</body>
+</html>

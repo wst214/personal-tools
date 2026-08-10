@@ -1,0 +1,60 @@
+id: wr-06-submit-supersede
+name: 已启用改内容再提交（升版）
+description: 已启用规则修改内容后再 submit：生成新版本并升版，旧版本被替代。
+skip: false
+skipReason: ''
+steps:
+- method: POST
+  service: biz
+  path: /warning/rules
+  body:
+    ruleName: 功能测-升版-${rand}
+    conditionJson: '{"logic":"OR"}'
+    actionJson: '{"actionType":"WARNING","warningLevel":"BLUE"}'
+    scheduleType: ALWAYS
+  expect:
+    status: 200
+    fields:
+      code: 0
+  capture:
+    ruleId: data.id
+- method: POST
+  service: biz
+  path: /warning/rules/${ruleId}/submit
+  expect:
+    status: 200
+    fields:
+      code: 0
+      data.ruleStatus: ENABLED
+      data.warningLevel: BLUE
+  capture:
+    v1: data.currentVersionId
+- method: PUT
+  service: biz
+  path: /warning/rules/${ruleId}
+  body:
+    ruleName: 功能测-升版-${rand}
+    conditionJson: '{"logic":"AND"}'
+    actionJson: '{"actionType":"WARNING","warningLevel":"ORANGE"}'
+    scheduleType: ALWAYS
+  expect:
+    status: 200
+    fields:
+      code: 0
+      data.ruleStatus: ENABLED
+      data.versionStatus: DRAFT
+      data.warningLevel: ORANGE
+  capture:
+    draftId: data.draftVersionId
+- method: POST
+  service: biz
+  path: /warning/rules/${ruleId}/submit
+  expect:
+    status: 200
+    fields:
+      code: 0
+      data.ruleStatus: ENABLED
+      data.versionStatus: ACTIVE
+      data.warningLevel: ORANGE
+      data.draftVersionId: null
+      data.currentVersionId: ${draftId}

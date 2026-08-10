@@ -1,0 +1,13 @@
+id: wg-00-mock-list
+name: 占位预警列表可返回
+description: 烟测现有占位接口 GET /warnings，确认可返回模拟预警列表。
+skip: false
+skipReason: ''
+steps:
+- method: GET
+  service: biz
+  path: /warnings
+  expect:
+    status: 200
+    fields:
+      code: 0

@@ -1,0 +1,20 @@
+id: wr-25-effective-window
+name: 草稿带生效时间窗
+description: 【暂不执行】验收：草稿可配置生效时间窗（effectiveFrom/To）；能力未上线前保持 skip。
+skip: true
+skipReason: 当前 SaveRequest/VO 若未暴露 effectiveFrom/To，落地字段后取消 skip
+steps:
+- method: POST
+  service: biz
+  path: /warning/rules
+  body:
+    ruleName: 功能测-生效窗-${rand}
+    conditionJson: '{}'
+    actionJson: '{"actionType":"WARNING","warningLevel":"BLUE"}'
+    scheduleType: ALWAYS
+    effectiveFrom: ${now+1d}
+    effectiveTo: ${now+30d}
+  expect:
+    status: 200
+    fields:
+      code: 0

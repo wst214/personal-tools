@@ -26,6 +26,7 @@ echo   Personal dev site   http://localhost:8090
 echo   Stack panel         http://localhost:5770
 echo   Linux remote panel  http://localhost:5757
 echo   Tunnel panel        http://localhost:5760
+echo   New API             http://localhost:5780
 echo   WSL helper          http://127.0.0.1:5758
 echo.
 echo Stop Docker: docker compose down

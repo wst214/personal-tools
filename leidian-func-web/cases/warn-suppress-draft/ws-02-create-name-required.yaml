@@ -1,0 +1,18 @@
+id: ws-02-create-name-required
+name: 新建缺抑制名称失败
+description: 负向：抑制名称缺失时创建失败，期望 400。
+skip: false
+skipReason: ''
+steps:
+- method: POST
+  service: biz
+  path: /warning/suppress
+  body:
+    siteId: 1
+    suppressScope: FULL
+    timeMode: PERMANENT
+    targets:
+    - targetType: WARNING_LEVEL
+      targetCode: BLUE
+  expect:
+    status: 400

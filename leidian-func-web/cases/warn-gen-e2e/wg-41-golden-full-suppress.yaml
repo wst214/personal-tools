@@ -1,0 +1,80 @@
+id: wg-41-golden-full-suppress
+name: 黄金路径-FULL 抑制只见 SUPPRESSED
+description: 验收黄金：FULL 抑制(等级匹配)+触发 -> 独立 SUPPRESSED 事件，suppressId 关联。
+skip: false
+skipReason: ''
+steps:
+- method: POST
+  service: biz
+  path: /warning/suppress
+  body:
+    siteId: 1000000000000050101
+    suppressName: 验收-黄金FULL-${rand}
+    reason: WG-41
+    suppressScope: FULL
+    timeMode: PERMANENT
+    targets:
+    - targetType: WARNING_LEVEL
+      targetCode: BLUE
+  expect:
+    status: 200
+    fields:
+      code: 0
+      data.suppressStatus: DRAFT
+  capture:
+    suppressId: data.id
+- method: POST
+  service: biz
+  path: /warning/suppress/${suppressId}/submit
+  expect:
+    status: 200
+    fields:
+      code: 0
+      data.suppressStatus: ACTIVE
+- method: POST
+  service: biz
+  path: /warning/rules
+  body:
+    ruleName: 验收-黄金FULL规则-${rand}
+    ruleDesc: WG-41
+    conditionJson: '{"logic":"AND","children":[{"factorCode":"ATMO_EFIELD_INSTANT","op":"GTE","value":5}]}'
+    actionJson: '{"actionType":"WARNING","warningLevel":"BLUE","notify":{"requireConfirm":false}}'
+    foreseeMinutes: 60
+    scheduleType: ALWAYS
+  expect:
+    status: 200
+    fields:
+      code: 0
+      data.ruleStatus: DRAFT
+  capture:
+    ruleId: data.id
+- method: POST
+  service: biz
+  path: /warning/rules/${ruleId}/submit
+  expect:
+    status: 200
+    fields:
+      code: 0
+      data.ruleStatus: ENABLED
+- method: POST
+  service: biz
+  path: /warning/eval/trigger
+  body:
+    siteId: 1000000000000050101
+    ruleId: ${ruleId}
+    factorOverrides:
+      ATMO_EFIELD_INSTANT: 9
+  expect:
+    status: 200
+    fields:
+      code: 0
+      data.candidates.0.warningLevel: BLUE
+- method: GET
+  service: biz
+  path: /warning/events?pageNum=1&pageSize=1&siteId=1000000000000050101&lifecycleStatus=SUPPRESSED&includeHidden=true
+  expect:
+    status: 200
+    fields:
+      code: 0
+      data.list.0.lifecycleStatus: SUPPRESSED
+      data.list.0.suppressId: ${suppressId}

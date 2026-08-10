@@ -1,4 +1,4 @@
-﻿name: mytools-stack
+name: mytools-stack
 
 services:
 
@@ -110,6 +110,32 @@ services:
       - PORT=5785
       - HOST_GATEWAY=host.docker.internal
 
+    restart: unless-stopped
+
+  # New API：多上游 LLM 统一转发（SQLite，个人本机用）
+  mytools-new-api:
+    image: calciumion/new-api:latest
+    container_name: mytools-new-api
+    expose:
+      - "3000"
+    volumes:
+      - ./new-api/data:/data
+    environment:
+      - TZ=Asia/Shanghai
+      - SERVER_ADDRESS=http://localhost:5780
+    restart: unless-stopped
+
+  # 同域网关：对外仍是 :5780，并提供 /auto-login.html 自动登录
+  mytools-new-api-gateway:
+    image: nginx:alpine
+    container_name: mytools-new-api-gateway
+    ports:
+      - "5780:80"
+    volumes:
+      - ./new-api/nginx.conf:/etc/nginx/nginx.conf:ro
+      - ./new-api/auto-login.html:/usr/share/nginx/html/auto-login.html:ro
+    depends_on:
+      - mytools-new-api
     restart: unless-stopped
 
 volumes:

@@ -1,0 +1,86 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<title>3 — 浏览器感 × 宽松</title>
+<style>
+* { margin:0; padding:0; box-sizing:border-box; }
+body { font-family:"Segoe UI","Microsoft YaHei",system-ui,sans-serif; background:#f5f6f8; color:#1d2026; height:100vh; overflow:hidden; display:flex; flex-direction:column; }
+
+/* 顶部：Arc 式侧边工具标签 */
+.tabbar { display:flex; align-items:flex-end; gap:4px; padding:10px 18px 0; background:#f5f6f8; flex-shrink:0; }
+.tab { display:flex; align-items:center; gap:8px; padding:9px 16px; background:#eceef2; border-radius:10px 10px 0 0; font-size:12.5px; color:#6b7180; cursor:pointer; border-bottom:2px solid transparent; }
+.tab:hover { background:#e4e7ec; color:#1d2026; }
+.tab.active { background:#fff; color:#1d2026; font-weight:600; border-bottom-color:#4f7cff; }
+.tab .x { margin-left:6px; color:#9aa0ad; font-size:12px; }
+.tab .x:hover { color:#e04f4f; }
+
+/* 顶部主栏 */
+.topbar { display:flex; align-items:center; gap:14px; padding:16px 28px; background:#fff; border-bottom:1px solid #e8eaef; flex-shrink:0; }
+.topbar .brand { font-weight:700; font-size:15px; display:flex; align-items:center; gap:8px; }
+.topbar .brand .logo { width:24px; height:24px; border-radius:7px; background:linear-gradient(135deg,#4f7cff,#7c4dff); display:flex; align-items:center; justify-content:center; font-size:11px; color:#fff; }
+.topbar .search { flex:1; max-width:420px; display:flex; align-items:center; gap:8px; background:#f2f3f7; border:1px solid #e4e7ec; border-radius:9px; padding:8px 14px; color:#9aa0ad; font-size:13px; }
+.topbar .search input { flex:1; border:none; background:transparent; outline:none; font-size:13px; color:#1d2026; }
+.topbar .actions { display:flex; gap:6px; }
+.icon-btn { width:32px; height:32px; border-radius:8px; border:1px solid #e4e7ec; background:#fff; display:flex; align-items:center; justify-content:center; color:#6b7180; cursor:pointer; }
+.icon-btn:hover { border-color:#4f7cff; color:#4f7cff; }
+
+/* 内容：大留白 */
+.content { flex:1; overflow:auto; padding:44px 56px; }
+.hero { margin-bottom:36px; }
+.hero h1 { font-size:34px; font-weight:800; letter-spacing:-.02em; color:#1d2026; }
+.hero p { font-size:14px; color:#8a909d; margin-top:8px; }
+.cards { display:grid; grid-template-columns:1fr 1fr; gap:20px; }
+.card { background:#fff; border:1px solid #e8eaef; border-radius:16px; padding:26px; box-shadow:0 2px 8px rgba(22,28,45,.04); }
+.card h3 { font-size:14px; font-weight:600; color:#1d2026; margin-bottom:16px; display:flex; justify-content:space-between; align-items:center; }
+.card h3 .tag { font-size:10.5px; color:#9aa0ad; font-weight:400; }
+.area { background:#f7f8fb; border:1px solid #e8eaef; border-radius:10px; min-height:120px; padding:16px; color:#b0b6c2; font-size:13px; }
+.btns { display:flex; gap:8px; margin-top:16px; flex-wrap:wrap; }
+.btn { border:1px solid #e4e7ec; background:#fff; border-radius:8px; padding:7px 15px; font-size:12.5px; color:#4b5261; cursor:pointer; }
+.btn:hover { border-color:#4f7cff; color:#4f7cff; }
+.btn.primary { background:#4f7cff; border-color:#4f7cff; color:#fff; }
+.btn.primary:hover { background:#3d68e0; color:#fff; }
+</style>
+</head>
+<body>
+<div class="tabbar">
+  <div class="tab">📝 随手记</div>
+  <div class="tab active">{} JSON 格式化</div>
+  <div class="tab">🔐 加解密编码 <span class="x">×</span></div>
+  <div class="tab">SQL 格式化 <span class="x">×</span></div>
+  <div class="tab">+</div>
+</div>
+
+<div class="topbar">
+  <div class="brand"><div class="logo">◈</div><span>DevTool</span></div>
+  <div class="search"><span>⌕</span><input placeholder="搜索工具、命令…"></div>
+  <div class="actions">
+    <div class="icon-btn">◐</div>
+    <div class="icon-btn">⚙</div>
+  </div>
+</div>
+
+<div class="content">
+  <div class="hero">
+    <h1>JSON 格式化</h1>
+    <p>格式化 / 压缩 / 转换 / 折叠浏览 · 后台线程处理大文件</p>
+  </div>
+  <div class="cards">
+    <div class="card">
+      <h3>输入 <span class="tag">支持 10MB+</span></h3>
+      <div class="area">在此粘贴 JSON…</div>
+    </div>
+    <div class="card">
+      <h3>结果 <span class="tag">格式化后</span></h3>
+      <div class="area">结果将显示在这里…</div>
+      <div class="btns">
+        <div class="btn primary">缩进 2 空格</div>
+        <div class="btn">缩进 4 空格</div>
+        <div class="btn">压缩</div>
+        <div class="btn">折叠视图</div>
+      </div>
+    </div>
+  </div>
+</div>
+</body>
+</html>

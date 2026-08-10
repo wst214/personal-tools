@@ -1,0 +1,166 @@
+﻿[
+    {
+        "id":  "wr-01-create-draft",
+        "module":  "warn-rule-draft"
+    },
+    {
+        "id":  "wr-02-create-name-required",
+        "module":  "warn-rule-draft"
+    },
+    {
+        "id":  "wr-03-create-bad-json",
+        "module":  "warn-rule-draft"
+    },
+    {
+        "id":  "wr-04-update-draft",
+        "module":  "warn-rule-draft"
+    },
+    {
+        "id":  "wr-21-bad-schedule-type",
+        "module":  "warn-rule-draft"
+    },
+    {
+        "id":  "wr-23-update-attach-draft",
+        "module":  "warn-rule-draft"
+    },
+    {
+        "id":  "wr-24-broadcast-action",
+        "module":  "warn-rule-draft"
+    },
+    {
+        "id":  "wr-05-submit-first-publish",
+        "module":  "warn-rule-publish"
+    },
+    {
+        "id":  "wr-06-submit-supersede",
+        "module":  "warn-rule-publish"
+    },
+    {
+        "id":  "wr-07-submit-without-draft",
+        "module":  "warn-rule-publish"
+    },
+    {
+        "id":  "wr-create-submit",
+        "module":  "warn-rule-publish"
+    },
+    {
+        "id":  "wr-08-disable",
+        "module":  "warn-rule-lifecycle"
+    },
+    {
+        "id":  "wr-09-enable-from-disabled",
+        "module":  "warn-rule-lifecycle"
+    },
+    {
+        "id":  "wr-10-disable-draft-fail",
+        "module":  "warn-rule-lifecycle"
+    },
+    {
+        "id":  "wr-11-enable-draft-fail",
+        "module":  "warn-rule-lifecycle"
+    },
+    {
+        "id":  "wr-15-delete-custom",
+        "module":  "warn-rule-lifecycle"
+    },
+    {
+        "id":  "wr-12-page-filter",
+        "module":  "warn-rule-query"
+    },
+    {
+        "id":  "wr-13-detail",
+        "module":  "warn-rule-query"
+    },
+    {
+        "id":  "wr-14-detail-not-found",
+        "module":  "warn-rule-query"
+    },
+    {
+        "id":  "wr-detail",
+        "module":  "warn-rule-query"
+    },
+    {
+        "id":  "wr-list",
+        "module":  "warn-rule-query"
+    },
+    {
+        "id":  "wr-22-golden-path",
+        "module":  "warn-rule-e2e"
+    },
+    {
+        "id":  "ws-01-create-draft",
+        "module":  "warn-suppress-draft"
+    },
+    {
+        "id":  "ws-02-create-name-required",
+        "module":  "warn-suppress-draft"
+    },
+    {
+        "id":  "ws-03-create-dup-target-fail",
+        "module":  "warn-suppress-draft"
+    },
+    {
+        "id":  "ws-04-create-expired-fail",
+        "module":  "warn-suppress-draft"
+    },
+    {
+        "id":  "ws-05-update-draft",
+        "module":  "warn-suppress-draft"
+    },
+    {
+        "id":  "ws-17-create-device-only",
+        "module":  "warn-suppress-draft"
+    },
+    {
+        "id":  "ws-06-submit-active",
+        "module":  "warn-suppress-publish"
+    },
+    {
+        "id":  "ws-07-update-active-fail",
+        "module":  "warn-suppress-publish"
+    },
+    {
+        "id":  "ws-08-submit-twice-fail",
+        "module":  "warn-suppress-publish"
+    },
+    {
+        "id":  "ws-09-terminate",
+        "module":  "warn-suppress-lifecycle"
+    },
+    {
+        "id":  "ws-10-terminate-draft-fail",
+        "module":  "warn-suppress-lifecycle"
+    },
+    {
+        "id":  "ws-11-delete-draft",
+        "module":  "warn-suppress-lifecycle"
+    },
+    {
+        "id":  "ws-12-delete-active-fail",
+        "module":  "warn-suppress-lifecycle"
+    },
+    {
+        "id":  "ws-18-terminate-reason-required",
+        "module":  "warn-suppress-lifecycle"
+    },
+    {
+        "id":  "ws-13-page-filter",
+        "module":  "warn-suppress-query"
+    },
+    {
+        "id":  "ws-14-detail",
+        "module":  "warn-suppress-query"
+    },
+    {
+        "id":  "ws-15-detail-not-found",
+        "module":  "warn-suppress-query"
+    },
+    {
+        "id":  "ws-16-golden-path",
+        "module":  "warn-suppress-e2e"
+    },
+    {
+        "id":  "wg-00-mock-list",
+        "module":  "warn-gen-smoke"
+    }
+]

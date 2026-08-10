@@ -1,0 +1,87 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>New API 自动登录</title>
+  <style>
+    body {
+      margin: 0; min-height: 100vh; display: grid; place-items: center;
+      font: 14px/1.5 system-ui, sans-serif; color: #334155; background: #f8fafc;
+    }
+    .box { text-align: center; padding: 24px; }
+    .err { color: #dc2626; margin-top: 8px; max-width: 420px; }
+  </style>
+</head>
+<body>
+  <div class="box">
+    <div id="msg">正在自动登录…</div>
+    <div id="err" class="err"></div>
+  </div>
+  <script>
+    (async () => {
+      const msg = document.getElementById('msg');
+      const err = document.getElementById('err');
+      const params = new URLSearchParams(location.search);
+      const next = params.get('next') || '/console';
+
+      let username = 'admin';
+      let password = '';
+      const hash = (location.hash || '').replace(/^#/, '');
+      if (hash) {
+        const i = hash.indexOf(':');
+        if (i >= 0) {
+          username = decodeURIComponent(hash.slice(0, i) || 'admin');
+          password = decodeURIComponent(hash.slice(i + 1) || '');
+        }
+      }
+      if (!password) {
+        try {
+          const j = JSON.parse(localStorage.getItem('mytools_newapi_auto_login') || '{}');
+          username = j.username || username;
+          password = j.password || '';
+        } catch {}
+      }
+
+      try {
+        // 已有 refresh cookie 时直接进
+        try {
+          const rr = await fetch('/api/user/auth/refresh', {
+            method: 'POST',
+            credentials: 'include',
+            headers: { 'Content-Type': 'application/json' },
+            body: '{}',
+          });
+          const rj = await rr.json();
+          if (rj && rj.success && rj.data && rj.data.access_token) {
+            msg.textContent = '已登录，正在进入…';
+            location.replace(next);
+            return;
+          }
+        } catch {}
+
+        if (!password) throw new Error('未提供密码');
+
+        const r = await fetch('/api/user/login', {
+          method: 'POST',
+          credentials: 'include',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ username, password }),
+        });
+        const j = await r.json();
+        if (!j || !j.success) throw new Error((j && j.message) || ('登录失败 HTTP ' + r.status));
+
+        try {
+          localStorage.setItem('mytools_newapi_auto_login', JSON.stringify({ username, password }));
+        } catch {}
+
+        msg.textContent = '登录成功，正在进入…';
+        location.replace(next);
+      } catch (e) {
+        msg.textContent = '自动登录失败';
+        err.textContent = String(e && e.message ? e.message : e);
+      }
+    })();
+  </script>
+</body>
+</html>

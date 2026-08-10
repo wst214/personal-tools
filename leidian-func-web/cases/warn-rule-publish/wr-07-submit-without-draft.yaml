@@ -1,0 +1,33 @@
+id: wr-07-submit-without-draft
+name: 无草稿时二次提交失败
+description: 已发布且无编辑中草稿时再次 submit，期望业务失败（无草稿可提交）。
+skip: false
+skipReason: ''
+steps:
+- method: POST
+  service: biz
+  path: /warning/rules
+  body:
+    ruleName: 功能测-无草稿提交-${rand}
+    conditionJson: '{}'
+    actionJson: '{"actionType":"NONE"}'
+    scheduleType: ALWAYS
+  expect:
+    status: 200
+    fields:
+      code: 0
+  capture:
+    ruleId: data.id
+- method: POST
+  service: biz
+  path: /warning/rules/${ruleId}/submit
+  expect:
+    status: 200
+    fields:
+      code: 0
+      data.ruleStatus: ENABLED
+- method: POST
+  service: biz
+  path: /warning/rules/${ruleId}/submit
+  expect:
+    status: 400

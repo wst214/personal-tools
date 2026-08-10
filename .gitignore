@@ -25,14 +25,34 @@ Thumbs.db
 dist/
 build/
 *.log
+**/src-tauri/target/
+**/icons.bak/
 
 # Local sync / temp archives
 *.tar.gz
 *.zip
 leidian-perf-web-sync.tar.gz
+/wst-temp/
 
 # Runtime / local data (keep structure via nested rules)
 **/.venv/
+.reasonix/
+**/.reasonix/
 
 # Server deployment panel local credentials and image artifacts
 stack-panel/data/
+
+# New API local SQLite / runtime
+new-api/data/*
+!new-api/data/.gitkeep
+new-api/.run/
+
+# Func web local run artifacts (keep env fixtures)
+leidian-func-web/data/runs/
+
+# ToolKnit desktop app (separate project, isolated from mytools git)
+/toolknit-desktop/
+
+# Claude local overrides
+.claude/settings.local.json
+.claude/*.local.*

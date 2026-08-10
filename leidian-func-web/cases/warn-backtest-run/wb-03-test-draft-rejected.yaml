@@ -1,0 +1,29 @@
+id: wb-03-test-draft-rejected
+name: 草稿规则不可回测
+description: 【暂不执行】验收：草稿规则不可回测。
+skip: true
+skipReason: 能力未上线；本用例按验收标准编写，上线后取消 skip 即可跑
+steps:
+- method: POST
+  service: biz
+  path: /warning/rules
+  expect:
+    status: 200
+    fields:
+      code: 0
+      data.ruleStatus: DRAFT
+  body:
+    ruleName: 验收-回测草稿-${rand}
+    conditionJson: '{}'
+    actionJson: '{"actionType":"WARNING","warningLevel":"BLUE"}'
+    scheduleType: ALWAYS
+  capture:
+    ruleId: data.id
+- method: POST
+  service: biz
+  path: /warning/rules/${ruleId}/test
+  expect:
+    status: 400
+  body:
+    from: ${now-1d}
+    to: ${now+0s}

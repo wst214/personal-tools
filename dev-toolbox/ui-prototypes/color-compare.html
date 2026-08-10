@@ -1,0 +1,143 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<title>页面配色对比 — 4 套</title>
+<style>
+* { margin:0; padding:0; box-sizing:border-box; }
+body { font-family:"Segoe UI","Microsoft YaHei",system-ui,sans-serif; background:#eef0f3; color:#1d1d1f; padding:28px 34px; }
+h1 { font-size:20px; margin-bottom:6px; }
+.sub { color:#6b7280; font-size:12.5px; margin-bottom:24px; }
+.palettes { display:grid; grid-template-columns:repeat(auto-fit,minmax(340px,1fr)); gap:20px; }
+
+/* ===== 通用布局骨架 ===== */
+.pal { border-radius:16px; overflow:hidden; box-shadow:0 8px 24px rgba(20,30,40,.10); height:430px; display:flex; }
+.pal .side { width:110px; display:flex; flex-direction:column; padding:14px 10px; flex-shrink:0; }
+.pal .side .brand { display:flex; align-items:center; gap:7px; font-weight:700; font-size:12px; padding:2px 4px 12px; }
+.pal .side .brand .lg { width:20px; height:20px; border-radius:6px; display:flex; align-items:center; justify-content:center; font-size:9px; color:#fff; }
+.pal .side .grp { font-size:9px; font-weight:600; opacity:.6; padding:9px 4px 3px; letter-spacing:.03em; }
+.pal .side .it { display:flex; align-items:center; gap:7px; padding:5px 6px; border-radius:6px; font-size:10.5px; cursor:pointer; }
+.pal .side .it .ic { width:20px; height:20px; border-radius:6px; display:flex; align-items:center; justify-content:center; color:#fff; flex-shrink:0; }
+.pal .side .it .ic svg { width:11px; height:11px; }
+.pal .side .it.active { font-weight:600; }
+.pal .main { flex:1; padding:22px 24px; overflow:auto; }
+.pal .pt { font-size:19px; font-weight:700; }
+.pal .ps { font-size:11px; opacity:.6; margin-bottom:16px; }
+.pal .sec-t { font-size:11px; font-weight:600; margin-bottom:8px; display:flex; align-items:center; gap:6px; }
+.pal .sec-t .n { font-size:9px; opacity:.5; font-weight:400; }
+.pal .big { display:grid; grid-template-columns:repeat(3,1fr); gap:8px; margin-bottom:14px; }
+.pal .bc { border-radius:10px; padding:12px 10px; display:flex; flex-direction:column; gap:7px; }
+.pal .bc .ic { width:30px; height:30px; border-radius:8px; display:flex; align-items:center; justify-content:center; color:#fff; }
+.pal .bc .ic svg { width:15px; height:15px; }
+.pal .bc .nm { font-size:10.5px; font-weight:600; }
+.pal .bc .ds { font-size:9px; opacity:.6; }
+.pal .rc { display:flex; align-items:center; gap:10px; border-radius:10px; padding:10px 12px; margin-bottom:7px; }
+.pal .rc .ic { width:26px; height:26px; border-radius:7px; display:flex; align-items:center; justify-content:center; color:#fff; flex-shrink:0; }
+.pal .rc .ic svg { width:13px; height:13px; }
+.pal .rc .nm { font-size:10.5px; font-weight:600; }
+.pal .rc .ds { font-size:9px; opacity:.6; }
+.pal .rc .ar { margin-left:auto; opacity:.4; font-size:13px; }
+svg { display:block; }
+</style>
+</head>
+<body>
+<h1>页面配色对比</h1>
+<div class="sub">同一套布局 × 4 种整体配色（图标固定用彩色圆角方块），选一套</div>
+
+<svg width="0" height="0" style="position:absolute">
+  <defs>
+    <g id="i-note"><path d="M7 3.5h8.5L19 7v13.5H7z"/><path d="M15.5 3.5V7H19"/><path d="M10 11h6M10 14h5M10 17h3"/></g>
+    <g id="i-json"><path d="M8 7 4 12l4 5M16 7l4 5-4 5"/><path d="m13.5 5-3 14"/></g>
+    <g id="i-lock"><rect x="5" y="10" width="14" height="10" rx="2"/><path d="M8 10V8a4 4 0 0 1 8 0v2"/><path d="M12 14v2"/></g>
+    <g id="i-ssh"><path d="M4 6h16M4 12h16M4 18h10"/><path d="m19 16 2.5 2.5L19 21"/></g>
+    <g id="i-deploy"><path d="M12 3c2.5 1.8 4 4.5 4 8l3 3v2l-3.5-1c-.4 1-.9 1.9-1.5 2.7L12 20l-2-2.3c-.6-.8-1.1-1.7-1.5-2.7L5 16v-2l3-3c0-3.5 1.5-6.2 4-8Z"/><path d="M12 3v2M12 13v4M9.5 9.5h5"/></g>
+    <g id="i-indent"><path d="M4 5h16M4 19h16"/><path d="M10 9l3 3-3 3"/><path d="M13 9l3 3-3 3"/></g>
+    <g id="i-compress"><path d="M9 4v5H4M15 4v5h5"/><path d="M9 20v-5H4M15 20v-5h5"/></g>
+    <g id="i-tree"><path d="M4 6h6M4 12h6M4 18h6"/><path d="M14 6h6M14 12h6M14 18h6"/></g>
+    <g id="i-in"><path d="M12 3v12"/><path d="m7 10 5 5 5-5"/><path d="M4 21h16"/></g>
+  </defs>
+</svg>
+
+<div class="palettes" id="root"></div>
+
+<script>
+const svg = (id,s) => `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" width="${s}" height="${s}"><use href="#${id}"/></svg>`;
+
+// 4 套配色：每个定义背景/侧栏/卡片/边框/文字/强调/激活态
+const THEMES = [
+  {
+    name:'① 清爽蓝白', desc:'白卡+浅灰蓝底+蓝绿点缀',
+    bg:'#eef2f7', side:'#f8fafc', card:'#ffffff', border:'#e2e8f0', text:'#1e293b', dim:'#64748b',
+    accent:'#2563eb', accentSoft:'#e8f0fe', activeBg:'#ffffff',
+    toolColors:{'i-note':['#f59e0b','#f97316'],'i-json':['#6366f1','#4f46e5'],'i-lock':['#0e9f6e','#059669'],'i-ssh':['#10b981','#059669'],'i-deploy':['#f97316','#ea580c']},
+    actColors:[['#6366f1','#4f46e5'],['#f59e0b','#f97316'],['#10b981','#059669']],
+  },
+  {
+    name:'② 暖木米色', desc:'米白底+驼色卡+暖橙点缀',
+    bg:'#f7f3ec', side:'#faf7f0', card:'#fffdf8', border:'#ece4d6', text:'#3d342a', dim:'#8d8172',
+    accent:'#d97706', accentSoft:'#fdf0dc', activeBg:'#fffdf8',
+    toolColors:{'i-note':['#d97706','#b45309'],'i-json':['#8b5cf6','#7c3aed'],'i-lock':['#0e9f6e','#059669'],'i-ssh':['#10b981','#059669'],'i-deploy':['#ea580c','#c2410c']},
+    actColors:[['#8b5cf6','#7c3aed'],['#d97706','#b45309'],['#10b981','#059669']],
+  },
+  {
+    name:'③ 冷灰科技', desc:'冷灰底+深蓝紫点缀',
+    bg:'#e9ecf1', side:'#f4f6f9', card:'#ffffff', border:'#d9dee8', text:'#1f2937', dim:'#6b7280',
+    accent:'#4f46e5', accentSoft:'#e9e8fd', activeBg:'#ffffff',
+    toolColors:{'i-note':['#f59e0b','#f97316'],'i-json':['#4f46e5','#4338ca'],'i-lock':['#0891b2','#06b6d4'],'i-ssh':['#059669','#10b981'],'i-deploy':['#f97316','#ea580c']},
+    actColors:[['#4f46e5','#4338ca'],['#f59e0b','#f97316'],['#0891b2','#06b6d4']],
+  },
+  {
+    name:'④ 薄荷青绿', desc:'浅薄荷底+白卡+青绿点缀',
+    bg:'#eef6f2', side:'#f6faf8', card:'#ffffff', border:'#dcebe4', text:'#173b2c', dim:'#5f7a6d',
+    accent:'#0d9488', accentSoft:'#e0f5f2', activeBg:'#ffffff',
+    toolColors:{'i-note':['#f59e0b','#f97316'],'i-json':['#6366f1','#4f46e5'],'i-lock':['#0e9f6e','#059669'],'i-ssh':['#0d9488','#0f766e'],'i-deploy':['#f97316','#ea580c']},
+    actColors:[['#6366f1','#4f46e5'],['#f59e0b','#f97316'],['#0d9488','#0f766e']],
+  },
+];
+
+const TOOLS = [['i-note','随手记'],['i-json','JSON'],['i-lock','加解密'],['i-ssh','SSH'],['i-deploy','部署']];
+const ACTS = [['i-indent','缩进 2'],['i-compress','压缩'],['i-tree','折叠']];
+
+function render() {
+  const root = document.getElementById('root');
+  THEMES.forEach((th, ti) => {
+    const pal = document.createElement('div');
+    pal.className = 'pal';
+    pal.style.background = th.bg;
+    // 侧栏
+    let side = `<div class="side" style="background:${th.side};border-right:1px solid ${th.border}">`;
+    side += `<div class="brand" style="color:${th.text}"><div class="lg" style="background:linear-gradient(135deg,${th.accent},${th.accent}aa)">◈</div>DevTool</div>`;
+    side += `<div class="grp" style="color:${th.dim}">常用</div>`;
+    TOOLS.forEach(([id,name],i) => {
+      const c = th.toolColors[id] || [th.accent, th.accent];
+      const active = i===1 ? ' active' : '';
+      side += `<div class="it${active}" style="color:${th.text}${active?';background:'+th.activeBg+'':''}"><div class="ic" style="background:linear-gradient(135deg,${c[0]},${c[1]})">${svg(id,11)}</div>${name}</div>`;
+    });
+    side += `</div>`;
+    // 主区
+    let main = `<div class="main" style="background:${th.bg}">`;
+    main += `<div class="pt" style="color:${th.text}">JSON 格式化</div>`;
+    main += `<div class="ps" style="color:${th.dim}">格式化 / 压缩 / 折叠浏览</div>`;
+    main += `<div class="sec-t" style="color:${th.text}">常用操作 <span class="n" style="color:${th.dim}">3 个</span></div>`;
+    main += `<div class="big">`;
+    ACTS.forEach(([id,name],i) => {
+      const c = th.actColors[i] || [th.accent, th.accent];
+      main += `<div class="bc" style="background:${th.card};border:1px solid ${th.border}"><div class="ic" style="background:linear-gradient(135deg,${c[0]},${c[1]})">${svg(id,15)}</div><div class="nm" style="color:${th.text}">${name}</div><div class="ds" style="color:${th.dim}">操作说明</div></div>`;
+    });
+    main += `</div>`;
+    main += `<div class="sec-t" style="color:${th.text}">输入与输出</div>`;
+    main += `<div class="rc" style="background:${th.card};border:1px solid ${th.border}"><div class="ic" style="background:linear-gradient(135deg,${th.accent},${th.accent}aa)">${svg('i-in',13)}</div><div style="flex:1"><div class="nm" style="color:${th.text}">输入</div><div class="ds" style="color:${th.dim}">粘贴 JSON</div></div><div class="ar" style="color:${th.dim}">›</div></div>`;
+    main += `<div class="rc" style="background:${th.card};border:1px solid ${th.border}"><div class="ic" style="background:linear-gradient(135deg,${th.accent}aa,${th.accent})">${svg('i-tree',13)}</div><div style="flex:1"><div class="nm" style="color:${th.text}">输出</div><div class="ds" style="color:${th.dim}">格式化结果</div></div><div class="ar" style="color:${th.dim}">›</div></div>`;
+    main += `</div>`;
+    pal.innerHTML = side + main;
+    // 标题
+    const wrap = document.createElement('div');
+    wrap.innerHTML = `<div style="font-size:14px;font-weight:700;margin-bottom:8px">${th.name} <span style="font-size:11px;color:${th.dim};font-weight:400">${th.desc}</span></div>`;
+    wrap.appendChild(pal);
+    root.appendChild(wrap);
+  });
+}
+render();
+</script>
+</body>
+</html>

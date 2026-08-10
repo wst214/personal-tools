@@ -1,0 +1,15 @@
+id: li-01-lightning-status
+name: 接入统计含雷电三网计数
+description: 通用烟测：/ingest/status 应包含 cmb/locator/radar 雷电计数。
+skip: false
+skipReason: ''
+expandByNetwork: false
+steps:
+- name: 查接入统计
+  method: GET
+  service: data
+  path: /ingest/status
+  expect:
+    status: 200
+    fields:
+      code: 0

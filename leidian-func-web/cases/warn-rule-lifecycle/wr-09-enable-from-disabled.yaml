@@ -1,0 +1,46 @@
+id: wr-09-enable-from-disabled
+name: 再启用已停用规则
+description: 对已停用规则再启用，期望状态回到 ENABLED。
+skip: false
+skipReason: ''
+steps:
+- method: POST
+  service: biz
+  path: /warning/rules
+  body:
+    ruleName: 功能测-再启用-${rand}
+    conditionJson: '{}'
+    actionJson: '{"actionType":"WARNING","warningLevel":"BLUE"}'
+    scheduleType: ALWAYS
+  expect:
+    status: 200
+    fields:
+      code: 0
+  capture:
+    ruleId: data.id
+- method: POST
+  service: biz
+  path: /warning/rules/${ruleId}/submit
+  expect:
+    status: 200
+    fields:
+      code: 0
+  capture:
+    currentVersionId: data.currentVersionId
+- method: POST
+  service: biz
+  path: /warning/rules/${ruleId}/disable
+  expect:
+    status: 200
+    fields:
+      code: 0
+      data.ruleStatus: DISABLED
+- method: POST
+  service: biz
+  path: /warning/rules/${ruleId}/enable
+  expect:
+    status: 200
+    fields:
+      code: 0
+      data.ruleStatus: ENABLED
+      data.currentVersionId: ${currentVersionId}

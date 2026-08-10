@@ -1,0 +1,26 @@
+id: wr-10-disable-draft-fail
+name: 停用非 ENABLED 失败
+description: 负向：对仍为 DRAFT 的规则调用停用，期望失败。
+skip: false
+skipReason: ''
+steps:
+- method: POST
+  service: biz
+  path: /warning/rules
+  body:
+    ruleName: 功能测-草稿停用-${rand}
+    conditionJson: '{}'
+    actionJson: '{"actionType":"NONE"}'
+    scheduleType: ALWAYS
+  expect:
+    status: 200
+    fields:
+      code: 0
+      data.ruleStatus: DRAFT
+  capture:
+    ruleId: data.id
+- method: POST
+  service: biz
+  path: /warning/rules/${ruleId}/disable
+  expect:
+    status: 400

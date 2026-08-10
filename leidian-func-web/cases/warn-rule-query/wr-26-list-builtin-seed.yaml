@@ -1,0 +1,13 @@
+id: wr-26-list-builtin-seed
+name: 列表可筛到内置规则种子
+description: 【暂不执行】验收：列表可筛出内置四级规则种子。
+skip: true
+skipReason: 需迁移写入 builtinFlag=1 的四级种子后取消 skip
+steps:
+- method: GET
+  service: biz
+  path: /warning/rules?pageNum=1&pageSize=50&builtinFlag=1
+  expect:
+    status: 200
+    fields:
+      code: 0

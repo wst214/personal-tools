@@ -1,0 +1,15 @@
+id: li-20-attachment-ref-by-monitor
+name: 按 monitor 可查雷电原文附件映射
+description: 通用：按 monitorId 查映射表（monitorId=0 返回空列表 code=0）。
+skip: false
+skipReason: ''
+expandByNetwork: false
+steps:
+- name: 按 monitor 查附件映射
+  method: GET
+  service: data
+  path: /ingest/attachment/refs?monitorId=0
+  expect:
+    status: 200
+    fields:
+      code: 0

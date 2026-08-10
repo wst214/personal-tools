@@ -1,0 +1,102 @@
+id: wg-22-upgrade
+name: 更高等级命中应升级对外等级
+description: 验收：BLUE 事件后 ORANGE 命中 -> 同事件升级 UPGRADED、对外等级 ORANGE、命中项 2 条。
+skip: false
+skipReason: ''
+steps:
+- method: POST
+  service: biz
+  path: /warning/rules
+  body:
+    ruleName: 验收-升并蓝-${rand}
+    ruleDesc: WG-22-BLUE
+    conditionJson: '{"logic":"AND","children":[{"factorCode":"ATMO_EFIELD_INSTANT","op":"GTE","value":5}]}'
+    actionJson: '{"actionType":"WARNING","warningLevel":"BLUE","notify":{"requireConfirm":false}}'
+    foreseeMinutes: 120
+    scheduleType: ALWAYS
+  expect:
+    status: 200
+    fields:
+      code: 0
+      data.ruleStatus: DRAFT
+  capture:
+    blueRuleId: data.id
+- method: POST
+  service: biz
+  path: /warning/rules/${blueRuleId}/submit
+  expect:
+    status: 200
+    fields:
+      code: 0
+      data.ruleStatus: ENABLED
+- method: POST
+  service: biz
+  path: /warning/rules
+  body:
+    ruleName: 验收-升并橙-${rand}
+    ruleDesc: WG-22-ORANGE
+    conditionJson: '{"logic":"AND","children":[{"factorCode":"ATMO_EFIELD_INSTANT","op":"GTE","value":30}]}'
+    actionJson: '{"actionType":"WARNING","warningLevel":"ORANGE","notify":{"requireConfirm":false}}'
+    foreseeMinutes: 120
+    scheduleType: ALWAYS
+  expect:
+    status: 200
+    fields:
+      code: 0
+      data.ruleStatus: DRAFT
+  capture:
+    orangeRuleId: data.id
+- method: POST
+  service: biz
+  path: /warning/rules/${orangeRuleId}/submit
+  expect:
+    status: 200
+    fields:
+      code: 0
+      data.ruleStatus: ENABLED
+- method: POST
+  service: biz
+  path: /warning/eval/trigger
+  body:
+    siteId: 1000000000000050101
+    ruleId: ${blueRuleId}
+    factorOverrides:
+      ATMO_EFIELD_INSTANT: 9
+  expect:
+    status: 200
+    fields:
+      code: 0
+      data.candidates.0.warningLevel: BLUE
+- method: GET
+  service: biz
+  path: /warning/events?pageNum=1&pageSize=1&siteId=1000000000000050101&lifecycleStatus=ACTIVE
+  expect:
+    status: 200
+    fields:
+      code: 0
+      data.list.0.warningLevel: BLUE
+  capture:
+    eventId: data.list.0.id
+- method: POST
+  service: biz
+  path: /warning/eval/trigger
+  body:
+    siteId: 1000000000000050101
+    ruleId: ${orangeRuleId}
+    factorOverrides:
+      ATMO_EFIELD_INSTANT: 40
+  expect:
+    status: 200
+    fields:
+      code: 0
+      data.candidates.0.warningLevel: ORANGE
+- method: GET
+  service: biz
+  path: /warning/events/${eventId}
+  expect:
+    status: 200
+    fields:
+      code: 0
+      data.warningLevel: ORANGE
+      data.lifecycleStatus: UPGRADED
+      data.itemCount: 2

@@ -1,0 +1,21 @@
+id: ws-04-create-expired-fail
+name: 新建 ONCE 结束时间已过期失败
+description: 负向：ONCE 的结束时间已过期，期望创建失败。
+skip: false
+skipReason: ''
+steps:
+- method: POST
+  service: biz
+  path: /warning/suppress
+  body:
+    siteId: 1
+    suppressName: 功能测-过期窗-${rand}
+    suppressScope: FULL
+    timeMode: ONCE
+    startTime: ${now-2d}
+    endTime: ${now-1d}
+    targets:
+    - targetType: WARNING_LEVEL
+      targetCode: RED
+  expect:
+    status: 400

@@ -1,0 +1,24 @@
+id: wf-11-seed-derived
+name: 派生因子种子可查询
+description: 验收：派生类因子可查询。
+skip: false
+skipReason: ''
+steps:
+- method: GET
+  service: biz
+  path: /warning/factors?category=DERIVED&pageNum=1&pageSize=50
+  expect:
+    status: 200
+    fields:
+      code: 0
+      data.list.0.category: DERIVED
+- method: GET
+  service: biz
+  path: /warning/factors/by-code/STORM_CLOUD_DISTANCE_KM
+  expect:
+    status: 200
+    fields:
+      code: 0
+      data.factorCode: STORM_CLOUD_DISTANCE_KM
+      data.category: DERIVED
+      data.evalMode: COMPUTED

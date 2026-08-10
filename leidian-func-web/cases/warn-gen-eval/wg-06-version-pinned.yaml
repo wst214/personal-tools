@@ -1,0 +1,46 @@
+id: wg-06-version-pinned
+name: Candidate 钉住 ACTIVE 规则版本
+description: 验收：dry-run 命中项 ruleVersionId 等于规则当前 ACTIVE currentVersionId。
+skip: false
+skipReason: ''
+steps:
+- method: POST
+  service: biz
+  path: /warning/rules
+  body:
+    ruleName: 功能测-评估版本-${rand}
+    ruleDesc: WG-06
+    conditionJson: '{"logic":"AND","children":[{"factorCode":"ATMO_EFIELD_INSTANT","op":"GTE","value":1}]}'
+    actionJson: '{"actionType":"WARNING","warningLevel":"BLUE"}'
+    scheduleType: ALWAYS
+  expect:
+    status: 200
+    fields:
+      code: 0
+  capture:
+    ruleId: data.id
+- method: POST
+  service: biz
+  path: /warning/rules/${ruleId}/submit
+  expect:
+    status: 200
+    fields:
+      code: 0
+      data.ruleStatus: ENABLED
+  capture:
+    versionId: data.currentVersionId
+- method: POST
+  service: biz
+  path: /warning/eval/dry-run
+  body:
+    siteId: 1000000000000050101
+    ruleId: ${ruleId}
+    factorOverrides:
+      ATMO_EFIELD_INSTANT: 9
+  expect:
+    status: 200
+    fields:
+      code: 0
+      data.candidates.0.ruleId: ${ruleId}
+      data.candidates.0.ruleVersionId: ${versionId}
+      data.candidates.0.warningLevel: BLUE

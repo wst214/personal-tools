@@ -1,0 +1,38 @@
+id: wr-04-update-draft
+name: 编辑草稿内容
+description: 先建草稿再 PUT 更新名称与描述等字段，期望仍为 DRAFT 且内容已变更。
+skip: false
+skipReason: ''
+steps:
+- method: POST
+  service: biz
+  path: /warning/rules
+  body:
+    ruleName: 功能测-待改-${rand}
+    conditionJson: '{"logic":"AND"}'
+    actionJson: '{"actionType":"WARNING","warningLevel":"BLUE"}'
+    scheduleType: ALWAYS
+  expect:
+    status: 200
+    fields:
+      code: 0
+      data.ruleStatus: DRAFT
+  capture:
+    ruleId: data.id
+- method: PUT
+  service: biz
+  path: /warning/rules/${ruleId}
+  body:
+    ruleName: 功能测-已改-${rand}
+    ruleDesc: updated
+    conditionJson: '{"logic":"OR"}'
+    actionJson: '{"actionType":"WARNING","warningLevel":"YELLOW"}'
+    foreseeMinutes: 30
+    scheduleType: ALWAYS
+  expect:
+    status: 200
+    fields:
+      code: 0
+      data.ruleStatus: DRAFT
+      data.warningLevel: YELLOW
+      data.foreseeMinutes: 30

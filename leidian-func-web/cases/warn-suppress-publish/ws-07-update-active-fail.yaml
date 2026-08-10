@@ -1,0 +1,44 @@
+id: ws-07-update-active-fail
+name: 非草稿不可编辑
+description: 负向：已生效抑制不可再编辑，期望失败。
+skip: false
+skipReason: ''
+steps:
+- method: POST
+  service: biz
+  path: /warning/suppress
+  body:
+    siteId: 1
+    suppressName: 功能测-生效后改-${rand}
+    suppressScope: FULL
+    timeMode: PERMANENT
+    targets:
+    - targetType: WARNING_LEVEL
+      targetCode: BLUE
+  expect:
+    status: 200
+    fields:
+      code: 0
+  capture:
+    suppressId: data.id
+- method: POST
+  service: biz
+  path: /warning/suppress/${suppressId}/submit
+  expect:
+    status: 200
+    fields:
+      code: 0
+      data.suppressStatus: ACTIVE
+- method: PUT
+  service: biz
+  path: /warning/suppress/${suppressId}
+  body:
+    siteId: 1
+    suppressName: 不应成功
+    suppressScope: FULL
+    timeMode: PERMANENT
+    targets:
+    - targetType: WARNING_LEVEL
+      targetCode: RED
+  expect:
+    status: 400

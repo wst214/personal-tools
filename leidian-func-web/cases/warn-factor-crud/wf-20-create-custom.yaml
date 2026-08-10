@@ -1,0 +1,16 @@
+id: wf-20-create-custom
+name: 一期不开放新建自定义因子
+description: 验收：一期不提供 POST 新建因子；请求应失败（接口不存在或方法不允许）。
+skip: false
+skipReason: ''
+steps:
+- method: POST
+  service: biz
+  path: /warning/factors
+  expect:
+    status: 405
+  body:
+    factorCode: CUSTOM_ACC_${rand}
+    category: DERIVED
+    evalMode: COMPUTED
+    readiness: READY

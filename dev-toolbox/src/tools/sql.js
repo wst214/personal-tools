@@ -19,21 +19,27 @@ export const sqlTool = {
 
     const beautify = () => {
       if (!input.value.trim()) { toast('请输入 SQL', 'warn'); return; }
-      try {
-        output.value = format(input.value, {
-          language: lang.value,
-          // preserve 时省略该键：sql-formatter 对显式 undefined 的 keywordCase 处理异常会吞掉关键字
-          ...(kw.value !== 'preserve' ? { keywordCase: kw.value } : {}),
-          tabWidth: indent.value === 'tab' ? 2 : +indent.value,
-          useTabs: indent.value === 'tab',
-        });
-        toast('已美化', 'success');
-      } catch (e) { toast(e.message, 'error'); }
+      const t = input.value;
+      setTimeout(() => {
+        try {
+          output.value = format(t, {
+            language: lang.value,
+            // preserve 时省略该键：sql-formatter 对显式 undefined 的 keywordCase 处理异常会吞掉关键字
+            ...(kw.value !== 'preserve' ? { keywordCase: kw.value } : {}),
+            tabWidth: indent.value === 'tab' ? 2 : +indent.value,
+            useTabs: indent.value === 'tab',
+          });
+          toast('已美化', 'success');
+        } catch (e) { toast(e.message, 'error'); }
+      }, 0);
     };
     const minify = () => {
       if (!input.value.trim()) { toast('请输入 SQL', 'warn'); return; }
-      output.value = input.value.replace(/\s+/g, ' ').replace(/\s*([,()])\s*/g, '$1 ').trim();
-      toast('已压缩', 'success');
+      const t = input.value;
+      setTimeout(() => {
+        output.value = t.replace(/\s+/g, ' ').replace(/\s*([,()])\s*/g, '$1 ').trim();
+        toast('已压缩', 'success');
+      }, 0);
     };
 
     actionBar.append(

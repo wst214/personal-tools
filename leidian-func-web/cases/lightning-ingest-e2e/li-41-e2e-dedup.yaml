@@ -1,0 +1,32 @@
+id: li-41-e2e-dedup
+name: 重复投递同 strike_id 幂等
+description: |
+  按网络展开：同一固定 strike_id 的雷电 JSON 投递两次，
+  按 strikeId 分页 total 应为 1（uk + 应用层捕获）。
+skip: false
+skipReason: ''
+expandByNetwork: true
+steps:
+- name: Kafka 投递雷电 JSON（第 1 次）
+  method: KAFKA
+  topic: ${kafkaTopic}
+  key: func-web-dedup-${network}-${rand}
+  value: ${kafkaJsonDedup}
+- name: Kafka 投递雷电 JSON（第 2 次，同 strike_id）
+  method: KAFKA
+  topic: ${kafkaTopic}
+  key: func-web-dedup-${network}-${rand}-again
+  value: ${kafkaJsonDedup}
+- name: 等待消费落库
+  method: SLEEP
+  seconds: 5
+- name: 按 strikeId 分页断言只有 1 条
+  method: GET
+  service: biz
+  path: ${bizPath}&strikeId=${fixedStrikeId}
+  expect:
+    status: 200
+    fields:
+      code: 0
+      data.total: 1
+      data.list.0.strikeId: ${fixedStrikeId}

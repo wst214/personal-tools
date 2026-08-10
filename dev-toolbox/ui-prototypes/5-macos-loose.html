@@ -1,0 +1,209 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<title>5 — macOS 系统感 × 宽松（配色可切换）</title>
+<style>
+* { margin:0; padding:0; box-sizing:border-box; }
+body { font-family:"Segoe UI","Microsoft YaHei",system-ui,sans-serif; height:100vh; overflow:hidden; display:flex; }
+svg { display:block; }
+
+/* ===== 4 套配色（CSS 变量） ===== */
+:root, [data-theme="2"] { /* ② 暖木米色（默认） */
+  --bg:#f7f3ec; --side:#faf7f0; --card:#fffdf8; --border:#ece4d6; --border2:#e3d9c8;
+  --text:#3d342a; --dim:#8d8172; --accent:#d97706; --accentSoft:#fdf0dc; --hover:#f1ead9;
+  --shadow:0 1px 3px rgba(90,60,20,.08); --shadowCard:0 2px 6px rgba(90,60,20,.06);
+}
+[data-theme="1"] { /* ① 清爽蓝白 */
+  --bg:#eef2f7; --side:#f8fafc; --card:#ffffff; --border:#e2e8f0; --border2:#dbe3ee;
+  --text:#1e293b; --dim:#64748b; --accent:#2563eb; --accentSoft:#e8f0fe; --hover:#e6edf6;
+  --shadow:0 1px 3px rgba(30,60,110,.08); --shadowCard:0 2px 6px rgba(30,60,110,.06);
+}
+[data-theme="3"] { /* ③ 冷灰科技 */
+  --bg:#e9ecf1; --side:#f4f6f9; --card:#ffffff; --border:#d9dee8; --border2:#cdd4e0;
+  --text:#1f2937; --dim:#6b7280; --accent:#4f46e5; --accentSoft:#e9e8fd; --hover:#e7ebf2;
+  --shadow:0 1px 3px rgba(30,40,60,.10); --shadowCard:0 2px 6px rgba(30,40,60,.07);
+}
+[data-theme="4"] { /* ④ 薄荷青绿 */
+  --bg:#eef6f2; --side:#f6faf8; --card:#ffffff; --border:#dcebe4; --border2:#cfe3da;
+  --text:#173b2c; --dim:#5f7a6d; --accent:#0d9488; --accentSoft:#e0f5f2; --hover:#e3f0ea;
+  --shadow:0 1px 3px rgba(20,80,60,.08); --shadowCard:0 2px 6px rgba(20,80,60,.06);
+}
+
+body { background:var(--bg); color:var(--text); }
+
+/* ===== 左侧 ===== */
+.sidebar { width:240px; background:var(--side); border-right:1px solid var(--border); display:flex; flex-direction:column; padding:22px 12px; flex-shrink:0; }
+.sb-brand { display:flex; align-items:center; gap:9px; padding:2px 10px 14px; font-weight:700; font-size:14px; color:var(--text); }
+.sb-brand .logo { width:28px; height:28px; border-radius:8px; background:linear-gradient(135deg,#f59e0b,#ea580c); display:flex; align-items:center; justify-content:center; font-size:12px; color:#fff; box-shadow:var(--shadowCard); }
+.sb-search { display:flex; align-items:center; gap:8px; background:var(--card); border:1px solid var(--border); border-radius:8px; padding:8px 12px; margin-bottom:14px; color:var(--dim); font-size:13px; }
+.sb-grp { font-size:11px; font-weight:600; color:var(--dim); padding:10px 10px 5px; opacity:.8; }
+.sb-item { display:flex; align-items:center; gap:11px; padding:7px 10px; border-radius:8px; font-size:13px; color:var(--text); cursor:pointer; }
+.sb-item:hover { background:var(--hover); }
+.sb-item.active { background:var(--card); box-shadow:var(--shadow); color:var(--accent); font-weight:600; }
+.sb-item .ic { width:26px; height:26px; border-radius:7px; display:flex; align-items:center; justify-content:center; color:#fff; flex-shrink:0; box-shadow:0 1px 2px rgba(0,0,0,.10); }
+.sb-item .ic svg { width:15px; height:15px; }
+/* 工具专属渐变色 */
+.ic-note{background:linear-gradient(135deg,#f59e0b,#f97316)} .ic-json{background:linear-gradient(135deg,#6366f1,#4f46e5)}
+.ic-lock{background:linear-gradient(135deg,#0e9f6e,#059669)} .ic-base{background:linear-gradient(135deg,#06b6d4,#0891b2)}
+.ic-time{background:linear-gradient(135deg,#ec4899,#db2777)} .ic-sql{background:linear-gradient(135deg,#8b5cf6,#7c3aed)}
+.ic-regex{background:linear-gradient(135deg,#f43f5e,#e11d48)} .ic-ssh{background:linear-gradient(135deg,#10b981,#059669)}
+.ic-http{background:linear-gradient(135deg,#3b82f6,#2563eb)} .ic-deploy{background:linear-gradient(135deg,#f97316,#ea580c)}
+.ic-sys{background:linear-gradient(135deg,#64748b,#475569)} .ic-indent{background:linear-gradient(135deg,#6366f1,#4f46e5)}
+.ic-compress{background:linear-gradient(135deg,#f59e0b,#f97316)} .ic-tree{background:linear-gradient(135deg,#10b981,#059669)}
+.ic-in{background:linear-gradient(135deg,#3b82f6,#2563eb)} .ic-out{background:linear-gradient(135deg,#8b5cf6,#7c3aed)}
+
+/* ===== 右侧 ===== */
+.main { flex:1; overflow:auto; padding:36px 42px; }
+.page-top { display:flex; align-items:center; gap:14px; margin-bottom:6px; }
+.page-title { font-size:26px; font-weight:700; letter-spacing:-.01em; }
+.page-sub { font-size:13px; color:var(--dim); margin-bottom:26px; }
+.section { margin-bottom:28px; }
+.section-title { font-size:14px; font-weight:600; margin-bottom:12px; display:flex; align-items:center; gap:8px; }
+.section-title .count { font-size:11px; color:var(--dim); font-weight:400; }
+.big-grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(190px,1fr)); gap:13px; }
+.big-card { background:var(--card); border:1px solid var(--border); border-radius:14px; padding:18px 16px; display:flex; flex-direction:column; gap:11px; cursor:pointer; transition:all .15s; box-shadow:var(--shadowCard); }
+.big-card:hover { border-color:var(--accent); box-shadow:0 8px 22px rgba(0,0,0,.08); }
+.big-card .ic { width:42px; height:42px; border-radius:11px; display:flex; align-items:center; justify-content:center; color:#fff; box-shadow:0 2px 6px rgba(0,0,0,.10); }
+.big-card .ic svg { width:21px; height:21px; }
+.big-card .nm { font-size:14px; font-weight:600; }
+.big-card .ds { font-size:11.5px; color:var(--dim); line-height:1.5; }
+.row-card { display:flex; align-items:center; gap:14px; background:var(--card); border:1px solid var(--border); border-radius:12px; padding:14px 18px; margin-bottom:10px; cursor:pointer; box-shadow:var(--shadowCard); }
+.row-card:hover { border-color:var(--accent); }
+.row-card .ic { width:36px; height:36px; border-radius:10px; display:flex; align-items:center; justify-content:center; color:#fff; flex-shrink:0; box-shadow:0 1px 3px rgba(0,0,0,.10); }
+.row-card .ic svg { width:17px; height:17px; }
+.row-card .nm { font-size:13.5px; font-weight:600; }
+.row-card .ds { font-size:11.5px; color:var(--dim); margin-top:2px; }
+.row-card .arrow { margin-left:auto; color:var(--dim); font-size:16px; }
+
+/* ===== 配色切换器 ===== */
+.theme-switch { position:fixed; top:16px; right:18px; display:flex; gap:4px; background:var(--card); border:1px solid var(--border); border-radius:10px; padding:4px; box-shadow:var(--shadow); z-index:10; }
+.theme-switch button { width:26px; height:26px; border-radius:7px; border:1px solid transparent; cursor:pointer; display:flex; align-items:center; justify-content:center; font-size:10px; color:var(--dim); background:transparent; }
+.theme-switch button:hover { background:var(--hover); }
+.theme-switch button.active { border-color:var(--accent); color:var(--accent); background:var(--accentSoft); font-weight:700; }
+.logo-switch { position:fixed; top:52px; right:18px; display:flex; flex-wrap:wrap; gap:4px; max-width:120px; background:var(--card); border:1px solid var(--border); border-radius:10px; padding:4px; box-shadow:var(--shadow); z-index:10; }
+.logo-switch button { width:26px; height:26px; border-radius:7px; border:1px solid transparent; cursor:pointer; display:flex; align-items:center; justify-content:center; font-size:10px; color:var(--dim); background:transparent; }
+.logo-switch button:hover { background:var(--hover); }
+.logo-switch button.active { border-color:var(--accent); color:var(--accent); background:var(--accentSoft); font-weight:700; }
+/* 主图标容器 */
+#brand-logo { width:30px; height:30px; border-radius:8px; overflow:hidden; display:flex; align-items:center; justify-content:center; }
+#brand-logo svg { width:100%; height:100%; display:block; }
+</style>
+</head>
+<body data-theme="2">
+<!-- 配色切换器 -->
+<div class="theme-switch" title="切换配色">
+  <button data-t="1" onclick="setTheme(1)">①</button>
+  <button data-t="2" class="active" onclick="setTheme(2)">②</button>
+  <button data-t="3" onclick="setTheme(3)">③</button>
+  <button data-t="4" onclick="setTheme(4)">④</button>
+</div>
+
+<!-- 主图标切换器 -->
+<div class="logo-switch" title="切换主图标">
+  <button data-l="A" class="active" onclick="setLogo('A')">A</button>
+  <button data-l="B" onclick="setLogo('B')">B</button>
+  <button data-l="C" onclick="setLogo('C')">C</button>
+  <button data-l="D" onclick="setLogo('D')">D</button>
+  <button data-l="E" onclick="setLogo('E')">E</button>
+  <button data-l="F" onclick="setLogo('F')">F</button>
+  <button data-l="G" onclick="setLogo('G')">G</button>
+  <button data-l="H" onclick="setLogo('H')">H</button>
+  <button data-l="I" onclick="setLogo('I')">I</button>
+  <button data-l="J" onclick="setLogo('J')">J</button>
+</div>
+
+<svg width="0" height="0" style="position:absolute">
+  <defs>
+    <g id="i-note"><path d="M7 3.5h8.5L19 7v13.5H7z"/><path d="M15.5 3.5V7H19"/><path d="M10 11h6M10 14h5M10 17h3"/></g>
+    <g id="i-json"><path d="M8 7 4 12l4 5M16 7l4 5-4 5"/><path d="m13.5 5-3 14"/></g>
+    <g id="i-lock"><rect x="5" y="10" width="14" height="10" rx="2"/><path d="M8 10V8a4 4 0 0 1 8 0v2"/><path d="M12 14v2"/></g>
+    <g id="i-base"><circle cx="12" cy="12" r="8.5"/><path d="M8.5 9.5h.1M8.5 12h.1M8.5 14.5h.1"/><path d="M12.5 9.5h3M12.5 12h3M12.5 14.5h3"/><path d="M15.5 9.5l-6 5"/></g>
+    <g id="i-time"><circle cx="12" cy="12" r="8"/><path d="M12 7v5l3.2 2"/></g>
+    <g id="i-sql"><ellipse cx="12" cy="6" rx="7" ry="3"/><path d="M5 6v6c0 1.7 3.1 3 7 3s7-1.3 7-3V6"/><path d="M5 12v6c0 1.7 3.1 3 7 3s7-1.3 7-3v-6"/></g>
+    <g id="i-regex"><path d="M8 4.5v15M16 4.5v15"/><path d="M4.5 8.5c-1 .9-1.5 2-1.5 3.5s.5 2.6 1.5 3.5M19.5 8.5c1 .9 1.5 2 1.5 3.5s-.5 2.6-1.5 3.5"/><path d="M12 8.5v7M9.5 11h5"/></g>
+    <g id="i-ssh"><path d="M4 6h16M4 12h16M4 18h10"/><path d="m19 16 2.5 2.5L19 21"/></g>
+    <g id="i-http"><path d="M5 8h14M5 16h14"/><path d="m8 5-3 3 3 3M16 13l3 3-3 3"/></g>
+    <g id="i-deploy"><path d="M12 3c2.5 1.8 4 4.5 4 8l3 3v2l-3.5-1c-.4 1-.9 1.9-1.5 2.7L12 20l-2-2.3c-.6-.8-1.1-1.7-1.5-2.7L5 16v-2l3-3c0-3.5 1.5-6.2 4-8Z"/><path d="M12 3v2M12 13v4M9.5 9.5h5"/></g>
+    <g id="i-sys"><rect x="4" y="5" width="16" height="11" rx="2"/><path d="M8 20h8M12 16v4"/><path d="M8 9h2M8 12h5"/></g>
+    <g id="i-indent"><path d="M4 5h16M4 19h16"/><path d="M10 9l3 3-3 3"/><path d="M13 9l3 3-3 3"/></g>
+    <g id="i-compress"><path d="M9 4v5H4M15 4v5h5"/><path d="M9 20v-5H4M15 20v-5h5"/></g>
+    <g id="i-tree"><path d="M4 6h6M4 12h6M4 18h6"/><path d="M14 6h6M14 12h6M14 18h6"/></g>
+    <g id="i-in"><path d="M12 3v12"/><path d="m7 10 5 5 5-5"/><path d="M4 21h16"/></g>
+    <g id="i-out"><path d="M12 15V3"/><path d="m7 8 5-5 5 5"/><path d="M4 21h16"/></g>
+  </defs>
+</svg>
+
+<div class="sidebar">
+  <div class="sb-brand"><div class="logo" id="brand-logo">◈</div><span>DevTool</span></div>
+  <div class="sb-search"><span>⌕</span> 搜索</div>
+  <div class="sb-grp">我的</div>
+  <div class="sb-item"><div class="ic ic-note"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><use href="#i-note"/></svg></div>随手记</div>
+  <div class="sb-grp">开发工具</div>
+  <div class="sb-item active"><div class="ic ic-json"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><use href="#i-json"/></svg></div>JSON 格式化</div>
+  <div class="sb-item"><div class="ic ic-lock"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><use href="#i-lock"/></svg></div>加解密编码</div>
+  <div class="sb-item"><div class="ic ic-base"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><use href="#i-base"/></svg></div>进制转换</div>
+  <div class="sb-item"><div class="ic ic-time"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><use href="#i-time"/></svg></div>时间戳</div>
+  <div class="sb-item"><div class="ic ic-sql"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><use href="#i-sql"/></svg></div>SQL 格式化</div>
+  <div class="sb-item"><div class="ic ic-regex"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><use href="#i-regex"/></svg></div>正则测试</div>
+  <div class="sb-grp">连接</div>
+  <div class="sb-item"><div class="ic ic-ssh"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><use href="#i-ssh"/></svg></div>SSH 终端</div>
+  <div class="sb-item"><div class="ic ic-http"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><use href="#i-http"/></svg></div>HTTP 工具</div>
+  <div class="sb-grp">系统</div>
+  <div class="sb-item"><div class="ic ic-deploy"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><use href="#i-deploy"/></svg></div>部署工作台</div>
+  <div class="sb-item"><div class="ic ic-sys"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><use href="#i-sys"/></svg></div>系统信息</div>
+</div>
+
+<div class="main">
+  <div class="page-top">
+    <div class="page-title">JSON 格式化</div>
+  </div>
+  <div class="page-sub">格式化 / 压缩 / 转换 / 折叠浏览</div>
+
+  <div class="section">
+    <div class="section-title">常用操作 <span class="count">3 个</span></div>
+    <div class="big-grid">
+      <div class="big-card"><div class="ic ic-indent"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><use href="#i-indent"/></svg></div><div class="nm">缩进 2 空格</div><div class="ds">美化并缩进两个空格</div></div>
+      <div class="big-card"><div class="ic ic-compress"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><use href="#i-compress"/></svg></div><div class="nm">压缩</div><div class="ds">去除空白和换行</div></div>
+      <div class="big-card"><div class="ic ic-tree"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><use href="#i-tree"/></svg></div><div class="nm">折叠视图</div><div class="ds">树形浏览大文件</div></div>
+    </div>
+  </div>
+
+  <div class="section">
+    <div class="section-title">输入与输出</div>
+    <div class="row-card"><div class="ic ic-in"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><use href="#i-in"/></svg></div><div style="flex:1"><div class="nm">输入</div><div class="ds">在此粘贴 JSON，支持 10MB+ 大文件</div></div><div class="arrow">›</div></div>
+    <div class="row-card"><div class="ic ic-out"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><use href="#i-out"/></svg></div><div style="flex:1"><div class="nm">输出</div><div class="ds">格式化结果将显示在这里</div></div><div class="arrow">›</div></div>
+  </div>
+</div>
+
+<script>
+// ===== 4 套主图标（logo）SVG =====
+const LOGOS = {
+  A: `<svg viewBox="0 0 96 96"><defs><linearGradient id="lgA" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#f59e0b"/><stop offset="1" stop-color="#ea580c"/></linearGradient></defs><rect x="4" y="4" width="88" height="88" rx="22" fill="url(#lgA)"/><path d="M32 34h32l-3 8H35z" fill="#fff" opacity=".95"/><rect x="30" y="40" width="36" height="26" rx="4" fill="#fff"/><path d="M43 40v26M53 40v26" stroke="#ea580c" stroke-width="2.4" stroke-linecap="round"/></svg>`,
+  B: `<svg viewBox="0 0 96 96"><defs><linearGradient id="lgB" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#1f2937"/><stop offset="1" stop-color="#111827"/></linearGradient></defs><rect x="4" y="4" width="88" height="88" rx="22" fill="url(#lgB)"/><rect x="22" y="22" width="24" height="24" rx="7" fill="#f59e0b"/><rect x="50" y="22" width="24" height="24" rx="7" fill="#6366f1"/><rect x="22" y="50" width="24" height="24" rx="7" fill="#10b981"/><rect x="50" y="50" width="24" height="24" rx="7" fill="#ec4899"/></svg>`,
+  C: `<svg viewBox="0 0 96 96"><defs><linearGradient id="lgC" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#6366f1"/><stop offset="1" stop-color="#8b5cf6"/></linearGradient></defs><rect x="4" y="4" width="88" height="88" rx="22" fill="url(#lgC)"/><path d="M38 30 24 48l14 18M58 30l14 18-14 18" fill="none" stroke="#fff" stroke-width="6" stroke-linecap="round" stroke-linejoin="round"/><path d="M52 26 44 70" stroke="#fff" stroke-width="6" stroke-linecap="round"/></svg>`,
+  D: `<svg viewBox="0 0 96 96"><defs><linearGradient id="lgD" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#10b981"/><stop offset="1" stop-color="#0d9488"/></linearGradient></defs><rect x="4" y="4" width="88" height="88" rx="22" fill="url(#lgD)"/><path d="M30 48l13 13 25-30" fill="none" stroke="#fff" stroke-width="7" stroke-linecap="round" stroke-linejoin="round"/></svg>`,
+  // ===== 新一批（E-J）=====
+  E: `<svg viewBox="0 0 96 96"><defs><linearGradient id="lgE" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#6366f1"/><stop offset="1" stop-color="#8b5cf6"/></linearGradient></defs><rect x="4" y="4" width="88" height="88" rx="22" fill="url(#lgE)"/><path d="M48 20 74 36v26L48 78 22 62V36Z" fill="#fff" opacity=".25"/><path d="M48 20 74 36L48 52 22 36Z" fill="#fff"/><path d="M48 52v26" stroke="#8b5cf6" stroke-width="2" opacity=".5"/></svg>`,
+  F: `<svg viewBox="0 0 96 96"><defs><linearGradient id="lgF" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#f59e0b"/><stop offset="1" stop-color="#f97316"/></linearGradient></defs><rect x="4" y="4" width="88" height="88" rx="22" fill="url(#lgF)"/><path d="M48 22l13 7.5v15L48 52 35 44.5v-15Z" fill="#fff" opacity=".95"/><path d="M61 29.5 74 37v15l-13 7.5M48 52l-13 7.5 13 7.5 13-7.5Z" fill="#fff" opacity=".55"/><circle cx="48" cy="44" r="6" fill="#f97316"/></svg>`,
+  G: `<svg viewBox="0 0 96 96"><defs><linearGradient id="lgG" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#0e9f6e"/><stop offset="1" stop-color="#059669"/></linearGradient></defs><rect x="4" y="4" width="88" height="88" rx="22" fill="url(#lgG)"/><path d="M48 24a24 24 0 1 1-20 12" fill="none" stroke="#fff" stroke-width="6" stroke-linecap="round"/><path d="M28 20v18h18" fill="none" stroke="#fff" stroke-width="6" stroke-linecap="round" stroke-linejoin="round"/></svg>`,
+  H: `<svg viewBox="0 0 96 96"><defs><linearGradient id="lgH" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#ec4899"/><stop offset="1" stop-color="#db2777"/></linearGradient></defs><rect x="4" y="4" width="88" height="88" rx="22" fill="url(#lgH)"/><path d="M48 22 70 34v24L48 70 26 58V34Z" fill="#fff"/><path d="M48 22v24L26 34M48 46l22 12M48 46v24" stroke="#db2777" stroke-width="2" opacity=".45"/></svg>`,
+  I: `<svg viewBox="0 0 96 96"><defs><linearGradient id="lgI" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#111827"/><stop offset="1" stop-color="#1f2937"/></linearGradient></defs><rect x="4" y="4" width="88" height="88" rx="22" fill="url(#lgI)"/><path d="M30 34 20 48l10 14M66 34l10 14-10 14" fill="none" stroke="#fff" stroke-width="5.5" stroke-linecap="round" stroke-linejoin="round"/><path d="M52 30 44 66" stroke="#34d399" stroke-width="5.5" stroke-linecap="round"/><path d="M58 62h14" stroke="#34d399" stroke-width="5.5" stroke-linecap="round"/></svg>`,
+  J: `<svg viewBox="0 0 96 96"><defs><linearGradient id="lgJ" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#0d9488"/><stop offset="1" stop-color="#0891b2"/></linearGradient></defs><rect x="4" y="4" width="88" height="88" rx="22" fill="url(#lgJ)"/><path d="M48 22a26 26 0 1 0 0 52Z" fill="#fff"/><path d="M48 22a26 26 0 0 1 0 52V48Z" fill="#fff" opacity=".35"/><circle cx="48" cy="48" r="9" fill="#0d9488"/></svg>`,
+};
+
+function setTheme(n){
+  document.body.dataset.theme = String(n);
+  document.querySelectorAll('.theme-switch button').forEach(b=>b.classList.toggle('active', b.dataset.t===String(n)));
+}
+function setLogo(k){
+  const el = document.getElementById('brand-logo');
+  el.innerHTML = LOGOS[k];
+  el.style.background = 'none';
+  document.querySelectorAll('.logo-switch button').forEach(b=>b.classList.toggle('active', b.dataset.l===k));
+}
+// 初始：默认 A
+setLogo('A');
+</script>
+</body>
+</html>

@@ -1,0 +1,15 @@
+id: ws-20-suppress-approve
+name: 抑制审核通过（PENDING）
+description: 【暂不执行】抑制审核通过（PENDING→ACTIVE）；审核流未上线。
+skip: true
+skipReason: P0 submit 直通 ACTIVE，无 PENDING；真审核上线后补造数
+steps:
+- method: POST
+  service: biz
+  path: /warning/suppress/0/approve
+  body:
+    opinion: 同意
+  expect:
+    status: 200
+    fields:
+      code: 0

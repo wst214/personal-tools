@@ -1,0 +1,14 @@
+id: di-39-monitor-type-invalid
+name: 非法 monitorType 被拒
+description: 通用：非法类型应返回 400。
+skip: false
+skipReason: ''
+expandByDeviceType: false
+steps:
+- method: GET
+  service: data
+  path: /ingest/monitor/device/recent?monitorType=NOT_A_REAL_TYPE
+  expect:
+    status: 400
+    fields:
+      code: 400

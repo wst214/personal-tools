@@ -1,0 +1,36 @@
+id: wf-22-update-readiness
+name: 可更新因子就绪状态
+description: 验收：运维可更新 readiness；测完后恢复原值。
+skip: false
+skipReason: ''
+steps:
+- method: GET
+  service: biz
+  path: /warning/factors/by-code/RISK_INDEX
+  expect:
+    status: 200
+    fields:
+      code: 0
+      data.readiness: NOT_READY
+  capture:
+    factorId: data.id
+- method: PUT
+  service: biz
+  path: /warning/factors/${factorId}
+  expect:
+    status: 200
+    fields:
+      code: 0
+      data.readiness: READY
+  body:
+    readiness: READY
+- method: PUT
+  service: biz
+  path: /warning/factors/${factorId}
+  expect:
+    status: 200
+    fields:
+      code: 0
+      data.readiness: NOT_READY
+  body:
+    readiness: NOT_READY

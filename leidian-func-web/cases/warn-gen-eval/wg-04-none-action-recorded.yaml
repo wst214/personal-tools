@@ -1,0 +1,43 @@
+id: wg-04-none-action-recorded
+name: NONE 动作仍可产出 Candidate
+description: 验收：actionType=NONE 时条件命中仍返回 Candidate（warningLevel 可空）；事件 RECORDED/通知另案（事件生命周期未上线）。
+skip: false
+skipReason: ''
+steps:
+- method: POST
+  service: biz
+  path: /warning/rules
+  body:
+    ruleName: 功能测-评估NONE-${rand}
+    ruleDesc: WG-04
+    conditionJson: '{"logic":"AND","children":[{"factorCode":"ATMO_EFIELD_INSTANT","op":"GTE","value":1}]}'
+    actionJson: '{"actionType":"NONE"}'
+    scheduleType: ALWAYS
+  expect:
+    status: 200
+    fields:
+      code: 0
+  capture:
+    ruleId: data.id
+- method: POST
+  service: biz
+  path: /warning/rules/${ruleId}/submit
+  expect:
+    status: 200
+    fields:
+      code: 0
+      data.ruleStatus: ENABLED
+- method: POST
+  service: biz
+  path: /warning/eval/dry-run
+  body:
+    siteId: 1000000000000050101
+    ruleId: ${ruleId}
+    factorOverrides:
+      ATMO_EFIELD_INSTANT: 9
+  expect:
+    status: 200
+    fields:
+      code: 0
+      data.candidates.0.ruleId: ${ruleId}
+      data.candidates.0.warningLevel: null

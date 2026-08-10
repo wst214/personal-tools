@@ -1,0 +1,22 @@
+id: wn-12-channel-payload
+name: 通知内容应含预警等级与矿区
+description: 【暂不执行】验收：通知载荷应含预警等级与标题等字段。
+skip: true
+skipReason: 能力未上线；本用例按验收标准编写，上线后取消 skip 即可跑
+steps:
+- method: GET
+  service: biz
+  path: /warning/notify/records?pageNum=1&pageSize=1
+  expect:
+    status: 200
+    fields:
+      code: 0
+  capture:
+    recordId: data.list.0.id
+- method: GET
+  service: biz
+  path: /warning/notify/records/${recordId}
+  expect:
+    status: 200
+    fields:
+      code: 0

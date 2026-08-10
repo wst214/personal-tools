@@ -1,0 +1,46 @@
+id: di-40-e2e-device
+name: 设备解析全链路入库可见
+description: |
+  投递合法 HEX → 等待消费 → monitor 可见 → 附件映射可查 →（有映射时）presign。
+  按勾选设备类型展开；每个勾选类型必须有 deviceHex 夹具。
+skip: false
+skipReason: ''
+expandByDeviceType: true
+expandRequiresDeviceHex: true
+steps:
+- name: Kafka 投递 device-raw-data
+  method: KAFKA
+  topic: device-raw-data
+  key: func-web-${deviceType}-${rand}
+  value: ${deviceHex}
+- name: 等待消费落库
+  method: SLEEP
+  seconds: 5
+- name: 查最近 monitor
+  method: GET
+  service: data
+  path: /ingest/monitor/device/recent?monitorType=${deviceType}&limit=5
+  expect:
+    status: 200
+    fields:
+      code: 0
+  capture:
+    monitorId: data.0.id
+- name: 按 monitor 查附件映射
+  method: GET
+  service: data
+  path: /ingest/attachment/refs?monitorType=${deviceType}&monitorId=${monitorId}
+  expect:
+    status: 200
+    fields:
+      code: 0
+  capture:
+    attachmentId: data.0.attachmentId
+- name: 附件预签名
+  method: GET
+  service: data
+  path: /ingest/attachment/presign?attachmentId=${attachmentId}
+  expect:
+    status: 200
+    fields:
+      code: 0

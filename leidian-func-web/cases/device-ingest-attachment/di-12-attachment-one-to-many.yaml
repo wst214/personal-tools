@@ -1,0 +1,14 @@
+id: di-12-attachment-one-to-many
+name: 一包多条共用同一附件映射
+description: 按 attachmentId 查映射（一包多条时多条 monitor 同 attachmentId）。attachmentId=0 时空列表烟测。
+skip: false
+skipReason: ''
+expandByDeviceType: false
+steps:
+- method: GET
+  service: data
+  path: /ingest/attachment/refs?attachmentId=0
+  expect:
+    status: 200
+    fields:
+      code: 0

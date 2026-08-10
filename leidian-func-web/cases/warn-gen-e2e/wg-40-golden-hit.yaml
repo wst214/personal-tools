@@ -1,0 +1,68 @@
+id: wg-40-golden-hit
+name: 黄金路径-配置启用触发查到 ACTIVE 事件
+description: 验收黄金：建规则->审核启用->trigger->查到 ACTIVE 事件 + 命中项 + CREATE 流转。
+skip: false
+skipReason: ''
+steps:
+- method: POST
+  service: biz
+  path: /warning/rules
+  body:
+    ruleName: 验收-黄金命中-${rand}
+    ruleDesc: WG-40
+    conditionJson: '{"logic":"AND","children":[{"factorCode":"ATMO_EFIELD_INSTANT","op":"GTE","value":5}]}'
+    actionJson: '{"actionType":"WARNING","warningLevel":"BLUE","notify":{"requireConfirm":false}}'
+    foreseeMinutes: 60
+    scheduleType: ALWAYS
+  expect:
+    status: 200
+    fields:
+      code: 0
+      data.ruleStatus: DRAFT
+  capture:
+    ruleId: data.id
+- method: POST
+  service: biz
+  path: /warning/rules/${ruleId}/submit
+  expect:
+    status: 200
+    fields:
+      code: 0
+      data.ruleStatus: ENABLED
+  capture:
+    versionId: data.currentVersionId
+- method: POST
+  service: biz
+  path: /warning/eval/trigger
+  body:
+    siteId: 1000000000000050101
+    ruleId: ${ruleId}
+    factorOverrides:
+      ATMO_EFIELD_INSTANT: 9
+  expect:
+    status: 200
+    fields:
+      code: 0
+      data.candidates.0.warningLevel: BLUE
+      data.candidates.0.ruleVersionId: ${versionId}
+- method: GET
+  service: biz
+  path: /warning/events?pageNum=1&pageSize=1&siteId=1000000000000050101&lifecycleStatus=ACTIVE&warningLevel=BLUE
+  expect:
+    status: 200
+    fields:
+      code: 0
+      data.list.0.lifecycleStatus: ACTIVE
+  capture:
+    eventId: data.list.0.id
+- method: GET
+  service: biz
+  path: /warning/events/${eventId}
+  expect:
+    status: 200
+    fields:
+      code: 0
+      data.warningLevel: BLUE
+      data.itemCount: 1
+      data.items.0.triggerType: RULE_HIT
+      data.transitions.0.action: CREATE

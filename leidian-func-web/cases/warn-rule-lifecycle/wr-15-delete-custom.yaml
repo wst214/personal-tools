@@ -1,0 +1,32 @@
+id: wr-15-delete-custom
+name: 删除自定义规则
+description: 逻辑删除自定义规则，期望删除成功且后续详情不可见或标记已删。
+skip: false
+skipReason: ''
+steps:
+- method: POST
+  service: biz
+  path: /warning/rules
+  body:
+    ruleName: 功能测-删除-${rand}
+    conditionJson: '{}'
+    actionJson: '{"actionType":"NONE"}'
+    scheduleType: ALWAYS
+  expect:
+    status: 200
+    fields:
+      code: 0
+  capture:
+    ruleId: data.id
+- method: DELETE
+  service: biz
+  path: /warning/rules/${ruleId}
+  expect:
+    status: 200
+    fields:
+      code: 0
+- method: GET
+  service: biz
+  path: /warning/rules/${ruleId}
+  expect:
+    status: 404

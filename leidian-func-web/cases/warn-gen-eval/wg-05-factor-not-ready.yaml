@@ -1,0 +1,43 @@
+id: wg-05-factor-not-ready
+name: NOT_READY 因子不误报
+description: 验收：条件引用 RISK_INDEX（种子 NOT_READY）且无 override 时不命中。
+skip: false
+skipReason: ''
+steps:
+- method: POST
+  service: biz
+  path: /warning/rules
+  body:
+    ruleName: 功能测-评估未就绪-${rand}
+    ruleDesc: WG-05
+    conditionJson: '{"logic":"AND","children":[{"factorCode":"RISK_INDEX","op":"GTE","value":30}]}'
+    actionJson: '{"actionType":"WARNING","warningLevel":"ORANGE"}'
+    scheduleType: ALWAYS
+  expect:
+    status: 200
+    fields:
+      code: 0
+  capture:
+    ruleId: data.id
+- method: POST
+  service: biz
+  path: /warning/rules/${ruleId}/submit
+  expect:
+    status: 200
+    fields:
+      code: 0
+      data.ruleStatus: ENABLED
+- method: POST
+  service: biz
+  path: /warning/eval/dry-run
+  body:
+    siteId: 1000000000000050101
+    ruleId: ${ruleId}
+  expect:
+    status: 200
+    fields:
+      code: 0
+      data.candidates: []
+      data.skippedRules.${ruleId}: condition_not_matched
+      data.contextSnapshot.RISK_INDEX.missing: true
+      data.contextSnapshot.RISK_INDEX.missingReason: not_ready

@@ -30,8 +30,7 @@ export const textTool = {
     const { body, input, output, actionBar } = twoPane({ inputPlaceholder: '输入文本（每行一条）…', outputPlaceholder: '处理结果…' });
     const lines = () => input.value.split('\n');
     const ops = [
-      ['行去重', () => [...new Set(lines())].join('\n')],
-      ['去重(保序)', () => { const seen = new Set(); return lines().filter((l) => (seen.has(l) ? false : seen.add(l))).join('\n'); }],
+      ['去重', () => [...new Set(lines())].join('\n')],
       ['升序', () => [...lines()].sort().join('\n')],
       ['降序', () => [...lines()].sort((a, b) => b.localeCompare(a)).join('\n')],
       ['反转行序', () => [...lines()].reverse().join('\n')],
@@ -45,11 +44,17 @@ export const textTool = {
       ['加行号', () => lines().map((l, i) => `${i + 1}. ${l}`).join('\n')],
       ['简转繁', () => s2t(input.value)],
       ['繁转简', () => t2s(input.value)],
-      ['全角->半角', () => input.value.replace(/[！-～]/g, (c) => String.fromCharCode(c.charCodeAt(0) - 0xFEE0)).replace(/　/g, ' ')],
-      ['半角->全角', () => input.value.replace(/[!-~]/g, (c) => String.fromCharCode(c.charCodeAt(0) + 0xFEE0))],
+      ['全角→半角', () => input.value.replace(/[！-～]/g, (c) => String.fromCharCode(c.charCodeAt(0) - 0xFEE0)).replace(/　/g, ' ')],
+      ['半角→全角', () => input.value.replace(/[!-~]/g, (c) => String.fromCharCode(c.charCodeAt(0) + 0xFEE0))],
       ['统计', () => stats(input.value)],
     ];
-    ops.forEach(([label, fn]) => actionBar.append(btn(label, () => { output.value = fn(); toast('完成'); })));
+    // 大文本操作异步执行，避免阻塞 UI
+    ops.forEach(([label, fn]) => actionBar.append(btn(label, () => {
+      setTimeout(() => {
+        output.value = fn();
+        toast('完成');
+      }, 0);
+    })));
     actionBar.append(copyBtn(() => output.value));
     container.append(body);
   },

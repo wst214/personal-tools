@@ -1,6 +1,6 @@
-// 通用 DOM 与交互辅助，供各工具复用
+// Shared DOM and interaction helpers.
 
-export function el(tag, attrs = {}, children = []) {
+export function el(tag, attrs = {}, ...rest) {
   const node = document.createElement(tag);
   for (const [k, v] of Object.entries(attrs || {})) {
     if (v == null || v === false) continue;
@@ -13,7 +13,7 @@ export function el(tag, attrs = {}, children = []) {
     else if (k.startsWith('on') && typeof v === 'function') node.addEventListener(k.slice(2).toLowerCase(), v);
     else node.setAttribute(k, v);
   }
-  const kids = (Array.isArray(children) ? children : [children]).flat();
+  const kids = rest.flat();
   for (const c of kids) {
     if (c == null || c === false) continue;
     node.appendChild(typeof c === 'object' && c.nodeType ? c : document.createTextNode(String(c)));
@@ -22,7 +22,26 @@ export function el(tag, attrs = {}, children = []) {
 }
 
 export function textarea(placeholder = '', value = '') {
-  return el('textarea', { class: 'tx', placeholder, text: value });
+  const ta = el('textarea', { class: 'tx', placeholder, text: value });
+  // 大文本粘贴优化：Chromium 的 execCommand('insertText') 对 >200KB 文本极慢（1s+），
+  // 拦截 paste 改用直接赋值（3ms），保留光标位置。
+  ta.addEventListener('paste', (e) => {
+    const clip = e.clipboardData;
+    if (!clip) return;
+    const text = clip.getData('text/plain');
+    if (text.length < 200 * 1024) return; // 小文本走默认快路径
+    e.preventDefault();
+    const start = ta.selectionStart;
+    const end = ta.selectionEnd;
+    const before = ta.value.slice(0, start);
+    const after = ta.value.slice(end);
+    ta.value = before + text + after;
+    // 光标移到粘贴内容末尾
+    const pos = start + text.length;
+    try { ta.setSelectionRange(pos, pos); } catch {}
+    ta.dispatchEvent(new Event('input', { bubbles: true }));
+  });
+  return ta;
 }
 
 export function btn(label, onClick, opts = {}) {
@@ -37,12 +56,12 @@ export function btn(label, onClick, opts = {}) {
   return b;
 }
 
-export function copyBtn(getText, label = '复制') {
+export function copyBtn(getText, label = '\u590d\u5236') {
   return btn(label, async () => {
     const text = typeof getText === 'function' ? getText() : getText;
-    if (!text) { toast('内容为空', 'warn'); return; }
-    try { await copyText(text); toast('已复制'); }
-    catch { toast('复制失败', 'error'); }
+    if (!text) { toast('\u5185\u5bb9\u4e3a\u7a7a', 'warn'); return; }
+    try { await copyText(text); toast('\u5df2\u590d\u5236'); }
+    catch { toast('\u590d\u5236\u5931\u8d25', 'error'); }
   });
 }
 
@@ -78,7 +97,27 @@ export function escapeHtml(s) {
 
 export function debounce(fn, ms = 200) {
   let t;
-  return (...a) => { clearTimeout(t); t = setTimeout(() => fn(...a), ms); };
+  let lastArgs;
+  const wrapped = (...a) => {
+    lastArgs = a;
+    clearTimeout(t);
+    t = setTimeout(() => {
+      t = null;
+      const args = lastArgs;
+      lastArgs = null;
+      fn(...args);
+    }, ms);
+  };
+  wrapped.cancel = () => { clearTimeout(t); t = null; lastArgs = null; };
+  wrapped.flush = () => {
+    if (t == null && lastArgs == null) return;
+    clearTimeout(t);
+    t = null;
+    const args = lastArgs || [];
+    lastArgs = null;
+    fn(...args);
+  };
+  return wrapped;
 }
 
 export function download(filename, content, type = 'text/plain') {
@@ -100,15 +139,14 @@ export function readFileAsText(file) {
   });
 }
 
-// 标准两栏布局：输入 | 操作条 | 输出
 export function twoPane(opts = {}) {
   const {
-    inputPlaceholder = '在此输入…',
-    outputPlaceholder = '结果将显示在此',
+    inputPlaceholder = '\u5728\u6b64\u8f93\u5165\u2026',
+    outputPlaceholder = '\u7ed3\u679c\u5c06\u663e\u793a\u5728\u6b64',
     outputReadonly = true,
     actions = [],
-    inputLabel = '输入',
-    outputLabel = '输出',
+    inputLabel = '\u8f93\u5165',
+    outputLabel = '\u8f93\u51fa',
   } = opts;
   const input = textarea(inputPlaceholder);
   const output = textarea(outputPlaceholder);
@@ -132,5 +170,4 @@ export function field(label, child, opts = {}) {
   return el('div', { class: 'field', style: opts.style || {} }, [el('label', { text: label }), child]);
 }
 
-export const isDesktop = () => !!window.toolbox?.isElectron;
-
+export const isDesktop = () => !!(window.toolbox?.isElectron || window.toolbox?.isTauri);

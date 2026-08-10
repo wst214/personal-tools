@@ -1,0 +1,19 @@
+id: wr-24-broadcast-action
+name: 新建 BROADCAST 动作草稿
+description: 新建动作类型为 BROADCAST 的规则草稿，校验动作 JSON 可保存且状态为 DRAFT。
+skip: false
+skipReason: ''
+steps:
+- method: POST
+  service: biz
+  path: /warning/rules
+  body:
+    ruleName: 功能测-广播动作-${rand}
+    conditionJson: '{}'
+    actionJson: '{"actionType":"BROADCAST","warningLevel":"YELLOW"}'
+    scheduleType: ALWAYS
+  expect:
+    status: 200
+    fields:
+      code: 0
+      data.ruleStatus: DRAFT

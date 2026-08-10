@@ -1,0 +1,49 @@
+id: wg-01-hit-warning
+name: 条件满足应产出 Candidate
+description: 验收：启用规则 + 因子达标 → dry-run 返回命中候选（warningLevel/ruleId）。本轮不落事件。
+skip: false
+skipReason: ''
+steps:
+- method: POST
+  service: biz
+  path: /warning/rules
+  body:
+    ruleName: 功能测-评估命中-${rand}
+    ruleDesc: WG-01
+    conditionJson: '{"logic":"AND","children":[{"factorCode":"ATMO_EFIELD_INSTANT","op":"GTE","value":10}]}'
+    actionJson: '{"actionType":"WARNING","warningLevel":"BLUE"}'
+    foreseeMinutes: 60
+    scheduleType: ALWAYS
+  expect:
+    status: 200
+    fields:
+      code: 0
+      data.ruleStatus: DRAFT
+  capture:
+    ruleId: data.id
+- method: POST
+  service: biz
+  path: /warning/rules/${ruleId}/submit
+  expect:
+    status: 200
+    fields:
+      code: 0
+      data.ruleStatus: ENABLED
+  capture:
+    versionId: data.currentVersionId
+- method: POST
+  service: biz
+  path: /warning/eval/dry-run
+  body:
+    siteId: 1000000000000050101
+    ruleId: ${ruleId}
+    factorOverrides:
+      ATMO_EFIELD_INSTANT: 20
+  expect:
+    status: 200
+    fields:
+      code: 0
+      data.siteId: 1000000000000050101
+      data.candidates.0.warningLevel: BLUE
+      data.candidates.0.ruleId: ${ruleId}
+      data.candidates.0.ruleVersionId: ${versionId}

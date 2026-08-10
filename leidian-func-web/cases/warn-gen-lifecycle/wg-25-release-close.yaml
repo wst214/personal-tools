@@ -1,0 +1,66 @@
+id: wg-25-release-close
+name: 人工解除后事件应关闭
+description: 【暂不执行】验收：人工解除后事件应关闭。
+skip: true
+skipReason: 能力未上线；本用例按验收标准编写，上线后取消 skip 即可跑
+steps:
+- method: POST
+  service: biz
+  path: /warning/rules
+  expect:
+    status: 200
+    fields:
+      code: 0
+  body:
+    ruleName: 验收-解除-${rand}
+    siteId: 1000000000000050101
+    conditionJson: '{"logic":"AND","groups":[{"logic":"AND","conditions":[{"factor":"ATMO_EFIELD_INSTANT","op":"GT","value":1}]}]}'
+    actionJson: '{"actionType":"WARNING","warningLevel":"BLUE","needConfirm":false}'
+    scheduleType: ALWAYS
+  capture:
+    ruleId: data.id
+- method: POST
+  service: biz
+  path: /warning/rules/${ruleId}/submit
+  expect:
+    status: 200
+    fields:
+      code: 0
+- method: POST
+  service: biz
+  path: /warning/eval/trigger
+  expect:
+    status: 200
+    fields:
+      code: 0
+  body:
+    siteId: 1000000000000050101
+    factors:
+      ATMO_EFIELD_INSTANT: 9
+- method: GET
+  service: biz
+  path: /warning/events?pageNum=1&pageSize=5&keyword=验收-解除
+  expect:
+    status: 200
+    fields:
+      code: 0
+  capture:
+    eventId: data.list.0.id
+- method: POST
+  service: biz
+  path: /warning/events/${eventId}/release
+  expect:
+    status: 200
+    fields:
+      code: 0
+      data.lifecycleStatus: RELEASED
+  body:
+    reason: 验收解除
+- method: GET
+  service: biz
+  path: /warning/events/${eventId}
+  expect:
+    status: 200
+    fields:
+      code: 0
+      data.lifecycleStatus: CLOSED

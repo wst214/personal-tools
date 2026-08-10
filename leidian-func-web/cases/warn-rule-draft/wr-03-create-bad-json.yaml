@@ -1,0 +1,15 @@
+id: wr-03-create-bad-json
+name: 新建非法 JSON 失败
+description: 负向校验：conditionJson / actionJson 非法时创建应失败，期望返回 400。
+skip: false
+skipReason: ''
+steps:
+- method: POST
+  service: biz
+  path: /warning/rules
+  body:
+    ruleName: 功能测-坏JSON-${rand}
+    conditionJson: '{not-json'
+    actionJson: '{"actionType":"NONE"}'
+  expect:
+    status: 400

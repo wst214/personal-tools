@@ -1,0 +1,107 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<title>方案 A — 顶栏导航（浅色）</title>
+<style>
+* { margin:0; padding:0; box-sizing:border-box; }
+:root { color-scheme: light; }
+body {
+  font-family: "Segoe UI", "Microsoft YaHei", system-ui, sans-serif;
+  background: #f4f6f8;
+  color: #1c2a24;
+  height: 100vh;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+/* ===== 顶部导航 ===== */
+.topbar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 16px;
+  background: #ffffff;
+  border-bottom: 1px solid #e3e8ef;
+  flex-shrink: 0;
+}
+.brand { display:flex; align-items:center; gap:8px; font-weight:700; font-size:14px; padding-right:14px; border-right:1px solid #e3e8ef; margin-right:6px; color:#111827; }
+.brand .logo { width:22px; height:22px; border-radius:6px; background:linear-gradient(135deg,#10b981,#0d9488); display:flex; align-items:center; justify-content:center; font-size:11px; color:#fff; }
+.cats { display:flex; gap:2px; overflow-x:auto; scrollbar-width:none; }
+.cat { padding:6px 13px; border-radius:8px; font-size:12.5px; color:#5b6b63; cursor:pointer; white-space:nowrap; }
+.cat:hover { background:#f0f4f2; color:#1c2a24; }
+.cat.active { background:#e6f7f0; color:#0e9f6e; font-weight:600; }
+.topbar-right { margin-left:auto; display:flex; gap:6px; }
+.icon-btn { width:32px; height:32px; border-radius:8px; border:1px solid #e3e8ef; background:#fff; color:#5b6b63; cursor:pointer; display:flex; align-items:center; justify-content:center; }
+.icon-btn:hover { border-color:#0e9f6e; color:#0e9f6e; }
+
+/* ===== 搜索条 ===== */
+.searchbar { display:flex; align-items:center; gap:10px; padding:10px 20px; border-bottom:1px solid #edf0f4; background:#fafbfc; flex-shrink:0; }
+.searchbar input { flex:1; background:transparent; border:none; outline:none; color:#1c2a24; font-size:14px; }
+.searchbar input::placeholder { color:#9aa8a0; }
+.searchbar .kbd { font-size:11px; color:#9aa8a0; border:1px solid #dde3ea; border-radius:5px; padding:2px 6px; background:#fff; }
+
+/* ===== 工具条（横向标签，类似浏览器） ===== */
+.tooltabs { display:flex; gap:4px; padding:8px 16px; background:#fafbfc; flex-shrink:0; overflow-x:auto; scrollbar-width:none; }
+.tooltab { display:flex; align-items:center; gap:7px; padding:6px 13px; border-radius:8px; font-size:12.5px; color:#5b6b63; cursor:pointer; white-space:nowrap; }
+.tooltab:hover { background:#eef2f0; color:#1c2a24; }
+.tooltab.active { background:#ffffff; color:#111827; box-shadow:0 1px 4px rgba(16,35,26,.08), inset 0 0 0 1px #d3e6dd; font-weight:600; }
+.tooltab .dot { width:6px; height:6px; border-radius:50%; background:#10b981; }
+.tooltab .x { width:16px; height:16px; display:flex; align-items:center; justify-content:center; border-radius:4px; color:#9aa8a0; font-size:12px; }
+.tooltab .x:hover { background:#fdeaea; color:#dc4c4c; }
+
+/* ===== 内容区 ===== */
+.content { flex:1; overflow:auto; padding:0; }
+.tool-hero { padding:32px 28px 18px; }
+.tool-hero h1 { font-size:24px; font-weight:700; color:#111827; }
+.tool-hero p { color:#6b7c73; font-size:13px; margin-top:6px; }
+.tool-body { padding:0 28px 32px; }
+.pane {
+  background:#ffffff; border:1px solid #e3e8ef; border-radius:12px;
+  min-height:300px; display:flex; align-items:center; justify-content:center;
+  color:#9aa8a0; font-size:13px;
+}
+</style>
+</head>
+<body>
+<div class="topbar">
+  <div class="brand"><div class="logo">◈</div><span>DevTool</span></div>
+  <div class="cats">
+    <div class="cat">⭐ 常用</div>
+    <div class="cat active">编码转换</div>
+    <div class="cat">文本处理</div>
+    <div class="cat">网络</div>
+    <div class="cat">系统</div>
+    <div class="cat">其它</div>
+  </div>
+  <div class="topbar-right">
+    <div class="icon-btn">◐</div>
+    <div class="icon-btn">⚙</div>
+  </div>
+</div>
+
+<div class="searchbar">
+  <span style="color:#9aa8a0">⌕</span>
+  <input placeholder="搜索工具、命令、历史…">
+  <span class="kbd">Ctrl K</span>
+</div>
+
+<div class="tooltabs">
+  <div class="tooltab active"><span class="dot"></span>JSON 格式化</div>
+  <div class="tooltab"><span class="dot"></span>加解密编码</div>
+  <div class="tooltab"><span class="dot"></span>SQL 格式化</div>
+  <div class="tooltab"><span class="dot"></span>正则测试<span class="x">×</span></div>
+  <div class="tooltab"><span class="dot"></span>随手记<span class="x">×</span></div>
+</div>
+
+<div class="content">
+  <div class="tool-hero">
+    <h1>JSON 格式化</h1>
+    <p>格式化 / 压缩 / 转换 / 折叠浏览</p>
+  </div>
+  <div class="tool-body">
+    <div class="pane">工具内容区（方案 A：顶栏导航 + 浏览器式工具标签 · 浅色）</div>
+  </div>
+</div>
+</body>
+</html>

@@ -1,0 +1,23 @@
+id: wf-10-seed-efield
+name: 电场瞬时值因子种子必须存在
+description: 验收：电场瞬时值等设备因子应能入库查询。
+skip: false
+skipReason: ''
+steps:
+- method: GET
+  service: biz
+  path: /warning/factors?keyword=ATMO_EFIELD_INSTANT&pageNum=1&pageSize=20
+  expect:
+    status: 200
+    fields:
+      code: 0
+      data.list.0.factorCode: ATMO_EFIELD_INSTANT
+- method: GET
+  service: biz
+  path: /warning/factors/by-code/ATMO_EFIELD_RATE
+  expect:
+    status: 200
+    fields:
+      code: 0
+      data.factorCode: ATMO_EFIELD_RATE
+      data.sourceColumn: rate_change

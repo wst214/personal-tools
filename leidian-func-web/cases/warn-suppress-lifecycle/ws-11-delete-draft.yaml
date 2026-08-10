@@ -1,0 +1,35 @@
+id: ws-11-delete-draft
+name: 删除草稿抑制
+description: 删除草稿抑制单，期望成功。
+skip: false
+skipReason: ''
+steps:
+- method: POST
+  service: biz
+  path: /warning/suppress
+  body:
+    siteId: 1
+    suppressName: 功能测-删草稿-${rand}
+    suppressScope: FULL
+    timeMode: PERMANENT
+    targets:
+    - targetType: WARNING_LEVEL
+      targetCode: RED
+  expect:
+    status: 200
+    fields:
+      code: 0
+  capture:
+    suppressId: data.id
+- method: DELETE
+  service: biz
+  path: /warning/suppress/${suppressId}
+  expect:
+    status: 200
+    fields:
+      code: 0
+- method: GET
+  service: biz
+  path: /warning/suppress/${suppressId}
+  expect:
+    status: 404

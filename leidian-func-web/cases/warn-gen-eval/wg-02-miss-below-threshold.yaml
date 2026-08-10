@@ -1,0 +1,44 @@
+id: wg-02-miss-below-threshold
+name: 条件不满足不应产出 Candidate
+description: 验收：因子未达阈值 → dry-run candidates 为空，并记 condition_not_matched。
+skip: false
+skipReason: ''
+steps:
+- method: POST
+  service: biz
+  path: /warning/rules
+  body:
+    ruleName: 功能测-评估未命中-${rand}
+    ruleDesc: WG-02
+    conditionJson: '{"logic":"AND","children":[{"factorCode":"ATMO_EFIELD_INSTANT","op":"GTE","value":50}]}'
+    actionJson: '{"actionType":"WARNING","warningLevel":"YELLOW"}'
+    foreseeMinutes: 60
+    scheduleType: ALWAYS
+  expect:
+    status: 200
+    fields:
+      code: 0
+  capture:
+    ruleId: data.id
+- method: POST
+  service: biz
+  path: /warning/rules/${ruleId}/submit
+  expect:
+    status: 200
+    fields:
+      code: 0
+      data.ruleStatus: ENABLED
+- method: POST
+  service: biz
+  path: /warning/eval/dry-run
+  body:
+    siteId: 1000000000000050101
+    ruleId: ${ruleId}
+    factorOverrides:
+      ATMO_EFIELD_INSTANT: 10
+  expect:
+    status: 200
+    fields:
+      code: 0
+      data.candidates: []
+      data.skippedRules.${ruleId}: condition_not_matched

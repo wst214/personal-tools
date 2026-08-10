@@ -1,0 +1,14 @@
+{
+  "schema_version": 1,
+  "generator": "pf_git.py",
+  "source_path": "D:/mytools/dev-toolbox",
+  "observed_at": "2026-08-07T05:59:05.600758+00:00",
+  "is_git_repo": true,
+  "is_independent_repo": false,
+  "toplevel": "D:/mytools",
+  "head_short": null,
+  "head_full": null,
+  "branch": null,
+  "hotspots": [],
+  "recent_commit_modules": []
+}

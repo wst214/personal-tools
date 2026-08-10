@@ -1,0 +1,101 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<title>2 — 笔记/文档感 × 紧凑</title>
+<style>
+* { margin:0; padding:0; box-sizing:border-box; }
+body { font-family:"Segoe UI","Microsoft YaHei",system-ui,sans-serif; background:#f7f6f3; color:#2b2a28; height:100vh; overflow:hidden; display:flex; }
+
+/* 左：分类图标窄栏 */
+.rail { width:46px; background:#fff; border-right:1px solid #e8e6e0; display:flex; flex-direction:column; align-items:center; padding:10px 0; gap:3px; flex-shrink:0; }
+.rail .logo { width:26px; height:26px; border-radius:7px; background:linear-gradient(135deg,#4a9d5f,#2e7d46); display:flex; align-items:center; justify-content:center; font-size:11px; color:#fff; margin-bottom:8px; }
+.rail-btn { width:34px; height:34px; border-radius:8px; display:flex; align-items:center; justify-content:center; font-size:15px; color:#8a867b; cursor:pointer; }
+.rail-btn:hover { background:#f0eeE8; color:#1f1e1b; }
+.rail-btn.active { background:#eaf3ec; color:#2e7d46; }
+
+/* 中：密集工具列表 */
+.list { width:190px; background:#f7f6f3; border-right:1px solid #e8e6e0; overflow-y:auto; padding:12px 8px; flex-shrink:0; }
+.list .grp { font-size:10px; font-weight:600; color:#a09d94; padding:10px 8px 4px; }
+.list .item { display:flex; align-items:center; gap:7px; padding:5px 8px; border-radius:6px; font-size:12.5px; color:#5b594f; cursor:pointer; white-space:nowrap; }
+.list .item:hover { background:#eceae4; }
+.list .item.active { background:#fff; color:#2e7d46; font-weight:600; }
+
+/* 右：内容 */
+.main { flex:1; display:flex; flex-direction:column; min-width:0; }
+.topbar { display:flex; align-items:center; gap:10px; padding:8px 18px; background:#fff; border-bottom:1px solid #e8e6e0; flex-shrink:0; }
+.topbar .tabs { display:flex; gap:2px; flex:1; overflow-x:auto; scrollbar-width:none; }
+.topbar .tab { display:flex; align-items:center; gap:5px; padding:5px 11px; border-radius:6px; font-size:12px; color:#8a867b; cursor:pointer; white-space:nowrap; }
+.topbar .tab:hover { background:#f0eee8; }
+.topbar .tab.active { background:#eaf3ec; color:#2e7d46; font-weight:600; }
+.content { flex:1; overflow:auto; padding:16px; }
+.doc { background:#fff; border:1px solid #e8e6e0; border-radius:9px; padding:16px 18px; margin-bottom:10px; }
+.doc .h { font-size:12px; font-weight:600; color:#1f1e1b; margin-bottom:8px; display:flex; align-items:center; justify-content:space-between; }
+.doc .h .meta { font-size:10.5px; color:#a09d94; font-weight:400; }
+.doc-input { width:100%; background:#faf9f6; border:1px solid #e2dfd7; border-radius:6px; padding:8px 11px; font-size:12.5px; color:#2b2a28; min-height:70px; }
+.doc-row { display:flex; gap:6px; margin-top:8px; flex-wrap:wrap; }
+.btn { border:1px solid #e2dfd7; background:#fff; border-radius:6px; padding:5px 12px; font-size:11.5px; color:#5b594f; cursor:pointer; }
+.btn:hover { border-color:#4a9d5f; color:#2e7d46; }
+.btn.primary { background:#2e7d46; color:#fff; border-color:#2e7d46; }
+</style>
+</head>
+<body>
+<div class="rail">
+  <div class="logo">◈</div>
+  <div class="rail-btn">★</div>
+  <div class="rail-btn active">{}</div>
+  <div class="rail-btn">T</div>
+  <div class="rail-btn">⌁</div>
+  <div class="rail-btn">⚙</div>
+</div>
+
+<div class="list">
+  <div class="grp">常用</div>
+  <div class="item">📝 随手记</div>
+  <div class="item">{} JSON</div>
+  <div class="item">⌁ SSH</div>
+  <div class="grp">编码转换</div>
+  <div class="item active">{} JSON 格式化</div>
+  <div class="item">🔐 加解密</div>
+  <div class="item">2⁸ 进制</div>
+  <div class="item">⏱ 时间戳</div>
+  <div class="grp">文本</div>
+  <div class="item">SQL 格式化</div>
+  <div class="item">.* 正则</div>
+  <div class="item">T 文本处理</div>
+  <div class="grp">网络</div>
+  <div class="item">⇄ HTTP</div>
+  <div class="item">◈ 端口扫描</div>
+</div>
+
+<div class="main">
+  <div class="topbar">
+    <div class="tabs">
+      <div class="tab">📝 随手记</div>
+      <div class="tab active">{} JSON 格式化</div>
+      <div class="tab">🔐 加解密</div>
+      <div class="tab">SQL 格式化 ×</div>
+    </div>
+  </div>
+  <div class="content">
+    <div class="doc">
+      <div class="h">输入 <span class="meta">支持大文件</span></div>
+      <div class="doc-input">在此粘贴 JSON…</div>
+    </div>
+    <div class="doc">
+      <div class="h">操作</div>
+      <div class="doc-row">
+        <div class="btn primary">缩进 2 空格</div>
+        <div class="btn">缩进 4 空格</div>
+        <div class="btn">压缩</div>
+        <div class="btn">折叠视图</div>
+      </div>
+    </div>
+    <div class="doc">
+      <div class="h">结果 <span class="meta">格式化后</span></div>
+      <div class="doc-input">结果…</div>
+    </div>
+  </div>
+</div>
+</body>
+</html>

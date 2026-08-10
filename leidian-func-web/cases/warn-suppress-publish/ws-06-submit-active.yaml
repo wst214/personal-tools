@@ -1,0 +1,40 @@
+id: ws-06-submit-active
+name: 提交即生效
+description: 草稿 submit 后直接 ACTIVE（现阶段无审核）。
+skip: false
+skipReason: ''
+steps:
+- method: POST
+  service: biz
+  path: /warning/suppress
+  body:
+    siteId: 1
+    suppressName: 功能测-提交生效-${rand}
+    suppressScope: FULL
+    timeMode: PERMANENT
+    targets:
+    - targetType: WARNING_LEVEL
+      targetCode: YELLOW
+  expect:
+    status: 200
+    fields:
+      code: 0
+      data.suppressStatus: DRAFT
+  capture:
+    suppressId: data.id
+- method: POST
+  service: biz
+  path: /warning/suppress/${suppressId}/submit
+  expect:
+    status: 200
+    fields:
+      code: 0
+      data.suppressStatus: ACTIVE
+- method: GET
+  service: biz
+  path: /warning/suppress/${suppressId}
+  expect:
+    status: 200
+    fields:
+      code: 0
+      data.suppressStatus: ACTIVE

@@ -1,0 +1,14 @@
+id: di-20-monitor-recent
+name: 设备 monitor 最近记录可查
+description: 通用用例：按上方所选设备类型展开，逐个查询 monitorType=${deviceType}。
+skip: false
+skipReason: ''
+expandByDeviceType: true
+steps:
+- method: GET
+  service: data
+  path: /ingest/monitor/device/recent?monitorType=${deviceType}&limit=20
+  expect:
+    status: 200
+    fields:
+      code: 0

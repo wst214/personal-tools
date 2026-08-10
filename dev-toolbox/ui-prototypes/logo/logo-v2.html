@@ -1,0 +1,138 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<title>DevTool Logo 候选 v2 — 多风格 36 款</title>
+<style>
+* { margin:0; padding:0; box-sizing:border-box; }
+body { font-family:"Segoe UI","Microsoft YaHei",system-ui,sans-serif; background:#f4f5f7; color:#1d1d1f; padding:32px 40px 60px; }
+h1 { font-size:22px; font-weight:700; margin-bottom:6px; }
+.sub { font-size:13px; color:#86868b; margin-bottom:8px; }
+.cat-title { font-size:15px; font-weight:700; margin:28px 0 12px; padding-left:10px; border-left:3px solid #0071e3; }
+.grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(180px,1fr)); gap:14px; }
+.cell {
+  background:#fff; border:1px solid #e3e3e8; border-radius:14px; padding:24px 16px 16px;
+  display:flex; flex-direction:column; align-items:center; gap:12px; cursor:pointer;
+  transition:all .15s;
+}
+.cell:hover { border-color:#0071e3; box-shadow:0 6px 20px rgba(0,0,0,.08); transform:translateY(-2px); }
+.cell .box { width:84px; height:84px; display:flex; align-items:center; justify-content:center; }
+.cell .box svg { width:100%; height:100%; }
+.cell .no { font-size:10px; color:#b0b6c2; }
+.cell .nm { font-size:11.5px; color:#5b5b61; text-align:center; line-height:1.4; }
+.bigview { position:fixed; inset:0; background:rgba(0,0,0,.5); display:none; align-items:center; justify-content:center; z-index:100; }
+.bigview.open { display:flex; }
+.bigcard { background:#fff; border-radius:18px; padding:48px 64px; display:flex; flex-direction:column; align-items:center; gap:18px; position:relative; }
+.bigcard .box { width:180px; height:180px; }
+.bigcard .box svg { width:100%; height:100%; }
+.bigcard .close { position:absolute; top:14px; right:18px; font-size:24px; color:#86868b; cursor:pointer; background:none; border:none; }
+</style>
+</head>
+<body>
+<h1>DevTool Logo 候选 v2</h1>
+<div class="sub">6 大类 × 每类 6 款 = 36 款，风格差异大。点击任意款放大。</div>
+
+<div class="cat-title">A. 无底极简符号（Vercel/Linear 风，无背景色）</div>
+<div class="grid" data-cat="A"></div>
+<div class="cat-title">B. 字母标（D / T / DT 几何变形）</div>
+<div class="grid" data-cat="B"></div>
+<div class="cat-title">C. 多彩块（纯色拼接，非渐变）</div>
+<div class="grid" data-cat="C"></div>
+<div class="cat-title">D. 异形底（圆形 / 菱形 / 六边形 / 圆环）</div>
+<div class="grid" data-cat="D"></div>
+<div class="cat-title">E. 细节矢量（代码 / 终端 / 工具箱 / 像素风）</div>
+<div class="grid" data-cat="E"></div>
+<div class="cat-title">F. 文字标（DevTool / 工具箱字形）</div>
+<div class="grid" data-cat="F"></div>
+
+<div class="bigview" id="bigview" onclick="if(event.target===this)closeBig()">
+  <div class="bigcard">
+    <button class="close" onclick="closeBig()">×</button>
+    <div class="box" id="bigbox"></div>
+    <div id="bigname" style="font-size:14px;font-weight:600"></div>
+  </div>
+</div>
+
+<script>
+// ============ 各类候选 ============
+const CATS = {
+  // A 无底极简符号
+  A: [
+    { n:'尖角对折', s:`<svg viewBox="0 0 96 96"><path d="M18 18h30L48 78H18z" fill="#111"/><path d="M78 18H48L48 78h30z" fill="#0071e3"/></svg>` },
+    { n:'双三角', s:`<svg viewBox="0 0 96 96"><path d="M48 14 82 78H14z" fill="#111"/><circle cx="48" cy="52" r="10" fill="#fff"/></svg>` },
+    { n:'斜杠圆点', s:`<svg viewBox="0 0 96 96"><rect x="40" y="8" width="16" height="80" rx="8" fill="#111" transform="rotate(35 48 48)"/><circle cx="28" cy="68" r="12" fill="#0071e3"/></svg>` },
+    { n:'重叠圆', s:`<svg viewBox="0 0 96 96"><circle cx="38" cy="48" r="26" fill="#111"/><circle cx="58" cy="48" r="26" fill="#0071e3" opacity=".85"/></svg>` },
+    { n:'之字', s:`<svg viewBox="0 0 96 96"><path d="M16 24h30L50 72H20z" fill="none" stroke="#111" stroke-width="7" stroke-linejoin="round"/><path d="M80 24H50L46 72h30z" fill="none" stroke="#0071e3" stroke-width="7" stroke-linejoin="round"/></svg>` },
+    { n:'圆点弧', s:`<svg viewBox="0 0 96 96"><path d="M24 66a28 28 0 1 1 48 0" fill="none" stroke="#111" stroke-width="8" stroke-linecap="round"/><circle cx="48" cy="62" r="8" fill="#0071e3"/></svg>` },
+  ],
+  // B 字母标
+  B: [
+    { n:'D 圆环', s:`<svg viewBox="0 0 96 96"><rect x="6" y="6" width="84" height="84" rx="20" fill="#111"/><path d="M34 26h10a24 24 0 0 1 0 48H34z" fill="none" stroke="#fff" stroke-width="8" stroke-linecap="round"/></svg>` },
+    { n:'T 台座', s:`<svg viewBox="0 0 96 96"><rect x="6" y="6" width="84" height="84" rx="20" fill="#0071e3"/><path d="M30 32h36M48 32v36" stroke="#fff" stroke-width="9" stroke-linecap="round"/><rect x="24" y="60" width="48" height="8" rx="4" fill="#fff"/></svg>` },
+    { n:'DT 连体', s:`<svg viewBox="0 0 96 96"><rect x="6" y="6" width="84" height="84" rx="20" fill="#111"/><path d="M28 28h14v40H28zM46 28h12a10 10 0 0 1 0 20H46zM46 48h14a10 10 0 0 1 0 20H46z" fill="#fff"/></svg>` },
+    { n:'D 缺口', s:`<svg viewBox="0 0 96 96"><rect x="6" y="6" width="84" height="84" rx="20" fill="#f59e0b"/><path d="M34 30a20 20 0 0 1 0 40M34 30v40" stroke="#fff" stroke-width="8" stroke-linecap="round"/></svg>` },
+    { n:'D 圆点', s:`<svg viewBox="0 0 96 96"><circle cx="48" cy="48" r="40" fill="#fff" stroke="#111" stroke-width="6"/><path d="M44 26h6a22 22 0 0 1 0 44h-6z" fill="none" stroke="#111" stroke-width="6"/><circle cx="44" cy="48" r="7" fill="#0071e3"/></svg>` },
+    { n:'T 折线', s:`<svg viewBox="0 0 96 96"><path d="M16 30h64M16 30l-8 0M80 30l8 0" stroke="#111" stroke-width="10" stroke-linecap="round"/><path d="M48 30v44" stroke="#111" stroke-width="10" stroke-linecap="round"/></svg>` },
+  ],
+  // C 多彩块
+  C: [
+    { n:'四色四格', s:`<svg viewBox="0 0 96 96"><rect x="8" y="8" width="38" height="38" rx="8" fill="#ff5a5f"/><rect x="50" y="8" width="38" height="38" rx="8" fill="#ffb400"/><rect x="8" y="50" width="38" height="38" rx="8" fill="#0dc27d"/><rect x="50" y="50" width="38" height="38" rx="8" fill="#0071e3"/></svg>` },
+    { n:'三色三角', s:`<svg viewBox="0 0 96 96"><path d="M48 10 86 76H10z" fill="#0071e3"/><path d="M48 34 74 76H22z" fill="#fff"/><path d="M48 56 60 76H36z" fill="#ff5a5f"/></svg>` },
+    { n:'四圆点', s:`<svg viewBox="0 0 96 96"><circle cx="34" cy="34" r="16" fill="#0071e3"/><circle cx="62" cy="34" r="16" fill="#ffb400"/><circle cx="34" cy="62" r="16" fill="#0dc27d"/><circle cx="62" cy="62" r="16" fill="#ff5a5f"/></svg>` },
+    { n:'色块堆叠', s:`<svg viewBox="0 0 96 96"><rect x="20" y="44" width="56" height="12" rx="6" fill="#ff5a5f"/><rect x="20" y="26" width="56" height="12" rx="6" fill="#ffb400"/><rect x="20" y="62" width="56" height="12" rx="6" fill="#0dc27d"/></svg>` },
+    { n:'四色象限', s:`<svg viewBox="0 0 96 96"><circle cx="48" cy="48" r="40" fill="#111"/><path d="M48 8a40 40 0 0 1 40 40H48z" fill="#0071e3"/><path d="M48 48h40a40 40 0 0 1-40 40z" fill="#0dc27d"/><path d="M48 88A40 40 0 0 1 8 48h40z" fill="#ffb400"/></svg>` },
+    { n:'多彩像素', s:`<svg viewBox="0 0 96 96"><rect x="16" y="16" width="18" height="18" rx="3" fill="#0071e3"/><rect x="38" y="16" width="18" height="18" rx="3" fill="#ff5a5f"/><rect x="60" y="16" width="18" height="18" rx="3" fill="#0dc27d"/><rect x="16" y="38" width="18" height="18" rx="3" fill="#ffb400"/><rect x="38" y="38" width="18" height="18" rx="3" fill="#111"/><rect x="60" y="38" width="18" height="18" rx="3" fill="#0071e3"/><rect x="16" y="60" width="18" height="18" rx="3" fill="#ff5a5f"/><rect x="38" y="60" width="18" height="18" rx="3" fill="#0dc27d"/><rect x="60" y="60" width="18" height="18" rx="3" fill="#ffb400"/></svg>` },
+  ],
+  // D 异形底
+  D: [
+    { n:'圆形终端', s:`<svg viewBox="0 0 96 96"><circle cx="48" cy="48" r="40" fill="#111"/><path d="M36 40l12 8-12 8" fill="none" stroke="#fff" stroke-width="6" stroke-linecap="round" stroke-linejoin="round"/><path d="M52 56h10" stroke="#fff" stroke-width="6" stroke-linecap="round"/></svg>` },
+    { n:'菱形括号', s:`<svg viewBox="0 0 96 96"><path d="M48 6 90 48 48 90 6 48z" fill="#0071e3"/><path d="M38 34c-6 4-8 7-8 12s2 8 8 12M58 34c6 4 8 7 8 12s-2 8-8 12" fill="none" stroke="#fff" stroke-width="6" stroke-linecap="round"/></svg>` },
+    { n:'六边形 D', s:`<svg viewBox="0 0 96 96"><path d="M48 10l32 19v38L48 86 16 67V29z" fill="#f59e0b"/><path d="M36 32h8a16 16 0 0 1 0 32h-8z" fill="none" stroke="#fff" stroke-width="6" stroke-linecap="round"/></svg>` },
+    { n:'圆环方块', s:`<svg viewBox="0 0 96 96"><circle cx="48" cy="48" r="38" fill="none" stroke="#111" stroke-width="8"/><rect x="32" y="32" width="32" height="32" rx="7" fill="#0071e3"/></svg>` },
+    { n:'胶囊斜线', s:`<svg viewBox="0 0 96 96"><rect x="14" y="30" width="68" height="36" rx="18" fill="#0dc27d"/><rect x="30" y="30" width="36" height="36" rx="18" fill="#fff"/><path d="M48 14v68" stroke="#111" stroke-width="5" stroke-linecap="round"/></svg>` },
+    { n:'圆角方括号', s:`<svg viewBox="0 0 96 96"><rect x="8" y="8" width="80" height="80" rx="22" fill="#ff5a5f"/><path d="M40 34h6v28h-6M50 34h6v28h-6" stroke="#fff" stroke-width="5" stroke-linecap="round"/></svg>` },
+  ],
+  // E 细节矢量
+  E: [
+    { n:'终端窗口', s:`<svg viewBox="0 0 96 96"><rect x="14" y="20" width="68" height="56" rx="8" fill="#111"/><circle cx="26" cy="32" r="3.5" fill="#ff5a5f"/><circle cx="37" cy="32" r="3.5" fill="#ffb400"/><circle cx="48" cy="32" r="3.5" fill="#0dc27d"/><path d="M30 46l10 7-10 7" fill="none" stroke="#fff" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/><path d="M46 60h14" stroke="#fff" stroke-width="4" stroke-linecap="round"/></svg>` },
+    { n:'工具箱', s:`<svg viewBox="0 0 96 96"><rect x="12" y="36" width="72" height="44" rx="8" fill="#f59e0b"/><path d="M30 36v-8a8 8 0 0 1 8-8h20a8 8 0 0 1 8 8v8" fill="none" stroke="#b45309" stroke-width="5" stroke-linecap="round"/><path d="M12 52h72" stroke="#b45309" stroke-width="4"/></svg>` },
+    { n:'齿轮工具', s:`<svg viewBox="0 0 96 96"><circle cx="48" cy="48" r="16" fill="none" stroke="#111" stroke-width="7"/><path d="M48 20v10m0 36v10M20 48h10m36 0h10M28 28l7 7m26 26 7 7M68 28l-7 7M35 61l-7 7" stroke="#111" stroke-width="6" stroke-linecap="round"/><circle cx="48" cy="48" r="6" fill="#0071e3"/></svg>` },
+    { n:'像素盒子', s:`<svg viewBox="0 0 96 96"><rect x="14" y="14" width="68" height="68" rx="6" fill="#111"/><path d="M34 14v10M58 14v10M14 34h10M14 58h10M72 34h10M72 58h10" stroke="#0071e3" stroke-width="4"/><rect x="30" y="30" width="36" height="36" rx="3" fill="#fff"/></svg>` },
+    { n:'代码斜杠', s:`<svg viewBox="0 0 96 96"><rect x="14" y="14" width="68" height="68" rx="16" fill="#0071e3"/><path d="M38 34 24 48l14 14M58 34l14 14-14 14" fill="none" stroke="#fff" stroke-width="7" stroke-linecap="round" stroke-linejoin="round"/></svg>` },
+    { n:'叠加圆角方', s:`<svg viewBox="0 0 96 96"><rect x="18" y="18" width="60" height="60" rx="12" fill="none" stroke="#111" stroke-width="6"/><rect x="24" y="24" width="48" height="48" rx="10" fill="none" stroke="#0071e3" stroke-width="6"/><rect x="30" y="30" width="36" height="36" rx="8" fill="#ff5a5f"/></svg>` },
+  ],
+  // F 文字标
+  F: [
+    { n:'DevTool 字', s:`<svg viewBox="0 0 96 96"><rect x="4" y="4" width="88" height="88" rx="20" fill="#111"/><text x="48" y="58" font-family="Arial,Helvetica,sans-serif" font-size="30" font-weight="800" fill="#fff" text-anchor="middle" letter-spacing="1">D<span fill="#0071e3">T</span></text></svg>` },
+    { n:'DevTool 斜杠', s:`<svg viewBox="0 0 96 96"><rect x="4" y="4" width="88" height="88" rx="20" fill="#fff" stroke="#111" stroke-width="5"/><text x="44" y="60" font-family="Arial,Helvetica,sans-serif" font-size="32" font-weight="800" fill="#111" text-anchor="middle">D/</text><circle cx="66" cy="44" r="6" fill="#0071e3"/></svg>` },
+    { n:'工具箱 中文', s:`<svg viewBox="0 0 96 96"><rect x="4" y="4" width="88" height="88" rx="20" fill="#f59e0b"/><text x="48" y="60" font-family="'Microsoft YaHei',sans-serif" font-size="36" font-weight="700" fill="#fff" text-anchor="middle">具</text></svg>` },
+    { n:'DT 双色', s:`<svg viewBox="0 0 96 96"><path d="M4 4h44v88H4z" fill="#0071e3"/><path d="M48 4h44v88H48z" fill="#111"/><text x="26" y="62" font-family="Arial" font-size="34" font-weight="800" fill="#fff" text-anchor="middle">D</text><text x="70" y="62" font-family="Arial" font-size="34" font-weight="800" fill="#fff" text-anchor="middle">T</text></svg>` },
+    { n:'>_ 字标', s:`<svg viewBox="0 0 96 96"><text x="48" y="60" font-family="Consolas,'Courier New',monospace" font-size="34" font-weight="700" fill="#0dc27d" text-anchor="middle">&gt;_</text><rect x="18" y="72" width="60" height="4" rx="2" fill="#111"/></svg>` },
+    { n:'圆 D 标', s:`<svg viewBox="0 0 96 96"><circle cx="48" cy="48" r="40" fill="none" stroke="#111" stroke-width="5"/><text x="48" y="62" font-family="Georgia,serif" font-size="40" font-weight="700" fill="#111" text-anchor="middle">D</text></svg>` },
+  ],
+};
+
+// ============ 渲染 ============
+let idx = 1;
+for (const [cat, items] of Object.entries(CATS)) {
+  const grid = document.querySelector(`.grid[data-cat="${cat}"]`);
+  items.forEach((it) => {
+    const cell = document.createElement('div');
+    cell.className = 'cell';
+    cell.innerHTML = `<div class="box">${it.s}</div><div class="no">#${idx}</div><div class="nm">${it.n}</div>`;
+    cell.onclick = () => openBig(idx, it.s, it.n);
+    grid.appendChild(cell);
+    idx++;
+  });
+}
+
+function openBig(no, svg, name) {
+  document.getElementById('bigbox').innerHTML = svg;
+  document.getElementById('bigname').textContent = `#${no} — ${name}`;
+  document.getElementById('bigview').classList.add('open');
+}
+function closeBig(){ document.getElementById('bigview').classList.remove('open'); }
+document.addEventListener('keydown', e=>{ if(e.key==='Escape') closeBig(); });
+</script>
+</body>
+</html>

@@ -1,0 +1,223 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>功能测试操作台</title>
+    <link rel="stylesheet" href="./style.css" />
+  </head>
+  <body>
+    <div class="layout">
+      <header class="app-header panel">
+        <div class="brand">
+          <span class="mark">FT</span>
+          <div>
+            <h1>功能测试操作台</h1>
+            <p>环境 · 用例 · 执行 · 历史</p>
+          </div>
+        </div>
+        <div class="header-meta">
+          <span id="activeEnvBadge" class="stage-badge">未启用</span>
+          <span id="jobBadge" class="job-badge idle">空闲</span>
+        </div>
+      </header>
+
+      <nav class="page-tabs panel" role="tablist">
+        <button type="button" class="page-tab active" data-page="env" role="tab">环境</button>
+        <button type="button" class="page-tab" data-page="cases" role="tab">用例维护</button>
+        <button type="button" class="page-tab" data-page="run" role="tab">执行与结果</button>
+        <button type="button" class="page-tab" data-page="history" role="tab">历史记录</button>
+      </nav>
+
+      <div id="page-env" class="page-panel active" role="tabpanel">
+        <div class="env-layout">
+          <aside class="panel section-block env-side">
+            <div class="section-head">
+              <h2>环境</h2>
+              <button type="button" id="btnAddEnv" class="btn tiny secondary">新增</button>
+            </div>
+            <div id="envList" class="env-list"></div>
+          </aside>
+          <section class="panel section-block env-detail">
+            <div class="section-head">
+              <h2 id="envDetailTitle">配置</h2>
+              <div class="head-actions">
+                <button type="button" id="btnActivateEnv" class="btn tiny primary">启用</button>
+                <button type="button" id="btnDeleteEnv" class="btn tiny secondary danger">删除</button>
+              </div>
+            </div>
+            <div class="env-form">
+              <label>名称<input id="envName" type="text" placeholder="开发环境" /></label>
+              <label>网关根地址<input id="gateway" type="text" placeholder="http://127.0.0.1:8080" /></label>
+              <label>Kafka Brokers<input id="kafkaBrokers" type="text" placeholder="127.0.0.1:9092" /></label>
+              <div class="env-card-block">
+                <div class="env-card-title">服务前缀</div>
+                <div class="table-wrap">
+                  <table class="data-table compact prefix-table">
+                    <thead>
+                      <tr>
+                        <th>服务</th>
+                        <th>前缀</th>
+                        <th>完整地址</th>
+                      </tr>
+                    </thead>
+                    <tbody id="prefixBody"></tbody>
+                  </table>
+                </div>
+              </div>
+              <div class="env-card-block">
+                <div class="env-card-title">登录取凭证</div>
+                <div class="form-grid env-login-grid">
+                  <label>用户名<input id="loginUser" type="text" autocomplete="username" /></label>
+                  <label>密码<input id="loginPass" type="password" autocomplete="current-password" /></label>
+                </div>
+                <p id="loginUrlPreview" class="prefix-preview"></p>
+              <div class="action-row tight">
+                <button type="button" id="btnFetchToken" class="btn primary">获取凭证</button>
+                <span id="fetchHint" class="inline-hint"></span>
+              </div>
+              </div>
+              <div class="env-card-block">
+                <div class="env-card-title-row">
+                  <div class="env-card-title">当前凭证</div>
+                  <span id="credStatus" class="pill idle">未设置</span>
+                </div>
+                <label class="cred-field">
+                  <input id="credential" type="text" autocomplete="off" placeholder="粘贴 token，或不需要则清空" />
+                </label>
+                <div class="action-row tight">
+                  <button type="button" id="btnClearCred" class="btn secondary tiny">清除凭证</button>
+                </div>
+              </div>
+              <div class="action-row">
+                <button type="button" id="btnSaveEnv" class="btn primary">保存</button>
+                <span id="envHint" class="inline-hint"></span>
+              </div>
+            </div>
+          </section>
+        </div>
+      </div>
+
+      <div id="page-cases" class="page-panel" role="tabpanel" hidden>
+        <div class="env-layout">
+          <aside class="panel section-block env-side">
+            <div class="section-head">
+              <h2>能力</h2>
+            </div>
+            <div id="moduleNav" class="env-list"></div>
+          </aside>
+          <section class="panel section-block env-detail">
+            <div class="section-head">
+              <h2 id="moduleTitle">—</h2>
+              <div class="head-actions">
+                <span id="caseCountHint" class="section-desc-inline"></span>
+                <button type="button" id="btnReloadCases" class="btn tiny secondary">刷新</button>
+              </div>
+            </div>
+            <div id="caseCardList" class="case-group-list"></div>
+          </section>
+        </div>
+        <section class="panel section-block" id="caseEditor" hidden>
+          <div class="section-head">
+            <h2>编辑用例</h2>
+            <div class="head-actions">
+              <button type="button" id="btnSaveCase" class="btn tiny primary">保存</button>
+              <button type="button" id="btnDeleteCase" class="btn tiny secondary danger">删除</button>
+            </div>
+          </div>
+          <div class="env-form">
+            <div class="form-grid env-login-grid">
+              <label>二级功能
+                <select id="caseModule"></select>
+              </label>
+              <label>ID<input id="caseId" type="text" /></label>
+              <label>名称<input id="caseName" type="text" /></label>
+              <label class="check-inline"><input id="caseSkip" type="checkbox" /> 跳过</label>
+              <label class="span-2">用例说明<textarea id="caseDescription" rows="2" placeholder="说明本用例验证什么、期望结果是什么"></textarea></label>
+              <label class="span-2">跳过原因<input id="caseSkipReason" type="text" /></label>
+            </div>
+            <div class="env-card-block">
+              <div class="env-card-title">步骤 JSON</div>
+              <textarea id="caseSteps" class="case-steps" rows="12"></textarea>
+            </div>
+            <span id="caseHint" class="inline-hint"></span>
+          </div>
+        </section>
+      </div>
+
+      <div id="page-run" class="page-panel" role="tabpanel" hidden>
+        <div class="env-layout">
+          <aside class="panel section-block env-side">
+            <div class="section-head">
+              <h2>能力</h2>
+            </div>
+            <div id="runModuleNav" class="env-list"></div>
+          </aside>
+          <section class="panel section-block env-detail">
+            <div class="section-head">
+              <h2 id="runModuleTitle">—</h2>
+              <div class="head-actions">
+                <span id="runCaseCountHint" class="section-desc-inline"></span>
+                <span id="runSummaryHint" class="section-desc-inline"></span>
+                <label class="check-all-label"><input type="checkbox" id="checkAll" checked /> 全选</label>
+                <button type="button" id="btnRun" class="btn tiny primary">开始执行</button>
+              </div>
+            </div>
+            <div id="deviceTypeFilter" class="device-type-filter" hidden>
+              <div class="device-type-filter-head">
+                <span class="device-type-filter-title">设备类型</span>
+                <label class="check-all-label"><input type="checkbox" id="deviceTypeCheckAll" checked /> 类型全选</label>
+              </div>
+              <div id="deviceTypeFilterList" class="device-type-filter-list"></div>
+              <p class="section-desc-inline">下方是通用用例，与选哪种设备无关。开跑时，「按所选类型展开」的用例会按上方勾选的类型各跑一遍（默认全选）。</p>
+            </div>
+            <div id="networkFilter" class="device-type-filter" hidden>
+              <div class="device-type-filter-head">
+                <span class="device-type-filter-title">网络</span>
+                <label class="check-all-label"><input type="checkbox" id="networkCheckAll" checked /> 网络全选</label>
+              </div>
+              <div id="networkFilterList" class="device-type-filter-list"></div>
+              <p class="section-desc-inline">下方是通用用例，与选哪个网络无关。开跑时，「按网络展开」的用例会按上方勾选的网络（lightning-strike-cmb/locator/radar）各跑一遍（默认全选）。</p>
+            </div>
+            <div class="run-progress-inline" id="runProgressPanel" hidden>
+              <div class="run-progress-track" aria-hidden="true">
+                <div id="runProgressBar" class="run-progress-bar"></div>
+              </div>
+              <p id="runProgressText" class="run-progress-text">准备中…</p>
+              <span id="runProgressCount" class="section-desc-inline">0 / 0</span>
+            </div>
+            <div id="runCaseCardList" class="case-group-list"></div>
+            <span id="runHint" class="inline-hint"></span>
+          </section>
+        </div>
+      </div>
+
+      <div id="page-history" class="page-panel" role="tabpanel" hidden>
+        <section class="panel section-block">
+          <div class="section-head">
+            <h2>历史记录</h2>
+            <button type="button" id="btnReloadHistory" class="btn secondary tiny">刷新</button>
+          </div>
+          <div class="table-wrap">
+            <table class="data-table">
+              <thead>
+                <tr>
+                  <th>ID</th>
+                  <th>时间</th>
+                  <th>汇总</th>
+                  <th></th>
+                </tr>
+              </thead>
+              <tbody id="historyBody"></tbody>
+            </table>
+          </div>
+        </section>
+        <section class="panel section-block">
+          <h2>明细</h2>
+          <pre id="historyDetail" class="log-output">选择一条历史记录</pre>
+        </section>
+      </div>
+    </div>
+    <script src="./app.js"></script>
+  </body>
+</html>

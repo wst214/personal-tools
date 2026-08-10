@@ -1,0 +1,53 @@
+{
+  "name": "toolbox",
+  "version": "0.1.0",
+  "description": "个人工具箱",
+  "main": "electron/main.cjs",
+  "author": "",
+  "license": "MIT",
+  "scripts": {
+    "dev:web": "vite",
+    "dev": "concurrently -k -n web,app -c cyan,green \"vite\" \"wait-on tcp:5173 && cross-env ELECTRON_MIRROR=https://npmmirror.com/mirrors/electron/ ELECTRON_BUILDER_BINARIES_MIRROR=https://npmmirror.com/mirrors/electron-builder-binaries/ NODE_ENV=development electron .\"",
+    "build": "vite build",
+    "gen-seed": "node scripts/gen-seed-json.cjs",
+    "dist": "vite build && cross-env ELECTRON_MIRROR=https://npmmirror.com/mirrors/electron/ ELECTRON_BUILDER_BINARIES_MIRROR=https://npmmirror.com/mirrors/electron-builder-binaries/ electron-builder --win"
+  },
+  "devDependencies": {
+    "concurrently": "^10.0.4",
+    "cross-env": "^10.1.0",
+    "electron": "^43.2.0",
+    "electron-builder": "^26.15.3",
+    "vite": "^8.1.5",
+    "wait-on": "^9.1.0"
+  },
+  "dependencies": {
+    "marked": "^15.0.0"
+  },
+  "build": {
+    "appId": "com.wst.toolbox",
+    "productName": "Toolbox",
+    "directories": {
+      "output": "release"
+    },
+    "files": [
+      "dist/**",
+      "electron/**",
+      "preload/**",
+      "public/**",
+      "package.json"
+    ],
+    "extraResources": [
+      { "from": "scripts/leidian", "to": "scripts/leidian" }
+    ],
+    "win": {
+      "target": [
+        {
+          "target": "portable",
+          "arch": [
+            "x64"
+          ]
+        }
+      ]
+    }
+  }
+}

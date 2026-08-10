@@ -1,0 +1,109 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<title>方案 C — 图标栏 + 命令面板（浅色）</title>
+<style>
+* { margin:0; padding:0; box-sizing:border-box; }
+:root { color-scheme: light; }
+body { font-family:"Segoe UI","Microsoft YaHei",system-ui,sans-serif; background:#f2f5f7; color:#1c2a24; height:100vh; overflow:hidden; display:flex; }
+
+.rail { width:52px; flex-shrink:0; background:#ffffff; border-right:1px solid #e3e8ef; display:flex; flex-direction:column; align-items:center; padding:12px 0; gap:4px; }
+.rail .logo { width:30px; height:30px; border-radius:9px; background:linear-gradient(135deg,#10b981,#0d9488); display:flex; align-items:center; justify-content:center; font-size:13px; color:#fff; margin-bottom:10px; }
+.rail-btn { width:38px; height:38px; border-radius:10px; display:flex; align-items:center; justify-content:center; font-size:16px; color:#7d8d85; cursor:pointer; position:relative; transition:all .12s; }
+.rail-btn:hover { background:#f0f4f2; color:#1c2a24; }
+.rail-btn.active { background:#e6f7f0; color:#0e9f6e; }
+.rail-btn.active::before { content:""; position:absolute; left:-7px; top:9px; bottom:9px; width:3px; border-radius:3px; background:#0e9f6e; }
+.rail .spacer { flex:1; }
+
+.side { width:0; overflow:hidden; background:#fff; border-right:1px solid #e3e8ef; transition:width .18s ease; flex-shrink:0; }
+.side.open { width:200px; }
+.side-inner { width:200px; padding:14px 10px; }
+.side .grp { font-size:10.5px; font-weight:600; color:#9aa8a0; letter-spacing:.05em; padding:12px 8px 5px; }
+.side .item { display:flex; align-items:center; gap:9px; padding:7px 9px; border-radius:8px; font-size:12.5px; color:#5b6b63; cursor:pointer; }
+.side .item:hover { background:#f0f4f2; color:#1c2a24; }
+.side .item.active { background:#e6f7f0; color:#0e9f6e; font-weight:600; }
+
+.main { flex:1; display:flex; flex-direction:column; min-width:0; }
+.topstrip { display:flex; align-items:center; gap:10px; padding:10px 18px; border-bottom:1px solid #e3e8ef; background:#fff; flex-shrink:0; }
+.topstrip .crumb { font-size:12.5px; color:#8a9a92; }
+.topstrip .crumb b { color:#1c2a24; font-weight:600; }
+.topstrip .spacer { flex:1; }
+.topstrip .cmd-btn { display:flex; align-items:center; gap:8px; background:#f4f6f8; border:1px solid #e3e8ef; border-radius:9px; padding:6px 13px; font-size:12px; color:#5b6b63; cursor:pointer; }
+.topstrip .cmd-btn:hover { border-color:#0e9f6e; color:#0e9f6e; }
+.topstrip .cmd-btn .kbd { font-size:10px; color:#9aa8a0; border:1px solid #dde3ea; border-radius:4px; padding:1px 5px; background:#fff; }
+.content { flex:1; overflow:auto; padding:22px 26px; }
+.pane { background:#fff; border:1px solid #e3e8ef; border-radius:12px; min-height:320px; display:flex; align-items:center; justify-content:center; color:#9aa8a0; font-size:13px; }
+
+.palette { position:fixed; inset:0; background:rgba(30,45,38,.32); display:none; align-items:flex-start; justify-content:center; padding-top:12vh; z-index:100; }
+.palette.open { display:flex; }
+.palette-box { width:520px; background:#fff; border:1px solid #dde3ea; border-radius:14px; overflow:hidden; box-shadow:0 20px 60px rgba(16,35,26,.18); }
+.palette-input { display:flex; align-items:center; gap:10px; padding:13px 18px; border-bottom:1px solid #edf0f4; }
+.palette-input input { flex:1; background:transparent; border:none; outline:none; color:#1c2a24; font-size:14px; }
+.palette-input input::placeholder { color:#9aa8a0; }
+.palette-list { max-height:320px; overflow:auto; padding:6px; }
+.palette-item { display:flex; align-items:center; gap:10px; padding:9px 12px; border-radius:8px; font-size:13px; color:#5b6b63; cursor:pointer; }
+.palette-item:hover, .palette-item.active { background:#e6f7f0; color:#0e9f6e; }
+.palette-item .ic { width:26px; height:26px; border-radius:7px; background:#eef7f3; display:flex; align-items:center; justify-content:center; font-size:13px; }
+.palette-item .cat { margin-left:auto; font-size:10.5px; color:#9aa8a0; }
+</style>
+</head>
+<body>
+<div class="rail">
+  <div class="logo">◈</div>
+  <div class="rail-btn active" title="常用">★</div>
+  <div class="rail-btn" title="编码转换">{}</div>
+  <div class="rail-btn" title="文本">T</div>
+  <div class="rail-btn" title="网络">⌁</div>
+  <div class="rail-btn" title="系统">⚙</div>
+  <div class="spacer"></div>
+  <div class="rail-btn" title="设置">⚙</div>
+</div>
+
+<div class="side" id="side">
+  <div class="side-inner">
+    <div class="grp">常用</div>
+    <div class="item active">📝 随手记</div>
+    <div class="item">{} JSON 格式化</div>
+    <div class="item">⌁ SSH 终端</div>
+    <div class="grp">编码转换</div>
+    <div class="item">🔐 加解密</div>
+    <div class="item">2⁸ 进制</div>
+    <div class="item">⏱ 时间戳</div>
+    <div class="grp">文本</div>
+    <div class="item">SQL 格式化</div>
+    <div class="item">.* 正则</div>
+  </div>
+</div>
+
+<div class="main">
+  <div class="topstrip">
+    <div class="crumb">编码转换 / <b>JSON 格式化</b></div>
+    <div class="spacer"></div>
+    <div class="cmd-btn" onclick="togglePalette()">⌕ 搜索命令 <span class="kbd">Ctrl K</span></div>
+  </div>
+  <div class="content">
+    <div class="pane">工具内容区（方案 C：极窄图标栏 + ⌘K 命令面板 · 浅色）</div>
+  </div>
+</div>
+
+<div class="palette" id="palette" onclick="if(event.target===this)togglePalette()">
+  <div class="palette-box">
+    <div class="palette-input"><span style="color:#9aa8a0">⌕</span><input placeholder="输入命令或工具名…" id="pinput"></div>
+    <div class="palette-list">
+      <div class="palette-item active"><div class="ic">{}</div>JSON 格式化<span class="cat">编码转换</span></div>
+      <div class="palette-item"><div class="ic">📝</div>随手记<span class="cat">常用</span></div>
+      <div class="palette-item"><div class="ic">⌁</div>SSH 终端<span class="cat">网络</span></div>
+      <div class="palette-item"><div class="ic">🔐</div>加解密编码<span class="cat">编码转换</span></div>
+      <div class="palette-item"><div class="ic">SQL</div>SQL 格式化<span class="cat">文本</span></div>
+    </div>
+  </div>
+</div>
+
+<script>
+document.querySelectorAll('.rail-btn').forEach((b,i)=>{ b.onclick=()=>{ document.querySelectorAll('.rail-btn').forEach(x=>x.classList.remove('active')); b.classList.add('active'); document.getElementById('side').classList.toggle('open'); }; });
+function togglePalette(){ document.getElementById('palette').classList.toggle('open'); if(document.getElementById('palette').classList.contains('open')) document.getElementById('pinput').focus(); }
+document.addEventListener('keydown', e=>{ if((e.ctrlKey||e.metaKey)&&e.key==='k'){ e.preventDefault(); togglePalette(); } });
+</script>
+</body>
+</html>

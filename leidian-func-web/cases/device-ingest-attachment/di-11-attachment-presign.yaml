@@ -1,0 +1,14 @@
+id: di-11-attachment-presign
+name: 按 attachment_id 可生成下载
+description: 通用：presign 下载（与具体设备类型无关）。需环境启用 MinIO；attachmentId 仅用于签名，对象可不存在。
+skip: false
+skipReason: ''
+expandByDeviceType: false
+steps:
+- method: GET
+  service: data
+  path: /ingest/attachment/presign?attachmentId=0
+  expect:
+    status: 400
+    fields:
+      code: 400

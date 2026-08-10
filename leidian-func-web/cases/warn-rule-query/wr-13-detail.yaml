@@ -1,0 +1,31 @@
+id: wr-13-detail
+name: 规则详情查询
+description: 先创建规则再按 id 查详情，校验出参字段与创建内容一致。
+skip: false
+skipReason: ''
+steps:
+- method: POST
+  service: biz
+  path: /warning/rules
+  body:
+    ruleName: 功能测-详情-${rand}
+    conditionJson: '{"logic":"OR"}'
+    actionJson: '{"actionType":"WARNING","warningLevel":"RED"}'
+    foreseeMinutes: 45
+    scheduleType: ALWAYS
+  expect:
+    status: 200
+    fields:
+      code: 0
+  capture:
+    ruleId: data.id
+- method: GET
+  service: biz
+  path: /warning/rules/${ruleId}
+  expect:
+    status: 200
+    fields:
+      code: 0
+      data.ruleStatus: DRAFT
+      data.warningLevel: RED
+      data.foreseeMinutes: 45

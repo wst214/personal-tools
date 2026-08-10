@@ -1,0 +1,24 @@
+id: wg-24-downgrade-on-expire
+name: 高档预见期过后对外等级应降为仍有效次高档
+description: 【暂不执行】验收：高等级窗口过期后应降为仍有效的较低等级。
+skip: true
+skipReason: 能力未上线；本用例按验收标准编写，上线后取消 skip 即可跑
+steps:
+- method: POST
+  service: biz
+  path: /warning/eval/jobs/advance-time
+  expect:
+    status: 200
+    fields:
+      code: 0
+  body:
+    siteId: 1000000000000050101
+    note: 验收用时间推进；实现可用短 foreseeMinutes 造橙+蓝后推进
+- method: GET
+  service: biz
+  path: /warning/events?pageNum=1&pageSize=5&siteId=1000000000000050101
+  expect:
+    status: 200
+    fields:
+      code: 0
+      data.list.0.warningLevel: BLUE

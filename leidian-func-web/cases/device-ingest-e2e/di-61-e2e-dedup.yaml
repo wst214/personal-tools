@@ -1,0 +1,14 @@
+id: di-61-e2e-dedup
+name: 重复投递幂等
+description: 设备侧当前无应用层/库表幂等键，本用例保持 skip。
+skip: true
+skipReason: 设备接入当前无 dedup（与雷电 uk_mon_strike_strike_id 不同）；待产品确认后再实现
+expandByDeviceType: false
+steps:
+- method: GET
+  service: data
+  path: /ingest/device/status
+  expect:
+    status: 200
+    fields:
+      code: 0

@@ -1,0 +1,38 @@
+id: ws-18-terminate-reason-required
+name: 终止缺 terminateReason 失败
+description: 负向：终止缺少 terminateReason，期望 400。
+skip: false
+skipReason: ''
+steps:
+- method: POST
+  service: biz
+  path: /warning/suppress
+  body:
+    siteId: 1
+    suppressName: 功能测-终止缺原因-${rand}
+    suppressScope: FULL
+    timeMode: PERMANENT
+    targets:
+    - targetType: WARNING_LEVEL
+      targetCode: BLUE
+  expect:
+    status: 200
+    fields:
+      code: 0
+  capture:
+    suppressId: data.id
+- method: POST
+  service: biz
+  path: /warning/suppress/${suppressId}/submit
+  expect:
+    status: 200
+    fields:
+      code: 0
+      data.suppressStatus: ACTIVE
+- method: POST
+  service: biz
+  path: /warning/suppress/${suppressId}/terminate
+  body:
+    terminateReason: ''
+  expect:
+    status: 400

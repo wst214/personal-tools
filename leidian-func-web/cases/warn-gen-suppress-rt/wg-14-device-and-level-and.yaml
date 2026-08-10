@@ -1,0 +1,83 @@
+id: wg-14-device-and-level-and
+name: 设备+等级 AND 匹配：设备缺则不抑制
+description: 验收：DEVICE_AND_LEVEL 模式 -> 等级命中但设备无交集 -> AND 不成立 -> 不抑制，事件 ACTIVE。
+skip: false
+skipReason: ''
+steps:
+- method: POST
+  service: biz
+  path: /warning/suppress
+  body:
+    siteId: 1000000000000050101
+    suppressName: 验收-AND抑制-${rand}
+    reason: WG-14
+    suppressScope: FULL
+    timeMode: PERMANENT
+    targets:
+    - targetType: DEVICE
+      targetId: 9002
+      targetCode: DEV-9002
+    - targetType: WARNING_LEVEL
+      targetCode: YELLOW
+  expect:
+    status: 200
+    fields:
+      code: 0
+      data.suppressStatus: DRAFT
+      data.targetMode: DEVICE_AND_LEVEL
+  capture:
+    suppressId: data.id
+- method: POST
+  service: biz
+  path: /warning/suppress/${suppressId}/submit
+  expect:
+    status: 200
+    fields:
+      code: 0
+      data.suppressStatus: ACTIVE
+- method: POST
+  service: biz
+  path: /warning/rules
+  body:
+    ruleName: 验收-AND黄-${rand}
+    ruleDesc: WG-14
+    conditionJson: '{"logic":"AND","children":[{"factorCode":"ATMO_EFIELD_INSTANT","op":"GTE","value":5}]}'
+    actionJson: '{"actionType":"WARNING","warningLevel":"YELLOW","notify":{"requireConfirm":false}}'
+    foreseeMinutes: 60
+    scheduleType: ALWAYS
+  expect:
+    status: 200
+    fields:
+      code: 0
+      data.ruleStatus: DRAFT
+  capture:
+    ruleId: data.id
+- method: POST
+  service: biz
+  path: /warning/rules/${ruleId}/submit
+  expect:
+    status: 200
+    fields:
+      code: 0
+      data.ruleStatus: ENABLED
+- method: POST
+  service: biz
+  path: /warning/eval/trigger
+  body:
+    siteId: 1000000000000050101
+    ruleId: ${ruleId}
+    factorOverrides:
+      ATMO_EFIELD_INSTANT: 9
+  expect:
+    status: 200
+    fields:
+      code: 0
+      data.candidates.0.warningLevel: YELLOW
+- method: GET
+  service: biz
+  path: /warning/events?pageNum=1&pageSize=1&siteId=1000000000000050101&lifecycleStatus=ACTIVE&warningLevel=YELLOW
+  expect:
+    status: 200
+    fields:
+      code: 0
+      data.list.0.lifecycleStatus: ACTIVE

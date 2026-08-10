@@ -1,0 +1,11 @@
+id: ws-15-detail-not-found
+name: 抑制详情不存在
+description: 查询不存在的抑制 id，期望 404。
+skip: false
+skipReason: ''
+steps:
+- method: GET
+  service: biz
+  path: /warning/suppress/999999999999999999
+  expect:
+    status: 404

@@ -2,16 +2,20 @@
   "name": "dev-toolbox",
   "version": "0.1.0",
   "description": "开发者工具箱 - MooTool 风格的桌面端工具集",
-  "main": "electron/main.cjs",
   "author": "mytools",
   "license": "MIT",
   "scripts": {
     "dev:web": "vite",
-    "dev": "concurrently -k -n web,app -c cyan,green \"vite\" \"wait-on tcp:5173 && cross-env ELECTRON_MIRROR=https://npmmirror.com/mirrors/electron/ NODE_ENV=development electron .\"",
+    "dev": "tauri dev",
     "build": "vite build",
-    "dist": "vite build && cross-env ELECTRON_MIRROR=https://npmmirror.com/mirrors/electron/ ELECTRON_BUILDER_BINARIES_MIRROR=https://npmmirror.com/mirrors/electron-builder-binaries/ electron-builder"
+    "dist": "tauri build",
+    "dev:electron": "concurrently -k -n web,app -c cyan,green \"vite\" \"wait-on tcp:5173 && cross-env ELECTRON_MIRROR=https://npmmirror.com/mirrors/electron/ NODE_ENV=development electron .\"",
+    "dist:electron": "vite build && cross-env ELECTRON_MIRROR=https://npmmirror.com/mirrors/electron/ ELECTRON_BUILDER_BINARIES_MIRROR=https://npmmirror.com/mirrors/electron-builder-binaries/ electron-builder"
   },
   "devDependencies": {
+    "@tauri-apps/cli": "^2.11.4",
+    "@types/diff": "^7.0.2",
+    "@types/js-yaml": "^4.0.9",
     "concurrently": "^10.0.4",
     "cross-env": "^10.1.0",
     "electron": "^43.2.0",
@@ -23,38 +27,23 @@
     "wait-on": "^9.1.0"
   },
   "dependencies": {
+    "@xterm/addon-fit": "^0.11.0",
+    "@xterm/xterm": "^6.0.0",
     "cron-parser": "^5.6.2",
     "cronstrue": "^3.24.0",
     "crypto-js": "^4.2.0",
     "dayjs": "^1.11.21",
+    "diff": "^9.0.0",
+    "js-yaml": "^5.2.3",
     "jsencrypt": "^3.5.4",
     "jsqr": "^1.4.0",
     "mermaid": "^11.16.0",
     "opencc-js": "^1.4.1",
     "qrcode": "^1.5.4",
     "sm-crypto": "^0.5.3",
+    "smol-toml": "^1.7.1",
     "sql-formatter": "^15.8.2",
+    "ssh2": "^1.17.0",
     "uuid": "^14.0.1"
-  },
-  "build": {
-    "appId": "com.mytools.devtoolbox",
-    "productName": "开发者工具箱",
-    "icon": "build/icon.ico",
-    "files": [
-      "dist/**/*",
-      "electron/**/*"
-    ],
-    "win": {
-      "target": [
-        "portable"
-      ]
-    },
-    "portable": {
-      "artifactName": "DevToolbox-${version}.exe"
-    },
-    "directories": {
-      "output": "release",
-      "buildResources": "build"
-    }
   }
 }

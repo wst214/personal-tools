@@ -1,0 +1,26 @@
+id: wr-11-enable-draft-fail
+name: 未发布规则再启用失败
+description: 负向：未发布的草稿直接启用，期望失败。
+skip: false
+skipReason: ''
+steps:
+- method: POST
+  service: biz
+  path: /warning/rules
+  body:
+    ruleName: 功能测-草稿启用-${rand}
+    conditionJson: '{}'
+    actionJson: '{"actionType":"NONE"}'
+    scheduleType: ALWAYS
+  expect:
+    status: 200
+    fields:
+      code: 0
+      data.ruleStatus: DRAFT
+  capture:
+    ruleId: data.id
+- method: POST
+  service: biz
+  path: /warning/rules/${ruleId}/enable
+  expect:
+    status: 400

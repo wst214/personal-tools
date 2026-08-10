@@ -1,0 +1,50 @@
+id: wg-03-disabled-rule-ignored
+name: DISABLED 规则不参与评估
+description: 验收：规则停用后 dry-run 指定 ruleId 时无 ACTIVE 可评版本/无候选。
+skip: false
+skipReason: ''
+steps:
+- method: POST
+  service: biz
+  path: /warning/rules
+  body:
+    ruleName: 功能测-评估停用-${rand}
+    ruleDesc: WG-03
+    conditionJson: '{"logic":"AND","children":[{"factorCode":"ATMO_EFIELD_INSTANT","op":"GTE","value":1}]}'
+    actionJson: '{"actionType":"WARNING","warningLevel":"BLUE"}'
+    scheduleType: ALWAYS
+  expect:
+    status: 200
+    fields:
+      code: 0
+  capture:
+    ruleId: data.id
+- method: POST
+  service: biz
+  path: /warning/rules/${ruleId}/submit
+  expect:
+    status: 200
+    fields:
+      code: 0
+      data.ruleStatus: ENABLED
+- method: POST
+  service: biz
+  path: /warning/rules/${ruleId}/disable
+  expect:
+    status: 200
+    fields:
+      code: 0
+      data.ruleStatus: DISABLED
+- method: POST
+  service: biz
+  path: /warning/eval/dry-run
+  body:
+    siteId: 1000000000000050101
+    ruleId: ${ruleId}
+    factorOverrides:
+      ATMO_EFIELD_INSTANT: 99
+  expect:
+    status: 200
+    fields:
+      code: 0
+      data.candidates: []

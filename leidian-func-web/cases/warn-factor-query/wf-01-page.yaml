@@ -1,0 +1,14 @@
+id: wf-01-page
+name: 因子库分页可查
+description: 验收：因子库可分页查询，返回 total 与 list。
+skip: false
+skipReason: ''
+steps:
+- method: GET
+  service: biz
+  path: /warning/factors?pageNum=1&pageSize=20
+  expect:
+    status: 200
+    fields:
+      code: 0
+      data.list.0.factorCode: ATMO_EFIELD_INSTANT

@@ -1,0 +1,26 @@
+id: di-50-reject-grounding
+name: 接地电阻超上限拒收
+description: |
+  投递 resistance=200（阈值 100）的合法 CRC 帧 → 不入库 monitor →
+  errors/recent 可见 QUALITY_REJECTED。
+skip: false
+skipReason: ''
+expandByDeviceType: false
+steps:
+- name: Kafka 投递拒收 HEX
+  method: KAFKA
+  topic: device-raw-data
+  key: func-web-reject-grounding-${rand}
+  value: 5A4B110300000001000100C80014001E00280032AAA90D0A
+- name: 等待消费
+  method: SLEEP
+  seconds: 5
+- name: 查异常留痕
+  method: GET
+  service: data
+  path: /ingest/errors/recent?exceptionType=QUALITY_REJECTED
+  expect:
+    status: 200
+    fields:
+      code: 0
+      data.0.exceptionType: QUALITY_REJECTED

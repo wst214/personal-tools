@@ -1,0 +1,59 @@
+id: wg-26-pending-confirm
+name: 需确认规则命中后应进待确认再确认转 ACTIVE
+description: 【暂不执行】验收：需确认规则命中后进入待确认，确认后转 ACTIVE。
+skip: true
+skipReason: 能力未上线；本用例按验收标准编写，上线后取消 skip 即可跑
+steps:
+- method: POST
+  service: biz
+  path: /warning/rules
+  expect:
+    status: 200
+    fields:
+      code: 0
+  body:
+    ruleName: 验收-需确认-${rand}
+    siteId: 1000000000000050101
+    conditionJson: '{"logic":"AND","groups":[{"logic":"AND","conditions":[{"factor":"ATMO_EFIELD_INSTANT","op":"GT","value":1}]}]}'
+    actionJson: '{"actionType":"WARNING","warningLevel":"YELLOW","needConfirm":true}'
+    scheduleType: ALWAYS
+  capture:
+    ruleId: data.id
+- method: POST
+  service: biz
+  path: /warning/rules/${ruleId}/submit
+  expect:
+    status: 200
+    fields:
+      code: 0
+- method: POST
+  service: biz
+  path: /warning/eval/trigger
+  expect:
+    status: 200
+    fields:
+      code: 0
+  body:
+    siteId: 1000000000000050101
+    factors:
+      ATMO_EFIELD_INSTANT: 9
+- method: GET
+  service: biz
+  path: /warning/events?pageNum=1&pageSize=5&keyword=验收-需确认
+  expect:
+    status: 200
+    fields:
+      code: 0
+      data.list.0.lifecycleStatus: PENDING_CONFIRM
+  capture:
+    eventId: data.list.0.id
+- method: POST
+  service: biz
+  path: /warning/events/${eventId}/confirm
+  expect:
+    status: 200
+    fields:
+      code: 0
+      data.lifecycleStatus: ACTIVE
+  body:
+    decision: APPROVE

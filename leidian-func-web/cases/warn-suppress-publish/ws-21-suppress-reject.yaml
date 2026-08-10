@@ -1,0 +1,15 @@
+id: ws-21-suppress-reject
+name: 抑制审核驳回（PENDING）
+description: 【暂不执行】抑制审核驳回；审核流未上线。
+skip: true
+skipReason: P0 无 PENDING 审核流
+steps:
+- method: POST
+  service: biz
+  path: /warning/suppress/0/reject
+  body:
+    opinion: 驳回
+  expect:
+    status: 200
+    fields:
+      code: 0

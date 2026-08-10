@@ -1,0 +1,36 @@
+id: li-13-network-isolation
+name: 三网数据互不串扰
+description: |
+  按网络展开：投递当前网络的固定 strikeId 后，本网络分页按 strikeId 应命中 1 条，
+  另一网络分页按同一 strikeId 应 total=0（验证 strike_type 过滤正确）。
+skip: false
+skipReason: ''
+expandByNetwork: true
+steps:
+- name: Kafka 投递雷电 JSON（固定 strikeId）
+  method: KAFKA
+  topic: ${kafkaTopic}
+  key: func-web-isol-${network}-${rand}
+  value: ${kafkaJsonDedup}
+- name: 等待消费落库
+  method: SLEEP
+  seconds: 5
+- name: 查本网络分页（应包含）
+  method: GET
+  service: biz
+  path: ${bizPath}&strikeId=${fixedStrikeId}
+  expect:
+    status: 200
+    fields:
+      code: 0
+      data.total: 1
+      data.list.0.strikeId: ${fixedStrikeId}
+- name: 查另一网络分页（不应包含该 strikeId）
+  method: GET
+  service: biz
+  path: ${otherBizPath}&strikeId=${fixedStrikeId}
+  expect:
+    status: 200
+    fields:
+      code: 0
+      data.total: 0

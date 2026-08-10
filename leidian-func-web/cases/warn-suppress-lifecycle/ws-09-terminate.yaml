@@ -1,0 +1,41 @@
+id: ws-09-terminate
+name: 终止生效中抑制
+description: 对 ACTIVE 抑制执行终止并填写原因，期望变为 TERMINATED。
+skip: false
+skipReason: ''
+steps:
+- method: POST
+  service: biz
+  path: /warning/suppress
+  body:
+    siteId: 1
+    suppressName: 功能测-终止-${rand}
+    suppressScope: FULL
+    timeMode: PERMANENT
+    targets:
+    - targetType: WARNING_LEVEL
+      targetCode: YELLOW
+  expect:
+    status: 200
+    fields:
+      code: 0
+  capture:
+    suppressId: data.id
+- method: POST
+  service: biz
+  path: /warning/suppress/${suppressId}/submit
+  expect:
+    status: 200
+    fields:
+      code: 0
+      data.suppressStatus: ACTIVE
+- method: POST
+  service: biz
+  path: /warning/suppress/${suppressId}/terminate
+  body:
+    terminateReason: 功能测终止
+  expect:
+    status: 200
+    fields:
+      code: 0
+      data.suppressStatus: TERMINATED

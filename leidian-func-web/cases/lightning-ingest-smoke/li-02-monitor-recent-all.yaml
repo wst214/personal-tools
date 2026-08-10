@@ -1,0 +1,15 @@
+id: li-02-monitor-recent-all
+name: 三网混合最近雷电可查
+description: 通用：/ingest/monitor/lightning/recent 返回三网混合最近记录。
+skip: false
+skipReason: ''
+expandByNetwork: false
+steps:
+- name: 查最近雷电事件
+  method: GET
+  service: data
+  path: /ingest/monitor/lightning/recent
+  expect:
+    status: 200
+    fields:
+      code: 0

@@ -1,0 +1,14 @@
+id: wr-19-withdraw-pending
+name: 撤回审核（PENDING 造数）
+description: 【暂不执行】提交人撤回待审版本，退出 PENDING。
+skip: true
+skipReason: P0 submit 直接生效不进 PENDING；需造 PENDING 草稿后再测
+steps:
+- method: POST
+  service: biz
+  path: /warning/rules/${ruleId}/withdraw
+  expect:
+    status: 200
+    fields:
+      code: 0
+      data.versionStatus: DRAFT

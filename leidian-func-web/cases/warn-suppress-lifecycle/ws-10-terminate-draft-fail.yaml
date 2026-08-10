@@ -1,0 +1,31 @@
+id: ws-10-terminate-draft-fail
+name: 终止非 ACTIVE 失败
+description: 负向：草稿态不可终止，期望失败。
+skip: false
+skipReason: ''
+steps:
+- method: POST
+  service: biz
+  path: /warning/suppress
+  body:
+    siteId: 1
+    suppressName: 功能测-草稿终止-${rand}
+    suppressScope: FULL
+    timeMode: PERMANENT
+    targets:
+    - targetType: WARNING_LEVEL
+      targetCode: BLUE
+  expect:
+    status: 200
+    fields:
+      code: 0
+      data.suppressStatus: DRAFT
+  capture:
+    suppressId: data.id
+- method: POST
+  service: biz
+  path: /warning/suppress/${suppressId}/terminate
+  body:
+    terminateReason: 不应成功
+  expect:
+    status: 400

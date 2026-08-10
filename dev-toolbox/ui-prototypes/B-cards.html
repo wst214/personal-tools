@@ -1,0 +1,99 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<title>方案 B — 卡片仪表盘（浅色）</title>
+<style>
+* { margin:0; padding:0; box-sizing:border-box; }
+:root { color-scheme: light; }
+body { font-family:"Segoe UI","Microsoft YaHei",system-ui,sans-serif; background:#f2f5f7; color:#1c2a24; height:100vh; overflow:hidden; display:flex; flex-direction:column; }
+
+.topbar { display:flex; align-items:center; gap:10px; padding:14px 24px; border-bottom:1px solid #e3e8ef; background:#fff; flex-shrink:0; }
+.brand { font-weight:700; font-size:15px; display:flex; align-items:center; gap:9px; color:#111827; }
+.brand .logo { width:26px; height:26px; border-radius:8px; background:linear-gradient(135deg,#10b981,#0d9488); display:flex; align-items:center; justify-content:center; font-size:11px; color:#fff; }
+.searchbox { margin-left:auto; display:flex; align-items:center; gap:8px; background:#f4f6f8; border:1px solid #e3e8ef; border-radius:10px; padding:8px 14px; width:300px; }
+.searchbox input { flex:1; background:transparent; border:none; outline:none; color:#1c2a24; font-size:13px; }
+.searchbox input::placeholder { color:#9aa8a0; }
+.searchbox .kbd { font-size:10px; color:#9aa8a0; border:1px solid #dde3ea; border-radius:4px; padding:1px 5px; background:#fff; }
+
+.dash { flex:1; overflow:auto; padding:26px 28px 44px; }
+.dash-title { font-size:20px; font-weight:700; color:#111827; margin-bottom:4px; }
+.dash-sub { color:#6b7c73; font-size:12.5px; margin-bottom:22px; }
+.group-label { font-size:11px; font-weight:600; color:#8a9a92; letter-spacing:.05em; margin:22px 0 10px; }
+.grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(150px,1fr)); gap:12px; }
+.card {
+  background:#fff; border:1px solid #e3e8ef; border-radius:14px; padding:16px 14px;
+  display:flex; flex-direction:column; gap:10px; cursor:pointer; transition:all .15s;
+}
+.card:hover { border-color:#10b98188; background:#fbfefd; transform:translateY(-2px); box-shadow:0 8px 24px rgba(16,60,40,.10); }
+.card .ic { width:36px; height:36px; border-radius:10px; background:#eef7f3; display:flex; align-items:center; justify-content:center; font-size:16px; color:#0e9f6e; }
+.card .nm { font-size:12.5px; font-weight:600; color:#1c2a24; }
+.card .ds { font-size:10.5px; color:#8a9a92; line-height:1.4; }
+
+.toolview { flex:1; display:none; flex-direction:column; }
+.toolview-head { display:flex; align-items:center; gap:12px; padding:12px 20px; border-bottom:1px solid #e3e8ef; background:#fff; flex-shrink:0; }
+.back-btn { display:flex; align-items:center; gap:6px; background:#f4f6f8; border:1px solid #e3e8ef; border-radius:8px; padding:7px 13px; font-size:12px; color:#5b6b63; cursor:pointer; }
+.back-btn:hover { border-color:#0e9f6e; color:#0e9f6e; }
+.toolview-title { font-size:15px; font-weight:700; color:#111827; }
+.toolview-body { flex:1; overflow:auto; padding:20px 24px; }
+.pane { background:#fff; border:1px solid #e3e8ef; border-radius:12px; min-height:320px; display:flex; align-items:center; justify-content:center; color:#9aa8a0; font-size:13px; }
+</style>
+</head>
+<body>
+<div class="topbar">
+  <div class="brand"><div class="logo">◈</div><span>DevTool</span></div>
+  <div class="searchbox"><span style="color:#9aa8a0">⌕</span><input placeholder="搜索工具…"><span class="kbd">Ctrl K</span></div>
+</div>
+
+<div class="dash" id="dash">
+  <div class="dash-title">工具箱</div>
+  <div class="dash-sub">点卡片打开工具，全部功能都在这里</div>
+
+  <div class="group-label">常用</div>
+  <div class="grid">
+    <div class="card" onclick="openTool('随手记')"><div class="ic">📝</div><div class="nm">随手记</div><div class="ds">Markdown 本地笔记</div></div>
+    <div class="card" onclick="openTool('JSON 格式化')"><div class="ic">{}</div><div class="nm">JSON 格式化</div><div class="ds">美化 / 压缩 / 折叠</div></div>
+    <div class="card" onclick="openTool('SSH 终端')"><div class="ic">⌁</div><div class="nm">SSH 终端</div><div class="ds">远程连接 + 文件传输</div></div>
+  </div>
+
+  <div class="group-label">编码转换</div>
+  <div class="grid">
+    <div class="card"><div class="ic">🔐</div><div class="nm">加解密编码</div><div class="ds">AES / RSA / 哈希</div></div>
+    <div class="card"><div class="ic">2⁸</div><div class="nm">进制转换</div><div class="ds">二/八/十/十六</div></div>
+    <div class="card"><div class="ic">⏱</div><div class="nm">时间戳</div><div class="ds">秒/毫秒互转</div></div>
+    <div class="card"><div class="ic">⑂</div><div class="nm">UUID</div><div class="ds">批量生成</div></div>
+  </div>
+
+  <div class="group-label">文本</div>
+  <div class="grid">
+    <div class="card"><div class="ic">SQL</div><div class="nm">SQL 格式化</div><div class="ds">13 种方言</div></div>
+    <div class="card"><div class="ic">.*</div><div class="nm">正则测试</div><div class="ds">匹配 / 替换</div></div>
+    <div class="card"><div class="ic">T</div><div class="nm">文本处理</div><div class="ds">去重 / 排序 / 转换</div></div>
+  </div>
+
+  <div class="group-label">网络 / 系统</div>
+  <div class="grid">
+    <div class="card"><div class="ic">⇄</div><div class="nm">HTTP 工具</div><div class="ds">请求测试</div></div>
+    <div class="card"><div class="ic">◈</div><div class="nm">端口扫描</div><div class="ds">主机端口探测</div></div>
+    <div class="card"><div class="ic">🖥</div><div class="nm">系统信息</div><div class="ds">CPU / 内存 / 磁盘</div></div>
+    <div class="card"><div class="ic">⚙</div><div class="nm">部署工作台</div><div class="ds">任务 + 命令执行</div></div>
+    <div class="card"><div class="ic">🛡</div><div class="nm">Hosts</div><div class="ds">系统 hosts 管理</div></div>
+  </div>
+</div>
+
+<div class="toolview" id="toolview">
+  <div class="toolview-head">
+    <div class="back-btn" onclick="backHome()">← 返回</div>
+    <div class="toolview-title" id="tv-title">工具</div>
+  </div>
+  <div class="toolview-body">
+    <div class="pane" id="tv-body">工具内容区（方案 B：卡片仪表盘 · 浅色）</div>
+  </div>
+</div>
+
+<script>
+function openTool(name){ document.getElementById('tv-title').textContent=name; document.getElementById('dash').style.display='none'; document.getElementById('toolview').style.display='flex'; }
+function backHome(){ document.getElementById('dash').style.display=''; document.getElementById('toolview').style.display='none'; }
+</script>
+</body>
+</html>

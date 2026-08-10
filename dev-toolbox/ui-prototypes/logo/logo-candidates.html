@@ -1,0 +1,109 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<title>DevTool Logo 候选 — 48 款</title>
+<style>
+* { margin:0; padding:0; box-sizing:border-box; }
+body { font-family:"Segoe UI","Microsoft YaHei",system-ui,sans-serif; background:#f4f5f7; color:#1d1d1f; padding:32px 40px 60px; }
+h1 { font-size:22px; font-weight:700; margin-bottom:6px; }
+.sub { font-size:13px; color:#86868b; margin-bottom:26px; }
+.grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(170px,1fr)); gap:16px; }
+.cell {
+  background:#fff; border:1px solid #e3e3e8; border-radius:14px; padding:22px 16px 16px;
+  display:flex; flex-direction:column; align-items:center; gap:12px; cursor:pointer;
+  transition:all .15s;
+}
+.cell:hover { border-color:#0071e3; box-shadow:0 6px 20px rgba(0,0,0,.08); transform:translateY(-2px); }
+.cell .box { width:72px; height:72px; display:flex; align-items:center; justify-content:center; }
+.cell .box svg { width:100%; height:100%; }
+.cell .no { font-size:10px; color:#b0b6c2; }
+.cell .nm { font-size:11.5px; color:#5b5b61; text-align:center; line-height:1.4; }
+/* 大图预览 */
+.bigview { position:fixed; inset:0; background:rgba(0,0,0,.5); display:none; align-items:center; justify-content:center; z-index:100; }
+.bigview.open { display:flex; }
+.bigcard { background:#fff; border-radius:18px; padding:44px 60px; display:flex; flex-direction:column; align-items:center; gap:18px; }
+.bigcard .box { width:160px; height:160px; }
+.bigcard .box svg { width:100%; height:100%; }
+.bigcard .close { position:absolute; top:18px; right:22px; font-size:24px; color:#86868b; cursor:pointer; background:none; border:none; }
+</style>
+</head>
+<body>
+<h1>DevTool Logo 候选</h1>
+<div class="sub">48 款：12 种造型 × 4 套配色。点击任意一个放大预览。</div>
+<div class="grid" id="grid"></div>
+<div class="bigview" id="bigview" onclick="if(event.target===this)closeBig()">
+  <div class="bigcard" style="position:relative">
+    <button class="close" onclick="closeBig()">×</button>
+    <div class="box" id="bigbox"></div>
+    <div id="bigname" style="font-size:14px;font-weight:600"></div>
+  </div>
+</div>
+
+<script>
+// ===== SVG 生成器 =====
+// 配色方案
+const PALETTES = [
+  ['#4f7cff','#7c4dff'], // 蓝紫
+  ['#10b981','#0d9488'], // 青绿
+  ['#f97316','#ef4444'], // 橙红
+  ['#6366f1','#ec4899'], // 蓝粉
+];
+const PAL_NAMES = ['蓝紫','青绿','橙红','蓝粉'];
+
+// 造型函数：接收 (g1,g2,uid) 渐变色，返回 svg 内部（viewBox 0 0 96 96）
+// uid 保证每个 SVG 的渐变 id 唯一，避免同页 48 个 id="g" 冲突
+const SHAPES = [
+  // 1 圆点连线（当前风格变体）
+  (a,b,uid)=>`<defs><linearGradient id="g${uid}" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="${a}"/><stop offset="1" stop-color="${b}"/></linearGradient></defs><rect x="4" y="4" width="88" height="88" rx="22" fill="url(#g${uid})"/><path d="M30 30l36 36" stroke="#fff" stroke-width="5" stroke-linecap="round"/><circle cx="30" cy="30" r="10" fill="#fff"/><circle cx="66" cy="66" r="10" fill="#fff"/>`,
+  // 2 终端 >_
+  (a,b,uid)=>`<defs><linearGradient id="g${uid}" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="${a}"/><stop offset="1" stop-color="${b}"/></linearGradient></defs><rect x="4" y="4" width="88" height="88" rx="22" fill="url(#g${uid})"/><path d="M34 40l14 8-14 8" fill="none" stroke="#fff" stroke-width="6" stroke-linecap="round" stroke-linejoin="round"/><path d="M52 56h12" stroke="#fff" stroke-width="6" stroke-linecap="round"/>`,
+  // 3 花括号 {}
+  (a,b,uid)=>`<defs><linearGradient id="g${uid}" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="${a}"/><stop offset="1" stop-color="${b}"/></linearGradient></defs><rect x="4" y="4" width="88" height="88" rx="22" fill="url(#g${uid})"/><path d="M42 30c-6 4-8 8-8 14 0 5-2 8-6 10 4 2 6 5 6 10 0 6 2 10 8 14M54 30c6 4 8 8 8 14 0 5 2 8 6 10-4 2-6 5-6 10 0 6-2 10-8 14" fill="none" stroke="#fff" stroke-width="5.5" stroke-linecap="round"/>`,
+  // 4 对角箭头/播放
+  (a,b,uid)=>`<defs><linearGradient id="g${uid}" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="${a}"/><stop offset="1" stop-color="${b}"/></linearGradient></defs><rect x="4" y="4" width="88" height="88" rx="22" fill="url(#g${uid})"/><path d="M30 66L66 30" stroke="#fff" stroke-width="7" stroke-linecap="round"/><path d="M50 30h16v16" fill="none" stroke="#fff" stroke-width="6" stroke-linecap="round" stroke-linejoin="round"/><path d="M46 66H30V50" fill="none" stroke="#fff" stroke-width="6" stroke-linecap="round" stroke-linejoin="round"/>`,
+  // 5 六边形 + 点
+  (a,b,uid)=>`<defs><linearGradient id="g${uid}" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="${a}"/><stop offset="1" stop-color="${b}"/></linearGradient></defs><rect x="4" y="4" width="88" height="88" rx="22" fill="url(#g${uid})"/><path d="M48 22l20 11v22L48 66 28 55V33z" fill="none" stroke="#fff" stroke-width="5.5" stroke-linejoin="round"/><circle cx="48" cy="44" r="7" fill="#fff"/>`,
+  // 6 重叠方块
+  (a,b,uid)=>`<defs><linearGradient id="g${uid}" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="${a}"/><stop offset="1" stop-color="${b}"/></linearGradient></defs><rect x="4" y="4" width="88" height="88" rx="22" fill="url(#g${uid})"/><rect x="28" y="28" width="40" height="40" rx="9" fill="#fff" opacity=".55"/><rect x="24" y="24" width="40" height="40" rx="9" fill="#fff"/>`,
+  // 7 扳手
+  (a,b,uid)=>`<defs><linearGradient id="g${uid}" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="${a}"/><stop offset="1" stop-color="${b}"/></linearGradient></defs><rect x="4" y="4" width="88" height="88" rx="22" fill="url(#g${uid})"/><path d="M40 52l-14 14a8 8 0 1 1-8-8l14-14m12 12L68 32m-4-4l8-8" fill="none" stroke="#fff" stroke-width="5.5" stroke-linecap="round" stroke-linejoin="round"/>`,
+  // 8 齿轮
+  (a,b,uid)=>`<defs><linearGradient id="g${uid}" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="${a}"/><stop offset="1" stop-color="${b}"/></linearGradient></defs><rect x="4" y="4" width="88" height="88" rx="22" fill="url(#g${uid})"/><path d="M48 34a14 14 0 1 0 0 28 14 14 0 0 0 0-28zM48 30v-8m0 52v-8m26-18h8m-52 0H22m38-4l6-6m-38 38l6-6M62 62l6 6M28 28l6 6" fill="none" stroke="#fff" stroke-width="5" stroke-linecap="round"/>`,
+  // 9 字母 D
+  (a,b,uid)=>`<defs><linearGradient id="g${uid}" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="${a}"/><stop offset="1" stop-color="${b}"/></linearGradient></defs><rect x="4" y="4" width="88" height="88" rx="22" fill="url(#g${uid})"/><path d="M38 30h8a20 20 0 0 1 0 40h-8z" fill="none" stroke="#fff" stroke-width="7" stroke-linecap="round"/>`,
+  // 10 工具箱
+  (a,b,uid)=>`<defs><linearGradient id="g${uid}" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="${a}"/><stop offset="1" stop-color="${b}"/></linearGradient></defs><rect x="4" y="4" width="88" height="88" rx="22" fill="url(#g${uid})"/><path d="M30 38h36v26H30z" fill="none" stroke="#fff" stroke-width="5.5" stroke-linejoin="round"/><path d="M36 38v-6a6 6 0 0 1 6-6h12a6 6 0 0 1 6 6v6" fill="none" stroke="#fff" stroke-width="5.5" stroke-linecap="round"/>`,
+  // 11 火箭
+  (a,b,uid)=>`<defs><linearGradient id="g${uid}" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="${a}"/><stop offset="1" stop-color="${b}"/></linearGradient></defs><rect x="4" y="4" width="88" height="88" rx="22" fill="url(#g${uid})"/><path d="M48 26c8 6 12 14 12 24l9 8v6l-11-3c-2 3-4 6-7 8l-3 3-3-3c-3-2-5-5-7-8l-11 3v-6l9-8c0-10 4-18 12-24z" fill="none" stroke="#fff" stroke-width="5" stroke-linejoin="round"/><circle cx="48" cy="48" r="5" fill="#fff"/>`,
+  // 12 网格/应用
+  (a,b,uid)=>`<defs><linearGradient id="g${uid}" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="${a}"/><stop offset="1" stop-color="${b}"/></linearGradient></defs><rect x="4" y="4" width="88" height="88" rx="22" fill="url(#g${uid})"/><rect x="28" y="28" width="16" height="16" rx="4" fill="#fff"/><rect x="52" y="28" width="16" height="16" rx="4" fill="#fff" opacity=".7"/><rect x="28" y="52" width="16" height="16" rx="4" fill="#fff" opacity=".7"/><rect x="52" y="52" width="16" height="16" rx="4" fill="#fff"/>`,
+];
+
+const SHAPE_NAMES = ['圆点连线','终端 &gt;_','花括号 {}','对角箭头','六边形','重叠方块','扳手','齿轮','字母 D','工具箱','火箭','应用网格'];
+
+// 生成 48 个（uid 唯一避免渐变 id 冲突）
+const grid = document.getElementById('grid');
+let idx = 1;
+for (const [pi, pal] of PALETTES.entries()) {
+  for (const [si, fn] of SHAPES.entries()) {
+    const svg = `<svg viewBox="0 0 96 96">${fn(...pal, idx)}</svg>`;
+    const cell = document.createElement('div');
+    cell.className = 'cell';
+    cell.innerHTML = `<div class="box">${svg}</div><div class="no">#${idx}</div><div class="nm">${SHAPE_NAMES[si]} · ${PAL_NAMES[pi]}</div>`;
+    cell.onclick = () => openBig(idx, svg, `${SHAPE_NAMES[si]} · ${PAL_NAMES[pi]}`);
+    grid.appendChild(cell);
+    idx++;
+  }
+}
+
+function openBig(no, svg, name) {
+  document.getElementById('bigbox').innerHTML = svg;
+  document.getElementById('bigname').textContent = `#${no} — ${name}`;
+  document.getElementById('bigview').classList.add('open');
+}
+function closeBig(){ document.getElementById('bigview').classList.remove('open'); }
+document.addEventListener('keydown', e=>{ if(e.key==='Escape') closeBig(); });
+</script>
+</body>
+</html>

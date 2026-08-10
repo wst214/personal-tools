@@ -1,4 +1,4 @@
-﻿# My Tools
+# My Tools
 
 
 
@@ -26,9 +26,13 @@ mytools 下所有 Docker Compose 服务、容器和镜像统一使用：`mytools
 
 | 内网穿透面板 | http://localhost:5760 | 见 [tunnel-panel/README.md](tunnel-panel/README.md) |
 
-| PERF 压测操作台 | http://localhost:8100 | 独立 Compose 项目，目录 `leidian-perf-web` |
+| PERF 压测操作台 | http://localhost:8100 | Compose 项目 `leidian-tools`，目录 `leidian-perf-web` |
+
+| 功能测试操作台 | http://localhost:8200 | Compose 项目 `leidian-tools`，目录 `leidian-func-web` |
 
 | 雷电设备工具台 | http://localhost:9000 | 独立 Compose 项目，目录 `leidian-protocol-parse` |
+
+| New API | http://localhost:5780 | 多上游 LLM 统一转发（`mytools-new-api`，SQLite） |
 
 
 

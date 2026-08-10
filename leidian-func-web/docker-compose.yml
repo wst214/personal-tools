@@ -1,0 +1,29 @@
+# 功能测试操作台
+#
+# 与 PERF 压测台同属 Compose 项目 leidian-tools：
+#   docker compose up -d --build
+#   浏览器：http://127.0.0.1:8200/
+#
+# 容器访问本机被测服务时，环境里网关根地址请用 host.docker.internal
+# 例如：http://host.docker.internal:8080
+
+name: leidian-tools
+
+services:
+  func-web:
+    build: .
+    image: leidian-func-web:latest
+    container_name: leidian-func-web
+    ports:
+      # 仅本机可达，降低未鉴权 API 暴露面
+      - "127.0.0.1:${FUNC_WEB_PORT:-8200}:8200"
+    environment:
+      FUNC_WEB_HOST: "0.0.0.0"
+      FUNC_WEB_PORT: "8200"
+    volumes:
+      - ./data:/app/data
+      - ./cases:/app/cases
+      - ./web:/app/web
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    restart: unless-stopped

@@ -1,0 +1,21 @@
+id: ws-03-create-dup-target-fail
+name: 新建目标重复失败
+description: 负向：同一抑制单内目标重复，期望创建失败。
+skip: false
+skipReason: ''
+steps:
+- method: POST
+  service: biz
+  path: /warning/suppress
+  body:
+    siteId: 1
+    suppressName: 功能测-重复目标-${rand}
+    suppressScope: NOTIFY_ONLY
+    timeMode: PERMANENT
+    targets:
+    - targetType: WARNING_LEVEL
+      targetCode: ORANGE
+    - targetType: WARNING_LEVEL
+      targetCode: ORANGE
+  expect:
+    status: 400

@@ -1,0 +1,62 @@
+id: wg-32-timeline
+name: 事件应可查状态时间线
+description: 验收：事件详情含状态流转时间线，CREATE 动作可查。
+skip: false
+skipReason: ''
+steps:
+- method: POST
+  service: biz
+  path: /warning/rules
+  body:
+    ruleName: 验收-时间线-${rand}
+    ruleDesc: WG-32
+    conditionJson: '{"logic":"AND","children":[{"factorCode":"ATMO_EFIELD_INSTANT","op":"GTE","value":5}]}'
+    actionJson: '{"actionType":"WARNING","warningLevel":"BLUE","notify":{"requireConfirm":false}}'
+    foreseeMinutes: 60
+    scheduleType: ALWAYS
+  expect:
+    status: 200
+    fields:
+      code: 0
+      data.ruleStatus: DRAFT
+  capture:
+    ruleId: data.id
+- method: POST
+  service: biz
+  path: /warning/rules/${ruleId}/submit
+  expect:
+    status: 200
+    fields:
+      code: 0
+      data.ruleStatus: ENABLED
+- method: POST
+  service: biz
+  path: /warning/eval/trigger
+  body:
+    siteId: 1000000000000050101
+    ruleId: ${ruleId}
+    factorOverrides:
+      ATMO_EFIELD_INSTANT: 9
+  expect:
+    status: 200
+    fields:
+      code: 0
+      data.candidates.0.warningLevel: BLUE
+- method: GET
+  service: biz
+  path: /warning/events?pageNum=1&pageSize=1&siteId=1000000000000050101&lifecycleStatus=ACTIVE&warningLevel=BLUE
+  expect:
+    status: 200
+    fields:
+      code: 0
+  capture:
+    eventId: data.list.0.id
+- method: GET
+  service: biz
+  path: /warning/events/${eventId}
+  expect:
+    status: 200
+    fields:
+      code: 0
+      data.transitions.0.action: CREATE
+      data.transitions.0.toStatus: ACTIVE

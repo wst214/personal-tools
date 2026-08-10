@@ -1,0 +1,47 @@
+id: ws-05-update-draft
+name: 编辑抑制草稿
+description: 编辑仍为 DRAFT 的抑制单内容，期望更新成功且状态不变。
+skip: false
+skipReason: ''
+steps:
+- method: POST
+  service: biz
+  path: /warning/suppress
+  body:
+    siteId: 1
+    suppressName: 功能测-待改抑制-${rand}
+    suppressScope: FULL
+    timeMode: PERMANENT
+    targets:
+    - targetType: WARNING_LEVEL
+      targetCode: BLUE
+  expect:
+    status: 200
+    fields:
+      code: 0
+      data.suppressStatus: DRAFT
+  capture:
+    suppressId: data.id
+- method: PUT
+  service: biz
+  path: /warning/suppress/${suppressId}
+  body:
+    siteId: 1
+    suppressName: 功能测-已改抑制-${rand}
+    reason: updated
+    suppressScope: NOTIFY_ONLY
+    timeMode: PERMANENT
+    targets:
+    - targetType: DEVICE
+      targetId: 1001
+      targetCode: DEV-1001
+      targetName: 样例设备
+    - targetType: WARNING_LEVEL
+      targetCode: YELLOW
+  expect:
+    status: 200
+    fields:
+      code: 0
+      data.suppressStatus: DRAFT
+      data.suppressScope: NOTIFY_ONLY
+      data.targetMode: DEVICE_AND_LEVEL

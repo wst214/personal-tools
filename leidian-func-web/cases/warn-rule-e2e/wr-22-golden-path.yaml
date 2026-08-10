@@ -1,0 +1,70 @@
+id: wr-22-golden-path
+name: 黄金路径串联（创建→提交→停用→启用→删除）
+description: 端到端黄金路径：创建→提交生效→停用→再启用→删除，逐步断言状态变迁。
+skip: false
+skipReason: ''
+steps:
+- method: POST
+  service: biz
+  path: /warning/rules
+  body:
+    ruleName: 功能测-黄金路径-${rand}
+    ruleDesc: e2e
+    conditionJson: '{"logic":"OR"}'
+    actionJson: '{"actionType":"WARNING","warningLevel":"BLUE"}'
+    foreseeMinutes: 60
+    scheduleType: ALWAYS
+  expect:
+    status: 200
+    fields:
+      code: 0
+      data.ruleStatus: DRAFT
+  capture:
+    ruleId: data.id
+- method: PUT
+  service: biz
+  path: /warning/rules/${ruleId}
+  body:
+    ruleName: 功能测-黄金路径-${rand}
+    ruleDesc: e2e-edited
+    conditionJson: '{"logic":"AND"}'
+    actionJson: '{"actionType":"WARNING","warningLevel":"YELLOW"}'
+    foreseeMinutes: 60
+    scheduleType: ALWAYS
+  expect:
+    status: 200
+    fields:
+      code: 0
+      data.warningLevel: YELLOW
+- method: POST
+  service: biz
+  path: /warning/rules/${ruleId}/submit
+  expect:
+    status: 200
+    fields:
+      code: 0
+      data.ruleStatus: ENABLED
+      data.versionStatus: ACTIVE
+- method: POST
+  service: biz
+  path: /warning/rules/${ruleId}/disable
+  expect:
+    status: 200
+    fields:
+      code: 0
+      data.ruleStatus: DISABLED
+- method: POST
+  service: biz
+  path: /warning/rules/${ruleId}/enable
+  expect:
+    status: 200
+    fields:
+      code: 0
+      data.ruleStatus: ENABLED
+- method: DELETE
+  service: biz
+  path: /warning/rules/${ruleId}
+  expect:
+    status: 200
+    fields:
+      code: 0

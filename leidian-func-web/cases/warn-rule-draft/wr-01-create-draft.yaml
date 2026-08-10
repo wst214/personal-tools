@@ -1,0 +1,27 @@
+id: wr-01-create-draft
+name: 新建规则草稿
+description: 新建一条自定义预警规则草稿：提交规则名、条件/动作 JSON、预见期与 ALWAYS 策略，期望返回 DRAFT 状态并可捕获 ruleId。
+skip: false
+skipReason: ''
+steps:
+- method: POST
+  service: biz
+  path: /warning/rules
+  body:
+    ruleName: 功能测-草稿-${rand}
+    ruleDesc: WR-01
+    conditionJson: '{"logic":"OR","children":[]}'
+    actionJson: '{"actionType":"WARNING","warningLevel":"BLUE"}'
+    foreseeMinutes: 60
+    scheduleType: ALWAYS
+  expect:
+    status: 200
+    fields:
+      code: 0
+      data.ruleStatus: DRAFT
+      data.versionStatus: DRAFT
+      data.builtinFlag: 0
+      data.warningLevel: BLUE
+  capture:
+    ruleId: data.id
+    ruleCode: data.ruleCode

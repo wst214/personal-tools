@@ -1,0 +1,13 @@
+id: wn-20-fail-retry
+name: 发送失败应按策略进入重试
+description: 【暂不执行】验收：通道失败应进入重试并落库。
+skip: true
+skipReason: 能力未上线；本用例按验收标准编写，上线后取消 skip 即可跑
+steps:
+- method: GET
+  service: biz
+  path: /warning/notify/records?status=RETRYING&pageNum=1&pageSize=20
+  expect:
+    status: 200
+    fields:
+      code: 0

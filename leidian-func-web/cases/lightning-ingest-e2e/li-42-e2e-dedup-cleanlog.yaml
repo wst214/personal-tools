@@ -1,0 +1,41 @@
+id: li-42-e2e-dedup-cleanlog
+name: 重复投递写 DUPLICATE clean_log
+description: |
+  按网络展开：同 strike_id 投两次 → 按 strikeId 分页 total=1 →
+  clean-logs 可见 *_DUPLICATE。
+skip: false
+skipReason: ''
+expandByNetwork: true
+steps:
+- name: Kafka 第 1 次
+  method: KAFKA
+  topic: ${kafkaTopic}
+  key: func-web-dedup-cl-${network}-${rand}
+  value: ${kafkaJsonDedup}
+- name: Kafka 第 2 次
+  method: KAFKA
+  topic: ${kafkaTopic}
+  key: func-web-dedup-cl-${network}-${rand}-2
+  value: ${kafkaJsonDedup}
+- name: 等待
+  method: SLEEP
+  seconds: 5
+- name: 按 strikeId 分页仅 1 条
+  method: GET
+  service: biz
+  path: ${bizPath}&strikeId=${fixedStrikeId}
+  expect:
+    status: 200
+    fields:
+      code: 0
+      data.total: 1
+      data.list.0.strikeId: ${fixedStrikeId}
+- name: 查 DUPLICATE clean_log
+  method: GET
+  service: data
+  path: /ingest/clean-logs/recent?cleanRuleCode=LIGHTNING_${network}_DUPLICATE&limit=5
+  expect:
+    status: 200
+    fields:
+      code: 0
+      data.0.cleanResult: REJECTED

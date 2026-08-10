@@ -20,6 +20,7 @@ export const translateTool = {
     const out = el('textarea', { class: 'tx', placeholder: '翻译结果', style: { minHeight: '120px' } });
     out.readOnly = true;
     const swap = btn('⇄', () => { const f = from.value; from.value = to.value; to.value = f; }, { variant: 'ghost' });
+  swap.title = '交换源语言与目标语言';
     const run = btn('翻译', async () => {
       if (!window.toolbox?.translate) { toast('需在桌面端运行', 'error'); return; }
       if (!inp.value.trim()) { toast('请输入文本', 'warn'); return; }

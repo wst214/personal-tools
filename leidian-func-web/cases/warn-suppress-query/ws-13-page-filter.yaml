@@ -1,0 +1,32 @@
+id: ws-13-page-filter
+name: 抑制分页与关键词筛选
+description: 创建带关键字的抑制草稿后，分页按 keyword + DRAFT 筛选应命中。
+skip: false
+skipReason: ''
+steps:
+- method: POST
+  service: biz
+  path: /warning/suppress
+  body:
+    siteId: 1
+    suppressName: 功能测-列表关键字-${rand}
+    suppressScope: FULL
+    timeMode: PERMANENT
+    targets:
+    - targetType: WARNING_LEVEL
+      targetCode: BLUE
+  expect:
+    status: 200
+    fields:
+      code: 0
+  capture:
+    suppressId: data.id
+    suppressName: data.suppressName
+- method: GET
+  service: biz
+  path: /warning/suppress?pageNum=1&pageSize=20&keyword=${suppressName}&suppressStatus=DRAFT
+  expect:
+    status: 200
+    fields:
+      code: 0
+      data.list.0.id: ${suppressId}

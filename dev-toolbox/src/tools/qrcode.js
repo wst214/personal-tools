@@ -1,6 +1,6 @@
 import QRCode from 'qrcode/lib/browser';
 import jsQR from 'jsqr';
-import { el, btn, toast, download, copyBtn } from '../ui/helpers.js';
+import { el, btn, toast, download, copyBtn, debounce } from '../ui/helpers.js';
 
 export const qrcodeTool = {
   id: 'qrcode',
@@ -33,7 +33,7 @@ export const qrcodeTool = {
         img.src = dataUrl;
       } catch (e) { toast(e.message, 'error'); }
     };
-    [text, size, ecl, margin, dark, light].forEach((c) => c.addEventListener('input', gen));
+    [text, size, ecl, margin, dark, light].forEach((c) => c.addEventListener('input', debounce(gen, 150)));
 
     const fileInput = el('input', { type: 'file', accept: 'image/*' });
     const decResult = el('textarea', { class: 'tx', placeholder: '解析结果…' });

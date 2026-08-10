@@ -1,0 +1,86 @@
+id: wg-08-none-unified-no-dup
+name: NONE 统一模型-重复命中续期不新建事件
+description: 验收：actionType=NONE 规则两次触发 -> 同一 RECORDED 事件、命中项仍 1（find-or-create+续期，不每次新建）。
+skip: false
+skipReason: ''
+steps:
+- method: POST
+  service: biz
+  path: /warning/rules
+  body:
+    ruleName: 验收-NONE统一-${rand}
+    ruleDesc: WG-08
+    conditionJson: '{"logic":"AND","children":[{"factorCode":"ATMO_EFIELD_INSTANT","op":"GTE","value":5}]}'
+    actionJson: '{"actionType":"NONE"}'
+    scheduleType: ALWAYS
+  expect:
+    status: 200
+    fields:
+      code: 0
+      data.ruleStatus: DRAFT
+  capture:
+    ruleId: data.id
+- method: POST
+  service: biz
+  path: /warning/rules/${ruleId}/submit
+  expect:
+    status: 200
+    fields:
+      code: 0
+      data.ruleStatus: ENABLED
+- method: POST
+  service: biz
+  path: /warning/eval/trigger
+  body:
+    siteId: 1000000000000050101
+    ruleId: ${ruleId}
+    factorOverrides:
+      ATMO_EFIELD_INSTANT: 9
+  expect:
+    status: 200
+    fields:
+      code: 0
+      data.candidates.0.actionType: NONE
+- method: GET
+  service: biz
+  path: /warning/events?pageNum=1&pageSize=1&siteId=1000000000000050101&lifecycleStatus=RECORDED&includeHidden=true
+  expect:
+    status: 200
+    fields:
+      code: 0
+      data.list.0.lifecycleStatus: RECORDED
+  capture:
+    eventId: data.list.0.id
+    itemCountBefore: data.list.0.id
+- method: GET
+  service: biz
+  path: /warning/events/${eventId}
+  expect:
+    status: 200
+    fields:
+      code: 0
+  capture:
+    itemCountBefore: data.itemCount
+- method: POST
+  service: biz
+  path: /warning/eval/trigger
+  body:
+    siteId: 1000000000000050101
+    ruleId: ${ruleId}
+    factorOverrides:
+      ATMO_EFIELD_INSTANT: 12
+  expect:
+    status: 200
+    fields:
+      code: 0
+      data.candidates.0.actionType: NONE
+- method: GET
+  service: biz
+  path: /warning/events/${eventId}
+  expect:
+    status: 200
+    fields:
+      code: 0
+      data.lifecycleStatus: RECORDED
+      data.itemCount: ${itemCountBefore}
+      data.items.0.triggerType: NONE_HIT

@@ -1,0 +1,37 @@
+id: li-40-e2e-lightning
+name: 雷电全链路入库可见
+description: |
+  按网络展开：Kafka 投递固定 strikeId 的雷电 JSON → 等待消费 →
+  按 strikeId 分页命中 → 附件映射可查。
+skip: false
+skipReason: ''
+expandByNetwork: true
+steps:
+- name: Kafka 投递雷电 JSON（固定 strikeId）
+  method: KAFKA
+  topic: ${kafkaTopic}
+  key: func-web-${network}-${rand}
+  value: ${kafkaJsonDedup}
+- name: 等待消费落库
+  method: SLEEP
+  seconds: 5
+- name: 按 strikeId 查分页并断言
+  method: GET
+  service: biz
+  path: ${bizPath}&strikeId=${fixedStrikeId}
+  expect:
+    status: 200
+    fields:
+      code: 0
+      data.total: 1
+      data.list.0.strikeId: ${fixedStrikeId}
+  capture:
+    monitorId: data.list.0.id
+- name: 按 monitor 查附件映射
+  method: GET
+  service: data
+  path: /ingest/attachment/refs?monitorId=${monitorId}
+  expect:
+    status: 200
+    fields:
+      code: 0

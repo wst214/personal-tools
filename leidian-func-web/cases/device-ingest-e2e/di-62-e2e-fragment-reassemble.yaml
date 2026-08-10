@@ -1,0 +1,32 @@
+id: di-62-e2e-fragment-reassemble
+name: 粘包半包拼帧后入库
+description: |
+  同一 Kafka key 连续投递半包 HEX，流缓冲拼成完整接地电阻帧后应入库可见。
+skip: false
+skipReason: ''
+expandByDeviceType: false
+steps:
+- name: Kafka 投递半包 1
+  method: KAFKA
+  topic: device-raw-data
+  key: func-web-frag-fixed-${rand}
+  value: 5A4B1103000000010001000A
+  capture:
+    fragKey: key
+- name: Kafka 投递半包 2（同 key）
+  method: KAFKA
+  topic: device-raw-data
+  key: ${fragKey}
+  value: 0014001E00280032E3CC0D0A
+- name: 等待拼帧入库
+  method: SLEEP
+  seconds: 6
+- name: 查接地电阻 monitor
+  method: GET
+  service: data
+  path: /ingest/monitor/device/recent?monitorType=GROUNDING_RESISTANCE&limit=5
+  expect:
+    status: 200
+    fields:
+      code: 0
+      data.0.monitorType: GROUNDING_RESISTANCE

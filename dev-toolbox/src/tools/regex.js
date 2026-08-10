@@ -25,19 +25,23 @@ export const regexTool = {
       let re;
       try { re = new RegExp(src, flags.value); }
       catch (e) { count.textContent = '✗'; highlight.innerHTML = '<span class="err">无效正则：' + escapeHtml(e.message) + '</span>'; return; }
+      const MATCH_CAP = 500;
       const found = [];
+      let truncated = false;
       if (re.global) {
         let m;
         let guard = 0;
-        while ((m = re.exec(text)) !== null && guard++ < 99999) {
-          found.push(m);
+        while ((m = re.exec(text)) !== null && guard++ < 2000) {
+          if (found.length < MATCH_CAP) found.push(m);
+          else truncated = true;
           if (m.index === re.lastIndex) re.lastIndex++;
         }
+        if (guard >= 2000) truncated = true;
       } else {
         const m = re.exec(text);
         if (m) found.push(m);
       }
-      count.textContent = found.length + ' 处';
+      count.textContent = truncated ? `${found.length}+ 处（已截断）` : `${found.length} 处`;
       let html = '';
       let last = 0;
       for (const m of found) {
@@ -47,7 +51,18 @@ export const regexTool = {
       }
       html += escapeHtml(text.slice(last));
       highlight.innerHTML = html;
-      if (replaceStr.value) {
+      if (replaceStr.value && re.global) {
+        // 用已匹配结果做替换，避免正则跑第二遍
+        let out = '';
+        let last = 0;
+        for (const m of found) {
+          out += text.slice(last, m.index);
+          out += m[0].replace(re, replaceStr.value);
+          last = m.index + m[0].length;
+        }
+        out += text.slice(last);
+        matches.append(el('div', { class: 'match-item replaced' }, [el('span', { class: 'match-no', text: '替换' }), el('span', { text: out })]));
+      } else if (replaceStr.value) {
         try { matches.append(el('div', { class: 'match-item replaced' }, [el('span', { class: 'match-no', text: '替换' }), el('span', { text: text.replace(re, replaceStr.value) })])); } catch {}
       }
       found.forEach((m, i) => {

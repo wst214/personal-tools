@@ -1,0 +1,14 @@
+id: di-10-attachment-ref-by-monitor
+name: 按 monitor 可查附件映射
+description: 通用：按所选类型展开查询映射表（终态接口）。monitorId=0 时返回空列表且 code=0。
+skip: false
+skipReason: ''
+expandByDeviceType: true
+steps:
+- method: GET
+  service: data
+  path: /ingest/attachment/refs?monitorType=${deviceType}&monitorId=0
+  expect:
+    status: 200
+    fields:
+      code: 0

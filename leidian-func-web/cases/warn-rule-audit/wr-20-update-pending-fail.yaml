@@ -1,0 +1,16 @@
+id: wr-20-update-pending-fail
+name: 待审不可编辑
+description: 【暂不执行】待审版本不可编辑，更新应失败。
+skip: true
+skipReason: 需 draft version_status=PENDING；P0 正常流程无此状态
+steps:
+- method: PUT
+  service: biz
+  path: /warning/rules/${ruleId}
+  body:
+    ruleName: 不应成功
+    conditionJson: '{}'
+    actionJson: '{"actionType":"NONE"}'
+    scheduleType: ALWAYS
+  expect:
+    status: 400

@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<title>主图标 3 风格 × 12 方案</title>
+<style>
+* { margin:0; padding:0; box-sizing:border-box; }
+body { font-family:"Segoe UI","Microsoft YaHei",system-ui,sans-serif; background:#f4f5f7; color:#1d1d1f; padding:30px 38px; }
+h1 { font-size:20px; margin-bottom:6px; }
+.sub { color:#6b7280; font-size:12.5px; margin-bottom:28px; }
+.group { margin-bottom:32px; }
+.group-title { font-size:15px; font-weight:700; margin-bottom:4px; display:flex; align-items:center; gap:8px; }
+.group-title .tag { font-size:10.5px; color:#6b7280; background:#e9ebef; border-radius:4px; padding:2px 8px; font-weight:400; }
+.group-sub { font-size:11.5px; color:#6b7280; margin-bottom:14px; }
+.cards { display:grid; grid-template-columns:repeat(auto-fit,minmax(200px,1fr)); gap:14px; }
+.card { background:#fff; border:1px solid #e3e6ea; border-radius:14px; padding:22px 16px; text-align:center; cursor:pointer; transition:all .15s; }
+.card:hover { border-color:#6366f1; box-shadow:0 8px 24px rgba(30,40,70,.10); transform:translateY(-2px); }
+.card.selected { border-color:#6366f1; box-shadow:0 0 0 2px #6366f1; }
+.card .logo { width:72px; height:72px; margin:4px auto 14px; }
+.card .name { font-size:13px; font-weight:700; }
+.card .desc { font-size:10.5px; color:#8a909d; margin-top:5px; line-height:1.5; }
+.selbar { position:fixed; bottom:22px; left:50%; transform:translateX(-50%); background:#1f2937; color:#fff; border-radius:10px; padding:10px 22px; font-size:13px; box-shadow:0 10px 30px rgba(0,0,0,.25); }
+</style>
+</head>
+<body>
+<h1>主图标 3 风格 × 12 方案</h1>
+<div class="sub">点卡片选中，底部显示已选</div>
+
+<div class="group">
+  <div class="group-title">风格一：深色底 + 极简几何 <span class="tag">VS Code / Slack 式</span></div>
+  <div class="group-sub">深色圆角底 + 简洁几何图形，克制高级</div>
+  <div class="cards">
+    <div class="card" onclick="pick(this,'K1')"><div class="logo"><svg viewBox="0 0 96 96"><rect x="4" y="4" width="88" height="88" rx="22" fill="#1f2937"/><circle cx="48" cy="48" r="24" fill="none" stroke="#34d399" stroke-width="6"/><path d="M48 30v36M36 42l12 12 12-12" fill="none" stroke="#fff" stroke-width="5" stroke-linecap="round" stroke-linejoin="round"/></svg></div><div class="name">圆环下载</div><div class="desc">环形 + 下载箭头，工具/获取</div></div>
+    <div class="card" onclick="pick(this,'K2')"><div class="logo"><svg viewBox="0 0 96 96"><rect x="4" y="4" width="88" height="88" rx="22" fill="#111827"/><path d="M48 20 76 48 48 76 20 48Z" fill="none" stroke="#fff" stroke-width="6" stroke-linejoin="round"/><path d="M48 34v16M48 56h.1" stroke="#34d399" stroke-width="5" stroke-linecap="round"/></svg></div><div class="name">菱形叹号</div><div class="desc">菱形 + 叹号，警示/重要</div></div>
+    <div class="card" onclick="pick(this,'K3')"><div class="logo"><svg viewBox="0 0 96 96"><rect x="4" y="4" width="88" height="88" rx="22" fill="#1f2937"/><path d="M30 48h36M48 30v36" stroke="#fff" stroke-width="6" stroke-linecap="round"/><path d="M36 42l12 12 12-12" fill="none" stroke="#34d399" stroke-width="5" stroke-linecap="round" stroke-linejoin="round"/></svg></div><div class="name">十字箭头</div><div class="desc">十字 + 箭头，聚焦/选择</div></div>
+    <div class="card" onclick="pick(this,'K4')"><div class="logo"><svg viewBox="0 0 96 96"><rect x="4" y="4" width="88" height="88" rx="22" fill="#111827"/><path d="M26 48a22 22 0 0 1 44 0" fill="none" stroke="#fff" stroke-width="6" stroke-linecap="round"/><path d="M26 48h14M26 48l8-8" stroke="#34d399" stroke-width="5" stroke-linecap="round" stroke-linejoin="round"/></svg></div><div class="name">扇区刷新</div><div class="desc">扇形缺口 + 箭头，刷新/处理</div></div>
+  </div>
+</div>
+
+<div class="group">
+  <div class="group-title">风格二：字母 / 文字型 <span class="tag">Figma / Dropbox 式</span></div>
+  <div class="group-sub">首字母组合，品牌感强</div>
+  <div class="cards">
+    <div class="card" onclick="pick(this,'L1')"><div class="logo"><svg viewBox="0 0 96 96"><rect x="4" y="4" width="88" height="88" rx="22" fill="#6366f1"/><text x="48" y="62" text-anchor="middle" font-family="Segoe UI,sans-serif" font-size="40" font-weight="800" fill="#fff">DT</text></svg></div><div class="name">DT 字母</div><div class="desc">DevTool 首字母，蓝紫底</div></div>
+    <div class="card" onclick="pick(this,'L2')"><div class="logo"><svg viewBox="0 0 96 96"><rect x="4" y="4" width="88" height="88" rx="22" fill="#111827"/><text x="48" y="62" text-anchor="middle" font-family="Consolas,monospace" font-size="38" font-weight="700" fill="#34d399">&gt;_</text></svg></div><div class="name">&gt;_ 终端</div><div class="desc">终端提示符，深底青字</div></div>
+    <div class="card" onclick="pick(this,'L3')"><div class="logo"><svg viewBox="0 0 96 96"><rect x="4" y="4" width="88" height="88" rx="22" fill="#f59e0b"/><text x="48" y="62" text-anchor="middle" font-family="Segoe UI,sans-serif" font-size="42" font-weight="800" fill="#fff">D</text></svg></div><div class="name">单字母 D</div><div class="desc">大字母 D，橙底</div></div>
+    <div class="card" onclick="pick(this,'L4')"><div class="logo"><svg viewBox="0 0 96 96"><rect x="4" y="4" width="88" height="88" rx="22" fill="#0e9f6e"/><text x="48" y="62" text-anchor="middle" font-family="Segoe UI,sans-serif" font-size="38" font-weight="800" fill="#fff">DB</text></svg></div><div class="name">DB 字母</div><div class="desc">工具箱缩写，绿底</div></div>
+  </div>
+</div>
+
+<div class="group">
+  <div class="group-title">风格三：彩色底 + 抽象图形 <span class="tag">现代 App 式</span></div>
+  <div class="group-sub">彩色渐变底 + 简洁抽象图形，不具象</div>
+  <div class="cards">
+    <div class="card" onclick="pick(this,'M1')"><div class="logo"><svg viewBox="0 0 96 96"><defs><linearGradient id="m1" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#6366f1"/><stop offset="1" stop-color="#ec4899"/></linearGradient></defs><rect x="4" y="4" width="88" height="88" rx="22" fill="url(#m1)"/><circle cx="48" cy="48" r="22" fill="none" stroke="#fff" stroke-width="5"/><circle cx="48" cy="48" r="8" fill="#fff"/></svg></div><div class="name">双环</div><div class="desc">蓝粉渐变 + 同心圆</div></div>
+    <div class="card" onclick="pick(this,'M2')"><div class="logo"><svg viewBox="0 0 96 96"><defs><linearGradient id="m2" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#f59e0b"/><stop offset="1" stop-color="#f43f5e"/></linearGradient></defs><rect x="4" y="4" width="88" height="88" rx="22" fill="url(#m2)"/><path d="M48 22 74 48 48 74 22 48Z" fill="none" stroke="#fff" stroke-width="5" stroke-linejoin="round"/><path d="M48 36 60 48 48 60 36 48Z" fill="#fff"/></svg></div><div class="name">菱中菱</div><div class="desc">橙红渐变 + 双层菱形</div></div>
+    <div class="card" onclick="pick(this,'M3')"><div class="logo"><svg viewBox="0 0 96 96"><defs><linearGradient id="m3" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#10b981"/><stop offset="1" stop-color="#06b6d4"/></linearGradient></defs><rect x="4" y="4" width="88" height="88" rx="22" fill="url(#m3)"/><path d="M48 18 70 42H26Z" fill="#fff" opacity=".95"/><path d="M48 78 26 54h44Z" fill="#fff" opacity=".55"/></svg></div><div class="name">沙漏</div><div class="desc">青绿渐变 + 沙漏/时间</div></div>
+    <div class="card" onclick="pick(this,'M4')"><div class="logo"><svg viewBox="0 0 96 96"><defs><linearGradient id="m4" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#8b5cf6"/><stop offset="1" stop-color="#f59e0b"/></linearGradient></defs><rect x="4" y="4" width="88" height="88" rx="22" fill="url(#m4)"/><path d="M30 30l36 36M66 30 30 66" stroke="#fff" stroke-width="6" stroke-linecap="round"/><circle cx="30" cy="30" r="7" fill="#fff"/><circle cx="66" cy="66" r="7" fill="#fff"/></svg></div><div class="name">对点连线</div><div class="desc">紫橙渐变 + 两点连线</div></div>
+  </div>
+</div>
+
+<div class="selbar">已选：<b id="sel">无</b></div>
+<script>
+function pick(el,id){ document.querySelectorAll('.card').forEach(c=>c.classList.remove('selected')); el.classList.add('selected'); document.getElementById('sel').textContent = el.querySelector('.name').textContent + '（' + id + '）'; }
+</script>
+</body>
+</html>

@@ -1,0 +1,23 @@
+id: wf-12-not-ready-flag
+name: 未就绪因子应带 NOT_READY 标记
+description: 验收：未就绪因子应带 NOT_READY 标记。
+skip: false
+skipReason: ''
+steps:
+- method: GET
+  service: biz
+  path: /warning/factors?readiness=NOT_READY&pageNum=1&pageSize=20
+  expect:
+    status: 200
+    fields:
+      code: 0
+      data.list.0.readiness: NOT_READY
+- method: GET
+  service: biz
+  path: /warning/factors/by-code/RISK_INDEX
+  expect:
+    status: 200
+    fields:
+      code: 0
+      data.factorCode: RISK_INDEX
+      data.readiness: NOT_READY

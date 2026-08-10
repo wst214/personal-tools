@@ -1,0 +1,12 @@
+id: wb-02-test-time-range-required
+name: 回测缺时间窗应失败
+description: 【暂不执行】验收：回测缺少时间窗应失败。
+skip: true
+skipReason: 能力未上线；本用例按验收标准编写，上线后取消 skip 即可跑
+steps:
+- method: POST
+  service: biz
+  path: /warning/rules/0/test
+  expect:
+    status: 400
+  body: {}

@@ -1,0 +1,49 @@
+id: wg-07-trend-up-tolerance
+name: TREND_UP 允许缺 1 帧容错
+description: 验收：TREND_UP 序列 [5,6,5,9] 中间一段非递增，按容错(允许 1 段)仍命中。
+skip: false
+skipReason: ''
+steps:
+- method: POST
+  service: biz
+  path: /warning/rules
+  body:
+    ruleName: 验收-TREND容错-${rand}
+    ruleDesc: WG-07
+    conditionJson: '{"factorCode":"ATMO_EFIELD_INSTANT","op":"TREND_UP","threshold":5,"consecutive":3,"rise":1}'
+    actionJson: '{"actionType":"WARNING","warningLevel":"BLUE","notify":{"requireConfirm":false}}'
+    foreseeMinutes: 60
+    scheduleType: ALWAYS
+  expect:
+    status: 200
+    fields:
+      code: 0
+      data.ruleStatus: DRAFT
+  capture:
+    ruleId: data.id
+- method: POST
+  service: biz
+  path: /warning/rules/${ruleId}/submit
+  expect:
+    status: 200
+    fields:
+      code: 0
+      data.ruleStatus: ENABLED
+- method: POST
+  service: biz
+  path: /warning/eval/dry-run
+  body:
+    siteId: 1000000000000050101
+    ruleId: ${ruleId}
+    factorOverrides:
+      ATMO_EFIELD_INSTANT:
+      - 5
+      - 6
+      - 5
+      - 9
+  expect:
+    status: 200
+    fields:
+      code: 0
+      data.candidates.0.warningLevel: BLUE
+      data.candidates.0.ruleId: ${ruleId}

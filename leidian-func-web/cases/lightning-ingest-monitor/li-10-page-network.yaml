@@ -1,0 +1,15 @@
+id: li-10-page-network
+name: 三网闪电定位分页列表可查
+description: 按网络展开：biz 分页列表（/monitor/lightning/{network}/lightnings）。
+skip: false
+skipReason: ''
+expandByNetwork: true
+steps:
+- name: 查分页列表
+  method: GET
+  service: biz
+  path: ${bizPath}
+  expect:
+    status: 200
+    fields:
+      code: 0

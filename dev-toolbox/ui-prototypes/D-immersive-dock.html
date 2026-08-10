@@ -1,0 +1,77 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<title>方案 D — 沉浸式全屏（浅色）</title>
+<style>
+* { margin:0; padding:0; box-sizing:border-box; }
+:root { color-scheme: light; }
+body { font-family:"Segoe UI","Microsoft YaHei",system-ui,sans-serif; background:#f2f5f7; color:#1c2a24; height:100vh; overflow:hidden; }
+
+.app { height:100vh; display:flex; flex-direction:column; }
+.tool-top { display:flex; align-items:center; gap:14px; padding:16px 26px; background:#fff; border-bottom:1px solid #e3e8ef; }
+.tool-top .hamburger { width:34px; height:34px; border-radius:9px; display:flex; align-items:center; justify-content:center; font-size:16px; color:#7d8d85; cursor:pointer; }
+.tool-top .hamburger:hover { background:#f0f4f2; color:#1c2a24; }
+.tool-top .name { font-size:17px; font-weight:700; color:#111827; }
+.tool-top .desc { font-size:12px; color:#8a9a92; margin-left:4px; }
+.tool-top .spacer { flex:1; }
+.tool-top .status { display:flex; align-items:center; gap:6px; font-size:11.5px; color:#9aa8a0; }
+.tool-top .status .dot { width:7px; height:7px; border-radius:50%; background:#16a34a; }
+
+.tool-body { flex:1; overflow:auto; padding:10px 26px 34px; }
+.pane { background:#fff; border:1px solid #e3e8ef; border-radius:14px; min-height:320px; display:flex; align-items:center; justify-content:center; color:#9aa8a0; font-size:13px; }
+
+.dock { position:fixed; left:50%; bottom:16px; transform:translateX(-50%); display:flex; align-items:center; gap:2px; background:rgba(255,255,255,.94); border:1px solid #dde3ea; border-radius:16px; padding:6px 8px; box-shadow:0 12px 34px rgba(16,35,26,.16); z-index:50; }
+.dock-item { display:flex; flex-direction:column; align-items:center; gap:3px; padding:7px 12px; border-radius:10px; cursor:pointer; color:#7d8d85; min-width:54px; transition:all .13s; }
+.dock-item:hover { background:#f0f4f2; color:#1c2a24; }
+.dock-item.active { background:#e6f7f0; color:#0e9f6e; }
+.dock-item .ic { font-size:15px; }
+.dock-item .lb { font-size:9.5px; }
+
+.quick { position:fixed; left:50%; bottom:82px; transform:translateX(-50%); background:#fff; border:1px solid #dde3ea; border-radius:14px; padding:8px; display:none; gap:4px; z-index:49; box-shadow:0 16px 44px rgba(16,35,26,.18); }
+.quick.open { display:flex; }
+.quick-item { display:flex; flex-direction:column; align-items:center; gap:4px; padding:10px 14px; border-radius:10px; cursor:pointer; color:#5b6b63; min-width:58px; }
+.quick-item:hover { background:#e6f7f0; color:#0e9f6e; }
+.quick-item .ic { font-size:17px; }
+.quick-item .lb { font-size:10px; }
+</style>
+</head>
+<body>
+<div class="app">
+  <div class="tool-top">
+    <div class="hamburger" onclick="toggleQuick()">☰</div>
+    <div class="name">JSON 格式化</div>
+    <div class="desc">格式化 / 压缩 / 折叠浏览</div>
+    <div class="spacer"></div>
+    <div class="status"><span class="dot"></span>就绪</div>
+  </div>
+  <div class="tool-body">
+    <div class="pane">工具内容区（方案 D：沉浸式全屏 + 底部 Dock · 浅色）</div>
+  </div>
+</div>
+
+<div class="quick" id="quick">
+  <div class="quick-item" onclick="switchTool(this)"><div class="ic">📝</div><div class="lb">随手记</div></div>
+  <div class="quick-item" onclick="switchTool(this)"><div class="ic">{}</div><div class="lb">JSON</div></div>
+  <div class="quick-item" onclick="switchTool(this)"><div class="ic">🔐</div><div class="lb">加解密</div></div>
+  <div class="quick-item" onclick="switchTool(this)"><div class="ic">SQL</div><div class="lb">SQL</div></div>
+  <div class="quick-item" onclick="switchTool(this)"><div class="ic">⌁</div><div class="lb">SSH</div></div>
+  <div class="quick-item" onclick="switchTool(this)"><div class="ic">⚙</div><div class="lb">部署</div></div>
+</div>
+
+<div class="dock" onmouseenter="toggleQuick(true)" onmouseleave="toggleQuick(false)">
+  <div class="dock-item active"><div class="ic">{}</div><div class="lb">JSON</div></div>
+  <div class="dock-item"><div class="ic">📝</div><div class="lb">随手记</div></div>
+  <div class="dock-item"><div class="ic">⌁</div><div class="lb">SSH</div></div>
+  <div class="dock-item"><div class="ic">🔐</div><div class="lb">加解密</div></div>
+  <div class="dock-item"><div class="ic">⚙</div><div class="lb">部署</div></div>
+  <div class="dock-item" style="color:#0e9f6e">⋯</div>
+</div>
+
+<script>
+let quickTimer;
+function toggleQuick(force){ const q=document.getElementById('quick'); const open = force!==undefined ? force : !q.classList.contains('open'); clearTimeout(quickTimer); if(open) q.classList.add('open'); else quickTimer=setTimeout(()=>q.classList.remove('open'),300); }
+function switchTool(el){ document.getElementById('quick').classList.remove('open'); document.querySelector('.tool-top .name').textContent = el.querySelector('.lb').textContent + '（示例切换）'; }
+</script>
+</body>
+</html>

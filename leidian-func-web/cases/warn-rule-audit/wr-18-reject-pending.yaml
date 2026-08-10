@@ -1,0 +1,16 @@
+id: wr-18-reject-pending
+name: 审核驳回（PENDING 造数）
+description: 【暂不执行】PENDING 审核驳回后回到可编辑草稿；需正式审核流上线。
+skip: true
+skipReason: P0 submit 直接生效不进 PENDING；需造 PENDING 草稿后再测
+steps:
+- method: POST
+  service: biz
+  path: /warning/rules/${ruleId}/reject
+  body:
+    opinion: 功能测驳回
+  expect:
+    status: 200
+    fields:
+      code: 0
+      data.draftVersionId: null

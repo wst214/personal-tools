@@ -1,0 +1,26 @@
+id: wn-03-deny-confirm
+name: 否定确认后事件应关闭并记录原因
+description: 【暂不执行】验收：拒绝确认后事件关闭并记录原因。
+skip: true
+skipReason: 能力未上线；本用例按验收标准编写，上线后取消 skip 即可跑
+steps:
+- method: GET
+  service: biz
+  path: /warning/events?pageNum=1&pageSize=1&lifecycleStatus=PENDING_CONFIRM
+  expect:
+    status: 200
+    fields:
+      code: 0
+  capture:
+    eventId: data.list.0.id
+- method: POST
+  service: biz
+  path: /warning/events/${eventId}/confirm
+  expect:
+    status: 200
+    fields:
+      code: 0
+      data.lifecycleStatus: CLOSED
+  body:
+    decision: DENY
+    reason: 验收否定

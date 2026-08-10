@@ -1,0 +1,34 @@
+id: wf-21-update-rejected-builtin
+name: 内置因子关键字段不可乱改
+description: 验收：运维更新仅允许展示名/就绪状态；只传 sourceTable 等关键字段应被拒绝。
+skip: false
+skipReason: ''
+steps:
+- method: GET
+  service: biz
+  path: /warning/factors/by-code/ATMO_EFIELD_INSTANT
+  expect:
+    status: 200
+    fields:
+      code: 0
+  capture:
+    factorId: data.id
+    sourceTable: data.sourceTable
+- method: PUT
+  service: biz
+  path: /warning/factors/${factorId}
+  expect:
+    status: 400
+    fields:
+      code: 400
+  body:
+    sourceTable: hacked
+    evalMode: DIRECT
+- method: GET
+  service: biz
+  path: /warning/factors/${factorId}
+  expect:
+    status: 200
+    fields:
+      code: 0
+      data.sourceTable: ${sourceTable}

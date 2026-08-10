@@ -1,0 +1,23 @@
+id: wn-11-notify-only-suppress
+name: NOTIFY_ONLY 抑制下不产生通知记录
+description: 【暂不执行】验收：NOTIFY_ONLY 抑制下不应有通知投递记录。
+skip: true
+skipReason: 能力未上线；本用例按验收标准编写，上线后取消 skip 即可跑
+steps:
+- method: GET
+  service: biz
+  path: /warning/events?pageNum=1&pageSize=1&notifySuppressed=true
+  expect:
+    status: 200
+    fields:
+      code: 0
+  capture:
+    eventId: data.list.0.id
+- method: GET
+  service: biz
+  path: /warning/notify/records?eventId=${eventId}
+  expect:
+    status: 200
+    fields:
+      code: 0
+      data.total: 0

@@ -1,0 +1,11 @@
+id: wr-16-delete-builtin-fail
+name: 删除内置规则失败
+description: 【暂不执行/条件】删除内置规则应被拒绝；需内置种子数据就绪后执行。
+skip: true
+skipReason: 需预置 builtinFlag=1 的内置规则数据（迁移未种子）；造数后取消 skip 并改 path 中的 id
+steps:
+- method: DELETE
+  service: biz
+  path: /warning/rules/${builtinRuleId}
+  expect:
+    status: 400

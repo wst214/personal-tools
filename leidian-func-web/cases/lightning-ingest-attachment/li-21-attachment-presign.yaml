@@ -1,0 +1,15 @@
+id: li-21-attachment-presign
+name: 按 attachment_id 可生成原文下载
+description: 通用：presign 下载（与网络无关）。需环境启用 MinIO；attachmentId 仅用于签名。
+skip: false
+skipReason: ''
+expandByNetwork: false
+steps:
+- name: 生成预签名
+  method: GET
+  service: data
+  path: /ingest/attachment/presign?attachmentId=0
+  expect:
+    status: 400
+    fields:
+      code: 400

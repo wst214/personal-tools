@@ -1,0 +1,15 @@
+id: wr-02-create-name-required
+name: 新建缺规则名失败
+description: 负向校验：新建规则时不传规则名，期望接口返回 400，提示规则名不能为空。
+skip: false
+skipReason: ''
+steps:
+- method: POST
+  service: biz
+  path: /warning/rules
+  body:
+    ruleDesc: missing name
+    conditionJson: '{}'
+    actionJson: '{"actionType":"NONE"}'
+  expect:
+    status: 400

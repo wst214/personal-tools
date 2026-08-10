@@ -1,0 +1,25 @@
+id: wf-03-detail
+name: 可查看因子详情
+description: 验收：可按编码查看因子定义详情。
+skip: false
+skipReason: ''
+steps:
+- method: GET
+  service: biz
+  path: /warning/factors/by-code/ATMO_EFIELD_INSTANT
+  expect:
+    status: 200
+    fields:
+      code: 0
+      data.factorCode: ATMO_EFIELD_INSTANT
+      data.evalMode: DIRECT
+  capture:
+    factorId: data.id
+- method: GET
+  service: biz
+  path: /warning/factors/${factorId}
+  expect:
+    status: 200
+    fields:
+      code: 0
+      data.factorCode: ATMO_EFIELD_INSTANT

@@ -1,0 +1,11 @@
+id: wr-14-detail-not-found
+name: 详情不存在
+description: 查询不存在的规则 id，期望返回 404。
+skip: false
+skipReason: ''
+steps:
+- method: GET
+  service: biz
+  path: /warning/rules/999999999999999999
+  expect:
+    status: 404

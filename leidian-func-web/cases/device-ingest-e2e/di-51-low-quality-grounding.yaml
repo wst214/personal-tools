@@ -1,0 +1,39 @@
+id: di-51-low-quality-grounding
+name: 接地电阻低质入库（pH 偏低）
+description: |
+  投递 ph=4（腐蚀阈值 <5）仍入库 → standard/device/recent.qualityStatus=LOW_QUALITY →
+  clean-logs/recent 同 monitor 可见 LOW_QUALITY。
+skip: false
+skipReason: ''
+expandByDeviceType: false
+steps:
+- name: Kafka 投递低质 HEX
+  method: KAFKA
+  topic: device-raw-data
+  key: func-web-lowq-grounding-${rand}
+  value: 5A4B1103000000010001000A0014001E0004003222050D0A
+- name: 等待消费
+  method: SLEEP
+  seconds: 5
+- name: 查 monitor 摘要质量状态
+  method: GET
+  service: data
+  path: /ingest/standard/device/recent?monitorType=GROUNDING_RESISTANCE&limit=5
+  expect:
+    status: 200
+    fields:
+      code: 0
+      data.0.qualityStatus: LOW_QUALITY
+  capture:
+    monitorId: data.0.id
+- name: 按 monitor 查 clean_log
+  method: GET
+  service: data
+  path: /ingest/clean-logs/recent?monitorId=${monitorId}&cleanRuleCode=DEVICE_GROUNDING_RESISTANCE_QUALITY
+  expect:
+    status: 200
+    fields:
+      code: 0
+      data.0.afterStatus: LOW_QUALITY
+      data.0.cleanResult: LOW_QUALITY
+      data.0.monitorId: ${monitorId}

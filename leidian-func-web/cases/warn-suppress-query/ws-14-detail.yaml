@@ -1,0 +1,33 @@
+id: ws-14-detail
+name: 抑制详情
+description: 先创建再查抑制详情，校验头信息与目标列表。
+skip: false
+skipReason: ''
+steps:
+- method: POST
+  service: biz
+  path: /warning/suppress
+  body:
+    siteId: 1
+    suppressName: 功能测-详情-${rand}
+    suppressScope: NOTIFY_ONLY
+    timeMode: PERMANENT
+    targets:
+    - targetType: WARNING_LEVEL
+      targetCode: ORANGE
+  expect:
+    status: 200
+    fields:
+      code: 0
+  capture:
+    suppressId: data.id
+- method: GET
+  service: biz
+  path: /warning/suppress/${suppressId}
+  expect:
+    status: 200
+    fields:
+      code: 0
+      data.suppressStatus: DRAFT
+      data.suppressScope: NOTIFY_ONLY
+      data.targetMode: LEVEL

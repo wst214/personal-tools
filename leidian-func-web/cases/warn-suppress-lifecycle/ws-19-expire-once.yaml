@@ -1,0 +1,48 @@
+id: ws-19-expire-once
+name: ONCE 到期后变为 EXPIRED
+description: 【暂不执行】ONCE 到期后由任务扫为 EXPIRED；依赖定时任务联调。
+skip: true
+skipReason: 需短时窗 ACTIVE 造数后触发 WarnSuppressExpireJob/调试入口，再断言 EXPIRED；P0 创建已过期窗会直接 400
+steps:
+- method: POST
+  service: biz
+  path: /warning/suppress
+  body:
+    siteId: 1
+    suppressName: 功能测-到期-${rand}
+    suppressScope: FULL
+    timeMode: ONCE
+    startTime: ${now-1h}
+    endTime: ${now+2m}
+    targets:
+    - targetType: WARNING_LEVEL
+      targetCode: BLUE
+  expect:
+    status: 200
+    fields:
+      code: 0
+  capture:
+    suppressId: data.id
+- method: POST
+  service: biz
+  path: /warning/suppress/${suppressId}/submit
+  expect:
+    status: 200
+    fields:
+      code: 0
+      data.suppressStatus: ACTIVE
+- method: POST
+  service: biz
+  path: /warning/suppress/jobs/expire
+  expect:
+    status: 200
+    fields:
+      code: 0
+- method: GET
+  service: biz
+  path: /warning/suppress/${suppressId}
+  expect:
+    status: 200
+    fields:
+      code: 0
+      data.suppressStatus: EXPIRED

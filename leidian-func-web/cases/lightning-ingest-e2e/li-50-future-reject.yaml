@@ -1,0 +1,26 @@
+id: li-50-future-reject
+name: CMB 未来时间拒收
+description: |
+  投递 strikeTime=now+10m 的 CMB JSON → 不入库 → errors 可见 FUTURE_STRIKE_TIME。
+  （未来时间规则仅 CMB 实现，本用例不按三网展开。）
+skip: false
+skipReason: ''
+expandByNetwork: false
+steps:
+- name: Kafka 投递未来时间 JSON
+  method: KAFKA
+  topic: lightning-strike-cmb
+  key: func-web-cmb-future-${rand}
+  value: "{\"lightningType\":\"0\",\"strikeTime\":\"${now+10m}\",\"pushTime\":\"${now+1m}\",\"longitude\":104.24623,\"latitude\":30.634212,\"peakCurrent\":-29.9,\"height\":5.9,\"province\":\"四川省\",\"city\":\"成都市\",\"county\":\"龙泉驿区\",\"provinceCode\":510000,\"cityCode\":510100,\"countyCode\":510112,\"strikeId\":\"cmb_future_${rand}\"}"
+- name: 等待消费
+  method: SLEEP
+  seconds: 5
+- name: 查 FUTURE_STRIKE_TIME 异常
+  method: GET
+  service: data
+  path: /ingest/errors/recent?exceptionType=FUTURE_STRIKE_TIME
+  expect:
+    status: 200
+    fields:
+      code: 0
+      data.0.exceptionType: FUTURE_STRIKE_TIME

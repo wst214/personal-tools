@@ -1,0 +1,22 @@
+id: wf-02-filter-category
+name: 可按 DEVICE/DERIVED 筛选因子
+description: 验收：可按 DEVICE/DERIVED 类别筛选因子。
+skip: false
+skipReason: ''
+steps:
+- method: GET
+  service: biz
+  path: /warning/factors?pageNum=1&pageSize=20&category=DEVICE
+  expect:
+    status: 200
+    fields:
+      code: 0
+      data.list.0.category: DEVICE
+- method: GET
+  service: biz
+  path: /warning/factors?pageNum=1&pageSize=20&category=DERIVED
+  expect:
+    status: 200
+    fields:
+      code: 0
+      data.list.0.category: DERIVED

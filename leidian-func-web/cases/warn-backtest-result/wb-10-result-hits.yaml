@@ -1,0 +1,13 @@
+id: wb-10-result-hits
+name: 回测结果应含命中摘要
+description: 【暂不执行】验收：回测结果应含命中摘要。
+skip: true
+skipReason: 能力未上线；本用例按验收标准编写，上线后取消 skip 即可跑
+steps:
+- method: GET
+  service: biz
+  path: /warning/rules/0/test/0
+  expect:
+    status: 200
+    fields:
+      code: 0

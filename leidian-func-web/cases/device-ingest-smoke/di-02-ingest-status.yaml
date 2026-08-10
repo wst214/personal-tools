@@ -1,0 +1,14 @@
+id: di-02-ingest-status
+name: 接入统计入口可用
+description: 通用烟测：接入统计入口。
+skip: false
+skipReason: ''
+expandByDeviceType: false
+steps:
+- method: GET
+  service: data
+  path: /ingest/status
+  expect:
+    status: 200
+    fields:
+      code: 0

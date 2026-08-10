@@ -1,0 +1,52 @@
+---
+description: 临时/无用产物统一放入根目录 wst-temp，按主题分子目录
+alwaysApply: true
+---
+
+# wst-temp 临时文件约定
+
+本仓库所有**临时、一次性、扫描/质检产物、空壳目录、误装依赖、归档包**等无用内容，统一放到仓库根目录：
+
+`wst-temp/<主题>/...`
+
+`/wst-temp/` 已在 `.gitignore` 中忽略，不要提交。
+
+## 必须遵守
+
+1. **只认根目录 `wst-temp/`**：禁止在子项目里再建 `wst-temp/`、`_tmp/`、`tmp/`、`temp/` 等临时根。
+2. **按主题分文件夹**：同一类工作放同一主题目录，不要把无关文件平铺在 `wst-temp/` 根下。
+3. **命名**：主题目录用短英文 kebab-case，能看出用途即可，例如 `leidian-api-scan`、`leidian-testhub`、`archives`、`misc`。
+4. **产生临时物时**：脚本输出、调试 dump、导出包、一次性 Python/Node 脚本，默认写入对应主题目录；不要写进业务源码目录。
+5. **清理时**：发现散落的 `_tmp_*`、`*-tmp.*`、空目录、根目录误装 `node_modules` 等，迁入 `wst-temp/<主题>/`，不要直接删（除非用户明确要求删除）。
+
+## 主题目录示例
+
+| 主题目录 | 放什么 |
+|---------|--------|
+| `leidian-api-scan/` | 雷电 API 扫描结果、相关一次性脚本 |
+| `leidian-testhub/` | TestHub 侧雷电用例/质检临时产物与脚本 |
+| `leidian-func-web/` | 功能测试操作台临时脚本与结果 |
+| `archives/` | `.tar.gz` / `.zip` 等归档 |
+| `npm-root-accident/` | 根目录误装的 `node_modules` |
+| `toolbox-tmp/` | toolbox 相关一次性验证脚本 |
+| `misc/` | 空目录、无法归类的少量杂项 |
+
+新主题按同样方式新增目录，不必改规则文件。
+
+## 反例
+
+```text
+❌  mytools/_tmp_foo/
+❌  testhub/_tmp_leidian_report.md
+❌  leidian-func-web/wst-temp/xxx.py
+❌  wst-temp/random-file.json          # 无主题目录，禁止平铺
+
+✅  wst-temp/leidian-testhub/_tmp_leidian_report.md
+✅  wst-temp/leidian-func-web/xxx.py
+```
+
+## 不要放进 wst-temp 的
+
+- 正式工具/项目源码与其正常运行时数据（如 `testhub/logs`、`new-api/data`、各项目自己的 `node_modules`）
+- IDE/Agent 配置：`.claude/`、`.cursor/`、`.git/`
+- 技能约定产物位：`change-impact/`（除非确认已废弃）

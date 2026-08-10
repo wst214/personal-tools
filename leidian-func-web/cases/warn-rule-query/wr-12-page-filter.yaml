@@ -1,0 +1,29 @@
+id: wr-12-page-filter
+name: 分页列表与关键词筛选
+description: 创建带唯一关键字的草稿后，分页列表按 keyword + DRAFT 筛选，应命中刚创建的规则。
+skip: false
+skipReason: ''
+steps:
+- method: POST
+  service: biz
+  path: /warning/rules
+  body:
+    ruleName: 功能测-列表关键字-${rand}
+    conditionJson: '{}'
+    actionJson: '{"actionType":"NONE"}'
+    scheduleType: ALWAYS
+  expect:
+    status: 200
+    fields:
+      code: 0
+  capture:
+    ruleId: data.id
+    ruleName: data.ruleName
+- method: GET
+  service: biz
+  path: /warning/rules?pageNum=1&pageSize=20&keyword=${ruleName}&ruleStatus=DRAFT
+  expect:
+    status: 200
+    fields:
+      code: 0
+      data.list.0.id: ${ruleId}

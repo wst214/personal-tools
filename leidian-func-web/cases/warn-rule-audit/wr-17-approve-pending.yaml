@@ -1,0 +1,17 @@
+id: wr-17-approve-pending
+name: 审核通过（PENDING 造数）
+description: 【暂不执行】PENDING 状态下审核通过，规则应生效；当前 P0 submit 直通，无 PENDING 造数。
+skip: true
+skipReason: P0 submit 直接生效不进 PENDING；需手工把草稿 version_status 置为 PENDING 后再测
+steps:
+- method: POST
+  service: biz
+  path: /warning/rules/${ruleId}/approve
+  body:
+    opinion: 功能测通过
+  expect:
+    status: 200
+    fields:
+      code: 0
+      data.ruleStatus: ENABLED
+      data.versionStatus: ACTIVE

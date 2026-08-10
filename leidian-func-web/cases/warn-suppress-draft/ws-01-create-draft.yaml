@@ -1,0 +1,30 @@
+id: ws-01-create-draft
+name: 新建抑制草稿（ONCE+等级）
+description: 新建抑制草稿：ONCE 时间窗 + WARNING_LEVEL 目标，期望 DRAFT 且 targetMode=LEVEL。
+skip: false
+skipReason: ''
+steps:
+- method: POST
+  service: biz
+  path: /warning/suppress
+  body:
+    siteId: 1
+    suppressName: 功能测-抑制草稿-${rand}
+    reason: WS-01
+    suppressScope: FULL
+    timeMode: ONCE
+    startTime: ${now+1d}
+    endTime: ${now+2d}
+    targets:
+    - targetType: WARNING_LEVEL
+      targetCode: YELLOW
+  expect:
+    status: 200
+    fields:
+      code: 0
+      data.suppressStatus: DRAFT
+      data.targetMode: LEVEL
+      data.suppressScope: FULL
+  capture:
+    suppressId: data.id
+    suppressCode: data.suppressCode

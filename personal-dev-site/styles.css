@@ -71,6 +71,7 @@ a.tool-card:hover { transform: translateY(-4px); border-color: #adb5ae; box-shad
 .tool-perf { background: #fcfaf1; }
 .tool-protocol { background: #f1f7f7; }
 .tool-stack { background: #f4f6fb; }
+.tool-newapi { background: #f3faf7; }
 .tool-topline, .tool-footer { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
 .tool-icon { display: grid; width: 37px; height: 37px; place-items: center; border: 1px solid currentColor; border-radius: 5px; font-family: ui-monospace, SFMono-Regular, Consolas, monospace; font-weight: 750; }
 .tool-linux .tool-icon { color: var(--green); background: var(--green-soft); border-color: transparent; }
@@ -79,6 +80,7 @@ a.tool-card:hover { transform: translateY(-4px); border-color: #adb5ae; box-shad
 .tool-perf .tool-icon { color: #92670f; background: #f4e8be; border-color: transparent; }
 .tool-protocol .tool-icon { color: #346c73; background: #dceced; border-color: transparent; font-size: 9px; }
 .tool-stack .tool-icon { color: #4a5f8c; background: #dfe6f4; border-color: transparent; }
+.tool-newapi .tool-icon { color: #1f7a5c; background: #d8f0e6; border-color: transparent; }
 .service-state { display: inline-flex; align-items: center; gap: 6px; color: var(--muted); font-size: 9px; font-weight: 750; text-transform: uppercase; }
 .service-state i { width: 6px; height: 6px; border-radius: 50%; background: #aeb3af; }
 .service-state.online { color: var(--green); }

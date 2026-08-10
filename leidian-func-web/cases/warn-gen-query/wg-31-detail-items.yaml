@@ -1,0 +1,66 @@
+id: wg-31-detail-items
+name: 事件详情应含命中项与规则版本
+description: 验收：事件详情含命中项（triggerType=RULE_HIT、ruleVersionId 钉版本）。
+skip: false
+skipReason: ''
+steps:
+- method: POST
+  service: biz
+  path: /warning/rules
+  body:
+    ruleName: 验收-详情-${rand}
+    ruleDesc: WG-31
+    conditionJson: '{"logic":"AND","children":[{"factorCode":"ATMO_EFIELD_INSTANT","op":"GTE","value":5}]}'
+    actionJson: '{"actionType":"WARNING","warningLevel":"BLUE","notify":{"requireConfirm":false}}'
+    foreseeMinutes: 60
+    scheduleType: ALWAYS
+  expect:
+    status: 200
+    fields:
+      code: 0
+      data.ruleStatus: DRAFT
+  capture:
+    ruleId: data.id
+- method: POST
+  service: biz
+  path: /warning/rules/${ruleId}/submit
+  expect:
+    status: 200
+    fields:
+      code: 0
+      data.ruleStatus: ENABLED
+  capture:
+    versionId: data.currentVersionId
+- method: POST
+  service: biz
+  path: /warning/eval/trigger
+  body:
+    siteId: 1000000000000050101
+    ruleId: ${ruleId}
+    factorOverrides:
+      ATMO_EFIELD_INSTANT: 9
+  expect:
+    status: 200
+    fields:
+      code: 0
+      data.candidates.0.warningLevel: BLUE
+- method: GET
+  service: biz
+  path: /warning/events?pageNum=1&pageSize=1&siteId=1000000000000050101&lifecycleStatus=ACTIVE&warningLevel=BLUE
+  expect:
+    status: 200
+    fields:
+      code: 0
+  capture:
+    eventId: data.list.0.id
+- method: GET
+  service: biz
+  path: /warning/events/${eventId}
+  expect:
+    status: 200
+    fields:
+      code: 0
+      data.itemCount: 1
+      data.items.0.triggerType: RULE_HIT
+      data.items.0.ruleVersionId: ${versionId}
+      data.items.0.triggerLevel: BLUE

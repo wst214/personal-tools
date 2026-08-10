@@ -1,0 +1,44 @@
+{
+  "schema_version": 1,
+  "generator": "pf_scan.py",
+  "source_path": "D:/mytools/dev-toolbox",
+  "observed_at": "2026-08-07T06:01:33.305375+00:00",
+  "file_count": 8582,
+  "file_count_source": "git-tracked",
+  "physical_file_count": 169,
+  "file_ext_counts": {
+    "<no-ext>": 2171,
+    ".o": 2141,
+    ".json": 950,
+    ".timestamp": 851,
+    ".d": 790,
+    ".rmeta": 771,
+    ".rlib": 517,
+    ".bin": 78,
+    ".hyb": 52,
+    ".dll": 30
+  },
+  "dir_tree": [
+    "/",
+    "electron/",
+    "public/",
+    "release/",
+    "release/win-unpacked/",
+    "scripts/",
+    "scripts/leidian/",
+    "src/",
+    "src/tools/",
+    "src/ui/",
+    "src-tauri/",
+    "src-tauri/gen/",
+    "src-tauri/icons/",
+    "src-tauri/icons.bak/",
+    "src-tauri/src/",
+    "ui-prototypes/",
+    "ui-prototypes/logo/"
+  ],
+  "manifest_files": [
+    "package.json"
+  ],
+  "budget_tier": "超大仓"
+}

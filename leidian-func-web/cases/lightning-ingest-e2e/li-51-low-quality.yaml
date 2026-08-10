@@ -1,0 +1,27 @@
+id: li-51-low-quality
+name: 雷电低质入库（峰值/站点数/坐标）
+description: |
+  按网络展开：投递低质夹具（CMB 峰值>400 / LOCATOR 站点数<4 / RADAR 坐标越界）→
+  clean-logs 可见 LOW_QUALITY 且带 monitorId。
+skip: false
+skipReason: ''
+expandByNetwork: true
+steps:
+- name: Kafka 投递低质 JSON
+  method: KAFKA
+  topic: ${kafkaTopic}
+  key: func-web-lowq-${network}-${rand}
+  value: ${kafkaJsonLowQuality}
+- name: 等待消费
+  method: SLEEP
+  seconds: 5
+- name: 按规则码查 clean_log 低质
+  method: GET
+  service: data
+  path: /ingest/clean-logs/recent?cleanRuleCode=${lowQualityRuleCode}&limit=5
+  expect:
+    status: 200
+    fields:
+      code: 0
+      data.0.afterStatus: LOW_QUALITY
+      data.0.cleanResult: LOW_QUALITY

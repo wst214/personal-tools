@@ -13,7 +13,7 @@ const encoders = {
   Hex: { enc: (t) => CryptoJS.enc.Hex.stringify(CryptoJS.enc.Utf8.parse(t)), dec: (t) => { try { return CryptoJS.enc.Utf8.stringify(CryptoJS.enc.Hex.parse(t.trim())); } catch { throw new Error('Hex 解码失败'); } } },
   Unicode: { enc: (t) => t.replace(/[^\0-\x7F]/g, (c) => '\\u' + c.charCodeAt(0).toString(16).padStart(4, '0')), dec: (t) => t.replace(/\\u([0-9a-fA-F]{4})/g, (_, h) => String.fromCharCode(parseInt(h, 16))).replace(/\\x([0-9a-fA-F]{2})/g, (_, h) => String.fromCharCode(parseInt(h, 16))) },
   'HTML实体': { enc: (t) => t.replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c])), dec: (t) => { const d = document.createElement('div'); d.innerHTML = t; return d.textContent || ''; } },
-  'Morse摩斯': { enc: toMorse, dec: fromMorse },
+  '摩斯码': { enc: toMorse, dec: fromMorse },
   'Native/ASCII': { enc: (t) => t.split('').map((c) => '\\u' + c.charCodeAt(0).toString(16).padStart(4, '0')).join(''), dec: (t) => t.replace(/\\u([0-9a-fA-F]{4})/g, (_, h) => String.fromCharCode(parseInt(h, 16))) },
 };
 
@@ -104,14 +104,17 @@ export const cryptoTool = {
       const t = input.value;
       const name = op.value;
       if (!t) { output.value = ''; return; }
-      try {
-        let r;
-        if (encoders[name]) r = isEnc ? encoders[name].enc(t) : encoders[name].dec(t);
-        else if (hashes[name]) r = hashes[name](t, keyBox.value);
-        else if (sym[name]) r = sym[name](t, keyBox.value || '', isEnc);
-        else r = asym[name](t, keyBox.value || '', isEnc);
-        output.value = r;
-      } catch (e) { output.value = ''; toast(e.message, 'error'); }
+      // 大输入异步处理，避免阻塞 UI
+      setTimeout(() => {
+        try {
+          let r;
+          if (encoders[name]) r = isEnc ? encoders[name].enc(t) : encoders[name].dec(t);
+          else if (hashes[name]) r = hashes[name](t, keyBox.value);
+          else if (sym[name]) r = sym[name](t, keyBox.value || '', isEnc);
+          else r = asym[name](t, keyBox.value || '', isEnc);
+          output.value = r;
+        } catch (e) { output.value = ''; toast(e.message, 'error'); }
+      }, 0);
     }
     input.addEventListener('input', debounce(() => run(true), 200));
     refresh();

@@ -1,0 +1,25 @@
+id: di-60-e2e-crc-reject
+name: CRC/坏帧不落业务 monitor
+description: |
+  投递 CRC 错误的完整帧结构 → 不入库 → errors 可见 SKIPPED_HANDLER_NO_PERSIST（或同类跳过码）。
+skip: false
+skipReason: ''
+expandByDeviceType: false
+steps:
+- name: Kafka 投递坏 CRC HEX
+  method: KAFKA
+  topic: device-raw-data
+  key: func-web-crc-bad-${rand}
+  value: 5A4B1103000000010001000A0014001E0028003200000D0A
+- name: 等待消费
+  method: SLEEP
+  seconds: 5
+- name: 查异常留痕（坏帧跳过）
+  method: GET
+  service: data
+  path: /ingest/errors/recent
+  expect:
+    status: 200
+    fields:
+      code: 0
+      data.0.exceptionType: SKIPPED_HANDLER_NO_PERSIST

@@ -1,0 +1,8 @@
+.git
+intent-chain
+**/__pycache__
+**/*.pyc
+.pytest_cache
+wst-temp
+*.md
+!README.md
