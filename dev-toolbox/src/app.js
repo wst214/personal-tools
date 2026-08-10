@@ -27,6 +27,7 @@ const TOOL_ICONS = {
   embed: svg('<rect x="3.5" y="4.5" width="17" height="15" rx="2"/><path d="M3.5 9h17M8 4.5v15"/>'),
   // 多上游汇聚到中心再转发，契合 API 网关
   newapi: svg('<circle cx="12" cy="12" r="2.8"/><circle cx="5" cy="6.5" r="1.7"/><circle cx="19" cy="6.5" r="1.7"/><circle cx="5" cy="17.5" r="1.7"/><circle cx="19" cy="17.5" r="1.7"/><path d="M6.5 7.6 9.8 10.4M17.5 7.6 14.2 10.4M6.5 16.4 9.8 13.6M17.5 16.4 14.2 13.6"/>'),
+  llmprobe: svg('<path d="M12 3.5v3M12 17.5v3M3.5 12h3M17.5 12h3"/><circle cx="12" cy="12" r="5.5"/><circle cx="12" cy="12" r="1.8"/>'),
 };
 
 // 每个工具的图标底色（彩色圆角方块）
@@ -52,6 +53,7 @@ const ICON_COLORS = {
   diff: 'linear-gradient(135deg,#14b8a6,#0d9488)',
   embed: 'linear-gradient(135deg,#8b5cf6,#7c3aed)',
   newapi: 'linear-gradient(135deg,#0ea5e9,#0284c8)',
+  llmprobe: 'linear-gradient(135deg,#22c55e,#16a34a)',
 };
 
 // 主图标（对点连线，调细版）
@@ -73,11 +75,14 @@ function toolIconSvg(tool) {
   return TOOL_ICONS[tool.id] || ICONS.search;
 }
 
-// ===== 分组管理（保留原逻辑） =====
+// ===== 分组管理 =====
+// 用户自定义分组写入 localStorage，必须尊重删除结果。
+// 新工具只做「孤儿入组」，绝不能因版本号把已删默认分组还原回来。
 const PINS_KEY = 'devtool-pins';
 const GROUPS_KEY = 'devtool-groups';
 const GROUPS_VERSION_KEY = 'devtool-groups-version';
-const GROUPS_VERSION = 8;
+// 仅用于一次性 schema 迁移；加工具时不要再靠 bump 版本去改分组
+const GROUPS_VERSION = 10;
 function loadPins() { try { return JSON.parse(localStorage.getItem(PINS_KEY)) || []; } catch { return []; } }
 function savePins(p) { localStorage.setItem(PINS_KEY, JSON.stringify(p)); }
 
@@ -86,58 +91,53 @@ function defaultGroups() {
   return [
     g('\u7f16\u7801\u8f6c\u6362', ['json', 'timestamp', 'crypto']),
     g('\u6587\u672c\u5904\u7406', ['sql', 'regex', 'diff']),
-    g('\u7f51\u7edc\u5de5\u5177', ['http', 'ssh']),
+    g('\u7f51\u7edc\u5de5\u5177', ['http', 'llmprobe', 'ssh']),
     g('\u7cfb\u7edf\u5de5\u5177', ['sysinfo', 'hosts', 'deploy', 'embed', 'newapi']),
     g('\u5176\u5b83\u5de5\u5177', ['qrcode', 'cron']),
   ];
 }
-function loadGroups() {
-  try {
-    const saved = JSON.parse(localStorage.getItem(GROUPS_KEY));
-    const version = Number(localStorage.getItem(GROUPS_VERSION_KEY));
-    if (!Array.isArray(saved) || version !== GROUPS_VERSION) {
-      const defaults = defaultGroups();
-      const merged = mergeGroups(saved, defaults);
-      saveGroups(merged);
-      localStorage.setItem(GROUPS_VERSION_KEY, String(GROUPS_VERSION));
-      return merged;
-    }
-    return saved;
-  } catch { return defaultGroups(); }
-}
-function mergeGroups(saved, defaults) {
-  const base = Array.isArray(saved) && saved.length
-    ? saved.map((g) => ({ ...g, toolIds: [...(g.toolIds || [])] }))
-    : defaults.map((d) => ({ ...d, toolIds: [...d.toolIds] })); // 无历史数据 → 直接用默认分组
-  const baseById = new Map(base.map((g) => [g.id, g]));
+
+const OTHER_GROUP_ID = 'group-\u5176\u5b83\u5de5\u5177';
+const OTHER_GROUP_NAME = '\u5176\u5b83\u5de5\u5177';
+
+/** 把尚未入组的新工具放进已有「其它工具」；若用户删过该组，才临时建一个，绝不还原其它默认分组 */
+function placeOrphanTools(groups) {
+  const base = (Array.isArray(groups) && groups.length ? groups : defaultGroups())
+    .map((g) => ({ ...g, toolIds: [...(g.toolIds || [])] }));
   const haveTool = (id) => base.some((g) => g.toolIds.includes(id));
-  for (const d of defaults) {
-    let existing = baseById.get(d.id);
-    if (!existing) {
-      // 用户删过默认分组时，把尚未入组的新工具补回该分组
-      const ids = d.toolIds.filter((tid) => !haveTool(tid));
-      if (!ids.length) continue;
-      existing = { id: d.id, name: d.name, toolIds: ids };
-      base.push(existing);
-      baseById.set(d.id, existing);
-      continue;
-    }
-    for (const tid of d.toolIds) {
-      if (!haveTool(tid)) existing.toolIds.push(tid);
-    }
-  }
-  // 兜底：任何仍未入组的可见工具，丢进「其它工具」
-  let other = baseById.get('group-\u5176\u5b83\u5de5\u5177');
+  const orphans = visibleTools.map((t) => t.id).filter((id) => !haveTool(id));
+  if (!orphans.length) return base;
+
+  let other = base.find((g) => g.id === OTHER_GROUP_ID || g.name === OTHER_GROUP_NAME);
   if (!other) {
-    other = { id: 'group-\u5176\u5b83\u5de5\u5177', name: '\u5176\u5b83\u5de5\u5177', toolIds: [] };
+    other = { id: OTHER_GROUP_ID, name: OTHER_GROUP_NAME, toolIds: [] };
     base.push(other);
-    baseById.set(other.id, other);
   }
-  for (const t of visibleTools) {
-    if (!haveTool(t.id)) other.toolIds.push(t.id);
+  for (const id of orphans) {
+    if (!other.toolIds.includes(id)) other.toolIds.push(id);
   }
   return base;
 }
+
+function loadGroups() {
+  try {
+    const saved = JSON.parse(localStorage.getItem(GROUPS_KEY));
+    if (!Array.isArray(saved) || !saved.length) {
+      const defaults = defaultGroups();
+      saveGroups(defaults);
+      localStorage.setItem(GROUPS_VERSION_KEY, String(GROUPS_VERSION));
+      return defaults;
+    }
+    // 有用户配置：只补孤儿工具，不因版本变化还原已删分组
+    const next = placeOrphanTools(saved);
+    if (JSON.stringify(next) !== JSON.stringify(saved)) saveGroups(next);
+    localStorage.setItem(GROUPS_VERSION_KEY, String(GROUPS_VERSION));
+    return next;
+  } catch {
+    return defaultGroups();
+  }
+}
+
 function saveGroups(groups) { localStorage.setItem(GROUPS_KEY, JSON.stringify(groups)); }
 
 const CATEGORY_ORDER = ['\u7f16\u7801\u8f6c\u6362', '\u6587\u672c', '\u7f51\u7edc', '\u7cfb\u7edf', '\u5176\u5b83'];
@@ -530,7 +530,7 @@ export function initApp(root) {
     pageTitle.textContent = tool.name;
     pageSub.textContent = tool.desc || '';
     // TestHub 内嵌：去掉标题栏，iframe 占满；New API 用自有页面，保留标题
-    const embedIds = new Set(['embed']);
+    const embedIds = new Set(['embed', 'newapi']);
     pageHead.hidden = embedIds.has(tool.id);
     // notes/deploy/ssh/json 等：内容区隐藏外层滚动，工具内部（输入/输出框）自己滚
     const fillTools = new Set(['notes', 'deploy', 'ssh', 'json', 'crypto', 'sql', 'text', 'hosts', 'http', 'sysinfo', 'diff', 'embed', 'newapi']);

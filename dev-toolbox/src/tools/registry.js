@@ -97,6 +97,10 @@ const newapiTool = lazyTool(
   { id: 'newapi', exportName: 'newapiTool', name: 'New API', category: '系统', keywords: 'newapi new-api llm 中转 网关 openai 火山 讯飞 统一转发', desc: '多上游 LLM 统一转发（本机 New API）' },
   () => import('./newapi.js'),
 );
+const llmprobeTool = lazyTool(
+  { id: 'llmprobe', exportName: 'llmprobeTool', name: '模型测通', category: '网络', keywords: 'llm model probe test openai 测通 连通性 火山 讯飞 基元 newapi', desc: '一键检测第三方大模型是否通' },
+  () => import('./llmprobe.js'),
+);
 
 // 工具注册表。侧边栏按「置顶 → 分类」渲染。notes/json 等常用工具仍静态引入以保证首屏快开。
 export const tools = [
@@ -104,7 +108,7 @@ export const tools = [
   jsonTool, timestampTool, cryptoTool, baseTool, uuidTool,
   sqlTool, regexTool, textTool, diffTool,
   qrcodeTool, cronTool, translateTool, embedTool, newapiTool,
-  httpTool, portScanTool, sshTool,
+  httpTool, llmprobeTool, portScanTool, sshTool,
   sysInfoTool, hostsTool, deployTool,
 ];
 

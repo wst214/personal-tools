@@ -372,6 +372,37 @@ fn notes_reveal(dir: String) -> Result<serde_json::Value, String> {
     Ok(serde_json::json!({ "ok": true }))
 }
 
+/// 用系统默认浏览器打开 URL（Tauri WebView 里 window.open 常被静默拦截）
+#[tauri::command]
+fn open_external_url(url: String) -> Result<serde_json::Value, String> {
+    let url = url.trim().to_string();
+    if !(url.starts_with("http://") || url.starts_with("https://")) {
+        return Err("仅允许 http/https URL".into());
+    }
+    #[cfg(target_os = "windows")]
+    {
+        std::process::Command::new("rundll32")
+            .args(["url.dll,FileProtocolHandler", &url])
+            .spawn()
+            .map_err(|e| format!("打开浏览器失败: {e}"))?;
+    }
+    #[cfg(target_os = "macos")]
+    {
+        std::process::Command::new("open")
+            .arg(&url)
+            .spawn()
+            .map_err(|e| format!("打开浏览器失败: {e}"))?;
+    }
+    #[cfg(all(unix, not(target_os = "macos")))]
+    {
+        std::process::Command::new("xdg-open")
+            .arg(&url)
+            .spawn()
+            .map_err(|e| format!("打开浏览器失败: {e}"))?;
+    }
+    Ok(serde_json::json!({ "ok": true }))
+}
+
 #[tauri::command]
 async fn notes_read(app: tauri::AppHandle) -> Result<serde_json::Value, String> {
     notes_list(app).await
@@ -1500,7 +1531,8 @@ pub fn run() {
             ssh_connect, ssh_write, ssh_resize, ssh_disconnect, ssh_list, ssh_sessions_load, ssh_sessions_save, ssh_sysinfo,
             sftp_list, sftp_read, sftp_write, sftp_mkdir, sftp_delete,
             testhub_ensure,
-            newapi_ensure
+            newapi_ensure,
+            open_external_url
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

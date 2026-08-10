@@ -1156,3 +1156,10 @@ input[type='file'] { font-size: 12.5px; color: var(--text-dim); }
 .newapi-secondary:disabled { opacity: .65; cursor: wait; }
 .newapi-tip { font-size: 13px; color: var(--text-mute); min-height: 1.2em; }
 .newapi-tip.is-err { color: var(--danger); }
+
+.llmprobe-status {
+  font-size: 14px; font-weight: 650; margin-bottom: 8px;
+  color: var(--text-dim);
+}
+.llmprobe-status.is-ok { color: #0f766e; }
+.llmprobe-status.is-err { color: var(--danger); }

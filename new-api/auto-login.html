@@ -43,8 +43,40 @@
         } catch {}
       }
 
+      async function stashBundle(data) {
+        if (!data || !data.access_token) return;
+        const body = JSON.stringify({ success: true, message: '', data });
+        const res = new Response(body, {
+          status: 200,
+          headers: { 'Content-Type': 'application/json' },
+        });
+        try {
+          const cache = await caches.open('mytools-auth-v1');
+          await cache.put('/__mytools_auth_bundle__', res.clone());
+        } catch {}
+        try {
+          if ('serviceWorker' in navigator) {
+            const reg = await navigator.serviceWorker.register('/mytools-sw.js', { scope: '/' });
+            await navigator.serviceWorker.ready;
+            // 确保控制当前页后再跳转，否则首个 refresh 可能漏拦截
+            if (!navigator.serviceWorker.controller) {
+              await new Promise((resolve) => {
+                const t = setTimeout(resolve, 800);
+                navigator.serviceWorker.addEventListener('controllerchange', () => {
+                  clearTimeout(t);
+                  resolve();
+                }, { once: true });
+              });
+            }
+            return reg;
+          }
+        } catch (e) {
+          console.warn('service worker register failed', e);
+        }
+      }
+
       try {
-        // 已有 refresh cookie 时直接进
+        // 已有可用会话则直接进
         try {
           const rr = await fetch('/api/user/auth/refresh', {
             method: 'POST',
@@ -55,6 +87,7 @@
           const rj = await rr.json();
           if (rj && rj.success && rj.data && rj.data.access_token) {
             msg.textContent = '已登录，正在进入…';
+            await stashBundle(rj.data);
             location.replace(next);
             return;
           }
@@ -76,6 +109,7 @@
         } catch {}
 
         msg.textContent = '登录成功，正在进入…';
+        await stashBundle(j.data);
         location.replace(next);
       } catch (e) {
         msg.textContent = '自动登录失败';

@@ -27,6 +27,7 @@
       hostsWrite: (content) => invoke('hosts_write', { content }).catch((e) => ({ ok: false, error: String(e) })),
       testhubEnsure: () => invoke('testhub_ensure').catch((e) => ({ ok: false, message: String(e) })),
       newapiEnsure: () => invoke('newapi_ensure').catch((e) => ({ ok: false, message: String(e) })),
+      openExternal: (url) => invoke('open_external_url', { url }).catch((e) => ({ ok: false, error: String(e) })),
       notesList: () => invoke('notes_list').catch((e) => ({ ok: false, error: String(e) })),
       notesPickDir: () => invoke('notes_pick_dir').catch((e) => ({ ok: false, error: String(e) })),
       notesSetDefault: (dir) => invoke('notes_set_default', { dir }).catch((e) => ({ ok: false, error: String(e) })),

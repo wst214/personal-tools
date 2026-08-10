@@ -24,10 +24,11 @@ function saveCreds(creds) {
   localStorage.setItem(CREDS_KEY, JSON.stringify(creds));
 }
 
-function autoLoginUrl(next = '/console') {
-  const { username, password } = loadCreds();
+function consoleUrl() {
+  const { username, password, autoLogin } = loadCreds();
+  if (!autoLogin) return `${newapiUrl()}console`;
   const hash = `${encodeURIComponent(username)}:${encodeURIComponent(password)}`;
-  return `http://localhost:${NEWAPI_PORT}/auto-login.html?next=${encodeURIComponent(next)}&_t=${Date.now()}#${hash}`;
+  return `http://localhost:${NEWAPI_PORT}/auto-login.html?next=${encodeURIComponent('/console')}&_t=${Date.now()}#${hash}`;
 }
 
 async function portReady() {
@@ -60,10 +61,6 @@ async function ensureNewApi() {
   return r || { ok: false, message: '启动失败' };
 }
 
-function openUrl(url) {
-  window.open(url, '_blank', 'noopener,noreferrer');
-}
-
 export const newapiTool = {
   id: 'newapi',
   name: 'New API',
@@ -72,42 +69,55 @@ export const newapiTool = {
   keywords: 'newapi new-api llm 中转 网关 openai 火山 讯飞 统一转发',
   desc: '多上游 LLM 统一转发（本机 New API）',
   render(container) {
-    // 不再 iframe 嵌 New API 首页：跨域 iframe 无法自动登录，会一直显示「登录」按钮造成误解
-    const app = el('div', { class: 'newapi-home' });
+    const app = el('div', { class: 'embed-app' });
     let current = loadCreds();
     let cancelled = false;
     let busy = false;
 
-    const badge = el('div', { class: 'newapi-badge', text: '检测中…' });
-    const title = el('div', { class: 'newapi-title', text: 'New API' });
-    const sub = el('div', {
-      class: 'newapi-sub',
-      text: '统一 API 网关。控制台请在浏览器打开（工具箱内嵌无法保持登录态）。',
-    });
+    const panel = el('div', { class: 'embed-panel' });
+    const title = el('div', { class: 'embed-panel-title', text: 'New API' });
+    const msg = el('div', { class: 'embed-panel-msg', text: '正在连接本机服务…' });
+    const startBtn = el('button', { class: 'embed-start-btn', type: 'button', text: '启动 New API' });
+    panel.append(title, msg, startBtn);
 
-    const meta = el('div', { class: 'newapi-meta' });
-    const metaUrl = el('div', { class: 'newapi-meta-row', html: `<span>服务</span><code>${newapiUrl()}</code>` });
-    const metaClient = el('div', { class: 'newapi-meta-row', html: `<span>客户端 Base URL</span><code>${newapiUrl()}v1</code>` });
-    const metaUser = el('div', { class: 'newapi-meta-row', text: '' });
-    meta.append(metaUrl, metaClient, metaUser);
+    const bar = el('div', { class: 'embed-bar', hidden: true });
+    const barHint = el('span', { class: 'embed-bar-hint', text: '' });
+    const barAccount = el('button', { class: 'embed-bar-btn', type: 'button', text: '账号' });
+    const barRestart = el('button', { class: 'embed-bar-btn', type: 'button', text: '重启服务' });
+    const barReload = el('button', { class: 'embed-bar-btn', type: 'button', text: '刷新' });
+    bar.append(barHint, barAccount, barRestart, barReload);
 
-    const openBtn = el('button', { class: 'newapi-primary', type: 'button', text: '打开控制台（自动登录）' });
-    const startBtn = el('button', { class: 'newapi-secondary', type: 'button', text: '仅启动服务' });
-    const credsBtn = el('button', { class: 'newapi-secondary', type: 'button', text: '设置账号' });
-    const actions = el('div', { class: 'newapi-actions' }, [openBtn, startBtn, credsBtn]);
-    const tip = el('div', { class: 'newapi-tip', text: '' });
+    const frame = el('iframe', { class: 'embed-frame', title: 'New API', hidden: true });
+    frame.setAttribute('referrerpolicy', 'no-referrer');
+    // 允许同域登录页使用 storage / service worker
+    frame.setAttribute('allow', 'fullscreen');
 
-    app.append(badge, title, sub, meta, actions, tip);
+    app.append(panel, bar, frame);
     container.append(app);
 
-    function syncMeta() {
-      metaUser.innerHTML = `<span>账号</span><code>${current.username}</code><span style="margin-left:10px;color:var(--text-mute)">自动登录 ${current.autoLogin ? '开' : '关'}</span>`;
+    function syncHint(online) {
+      const auto = current.autoLogin ? `自动登录：开 · ${current.username}` : `自动登录：关 · ${current.username}`;
+      barHint.textContent = online
+        ? `本机服务已连接 · ${newapiUrl()} · ${auto}`
+        : `服务未运行 · ${auto}`;
     }
 
-    function setStatus(online, text) {
-      badge.textContent = text;
-      badge.classList.toggle('is-on', !!online);
-      badge.classList.toggle('is-off', !online);
+    function showPanel(text, isErr = false) {
+      frame.hidden = true;
+      bar.hidden = true;
+      panel.hidden = false;
+      msg.textContent = text;
+      msg.classList.toggle('is-err', !!isErr);
+      startBtn.disabled = false;
+      startBtn.textContent = '启动 New API';
+    }
+
+    function showFrame() {
+      panel.hidden = true;
+      bar.hidden = false;
+      frame.hidden = false;
+      syncHint(true);
+      frame.src = consoleUrl();
     }
 
     function editCreds() {
@@ -118,62 +128,47 @@ export const newapiTool = {
       const auto = window.confirm('开启自动登录？\n确定=开启，取消=关闭');
       current = { username: username.trim() || 'admin', password, autoLogin: !!auto };
       saveCreds(current);
-      syncMeta();
+      syncHint(!frame.hidden);
+      if (!frame.hidden) frame.src = consoleUrl();
     }
 
-    async function ensure(openConsole) {
+    async function start() {
       if (busy || cancelled) return;
       busy = true;
-      openBtn.disabled = true;
       startBtn.disabled = true;
-      tip.textContent = '';
-      setStatus(false, '启动中…');
+      barRestart.disabled = true;
+      startBtn.textContent = '启动中…';
+      msg.classList.remove('is-err');
+      msg.textContent = '正在启动，请稍候…';
+      frame.hidden = true;
+      bar.hidden = true;
+      panel.hidden = false;
       try {
         const r = await ensureNewApi();
         if (cancelled) return;
         if (!r?.ok) {
-          setStatus(false, '未运行');
-          tip.textContent = `启动失败：${r?.message || '未知错误'}`;
-          tip.classList.add('is-err');
+          showPanel(`启动失败：${r?.message || '未知错误'}`, true);
           return;
         }
-        setStatus(true, '服务已连接');
-        tip.classList.remove('is-err');
-        tip.textContent = openConsole
-          ? '已在浏览器打开控制台；若未自动登录，请确认账号密码。'
-          : '服务已就绪。点「打开控制台（自动登录）」进入。';
-        if (openConsole) {
-          openUrl(current.autoLogin ? autoLoginUrl('/console') : `${newapiUrl()}console`);
-        }
+        showFrame();
       } catch (e) {
-        setStatus(false, '未运行');
-        tip.textContent = `启动失败：${e}`;
-        tip.classList.add('is-err');
+        if (!cancelled) showPanel(`启动失败：${e}`, true);
       } finally {
         busy = false;
-        openBtn.disabled = false;
         startBtn.disabled = false;
+        barRestart.disabled = false;
+        startBtn.textContent = '启动 New API';
       }
     }
 
-    openBtn.addEventListener('click', () => ensure(true));
-    startBtn.addEventListener('click', () => ensure(false));
-    credsBtn.addEventListener('click', editCreds);
+    startBtn.addEventListener('click', () => start());
+    barRestart.addEventListener('click', () => start());
+    barReload.addEventListener('click', () => {
+      if (!frame.hidden) frame.src = consoleUrl();
+    });
+    barAccount.addEventListener('click', editCreds);
 
-    syncMeta();
-    (async () => {
-      const online = await portReady();
-      if (cancelled) return;
-      if (online) {
-        setStatus(true, '服务已连接');
-        // 进入工具时直接打开浏览器控制台并自动登录
-        if (current.autoLogin) ensure(true);
-        else tip.textContent = '服务已就绪。点上方按钮打开控制台。';
-      } else {
-        setStatus(false, '服务未运行');
-        tip.textContent = '点「打开控制台（自动登录）」会先启动 Docker 再打开浏览器。';
-      }
-    })();
+    start();
 
     return () => { cancelled = true; };
   },

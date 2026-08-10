@@ -134,6 +134,7 @@ services:
     volumes:
       - ./new-api/nginx.conf:/etc/nginx/nginx.conf:ro
       - ./new-api/auto-login.html:/usr/share/nginx/html/auto-login.html:ro
+      - ./new-api/mytools-sw.js:/usr/share/nginx/html/mytools-sw.js:ro
     depends_on:
       - mytools-new-api
     restart: unless-stopped
