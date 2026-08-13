@@ -1,8 +1,8 @@
 id: wg-07-trend-up-tolerance
 name: TREND_UP 允许缺 1 帧容错
 description: 验收：TREND_UP 序列 [5,6,5,9] 中间一段非递增，按容错(允许 1 段)仍命中。
-skip: false
-skipReason: ''
+skip: true
+skipReason: 预警相关代码已移除；整包用例跳过
 steps:
 - method: POST
   service: biz

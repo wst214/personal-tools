@@ -1,8 +1,8 @@
 id: ws-05-update-draft
 name: 编辑抑制草稿
 description: 编辑仍为 DRAFT 的抑制单内容，期望更新成功且状态不变。
-skip: false
-skipReason: ''
+skip: true
+skipReason: 预警相关代码已移除；整包用例跳过
 steps:
 - method: POST
   service: biz

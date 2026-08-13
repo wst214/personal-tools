@@ -12,7 +12,14 @@ from urllib.request import Request, urlopen
 from datetime import datetime, timezone
 
 from env_store import assert_credential_runnable, load_env, resolve_step_url
-from case_store import DEVICE_TYPES, LIGHTNING_NETWORKS, get_case
+from case_store import (
+    DEVICE_TYPES,
+    LIGHTNING_NETWORKS,
+    device_has_biz_query,
+    device_has_hex_fixture,
+    expand_device_run_units,
+    get_case,
+)
 from history_store import save_run
 
 _run_lock = threading.Lock()
@@ -66,6 +73,10 @@ def _summary_of(results: list[dict[str, Any]]) -> dict[str, int]:
         "failed": sum(1 for r in results if r.get("status") == "failed"),
         "skipped": sum(1 for r in results if r.get("status") == "skipped"),
     }
+
+
+# 与 data-service DeviceRawAttachmentPackService 高频档对齐（电场 01/19）
+_HIGH_FREQ_DEVICE_TYPES = frozenset({"ATMOSPHERE_ELECTRIC_FIELD"})
 
 
 def start_batch(
@@ -181,7 +192,7 @@ def expand_case_refs(
             continue
         types = selected
         if case.get("expandRequiresBiz"):
-            types = [t for t in types if t.get("bizPath")]
+            types = [t for t in types if device_has_biz_query(t)]
             if not types:
                 out.append(
                     {
@@ -193,32 +204,67 @@ def expand_case_refs(
                 )
                 continue
         for t in types:
-            hex_ok = bool(str(t.get("deviceHex") or "").strip())
-            if case.get("expandRequiresDeviceHex") and not hex_ok:
+            units = expand_device_run_units(t)
+            if case.get("expandRequiresBiz"):
+                units = [u for u in units if u.get("bizPath")]
+                if not units:
+                    out.append(
+                        {
+                            "module": module,
+                            "id": case_id,
+                            "deviceType": t["id"],
+                            "deviceTypeName": t["name"],
+                            "bizPath": "",
+                            "detailPath": "",
+                            "skipOverride": True,
+                            "skipReason": f"{t['id']} 无业务列表接口（如 SPD 心跳），已跳过",
+                        }
+                    )
+                    continue
+            if case.get("expandRequiresDeviceHex") and not device_has_hex_fixture(t):
                 # 勾选了就必须有夹具：缺失时显式 skip，禁止静默丢掉
                 out.append(
                     {
                         "module": module,
                         "id": case_id,
                         "deviceType": t["id"],
-                        "deviceTypeName": t["name"],
+                        "deviceTypeName": units[0]["deviceTypeName"] if units else t["name"],
                         "bizPath": t.get("bizPath") or "",
+                        "detailPath": t.get("detailPath") or "",
                         "deviceHex": "",
                         "skipOverride": True,
                         "skipReason": f"已勾选 {t['id']} 但未配置 deviceHex 夹具",
                     }
                 )
                 continue
-            out.append(
-                {
-                    "module": module,
-                    "id": case_id,
-                    "deviceType": t["id"],
-                    "deviceTypeName": t["name"],
-                    "bizPath": t.get("bizPath") or "",
-                    "deviceHex": t.get("deviceHex") or "",
-                }
-            )
+            for unit in units:
+                hex_ok = bool(str(unit.get("deviceHex") or "").strip())
+                if case.get("expandRequiresDeviceHex") and not hex_ok:
+                    out.append(
+                        {
+                            "module": module,
+                            "id": case_id,
+                            "deviceType": unit["deviceType"],
+                            "deviceTypeName": unit["deviceTypeName"],
+                            "bizPath": unit.get("bizPath") or "",
+                            "detailPath": unit.get("detailPath") or "",
+                            "deviceHex": "",
+                            "skipOverride": True,
+                            "skipReason": f"已勾选 {t['id']} 变体 {unit['deviceType']} 但未配置 deviceHex 夹具",
+                        }
+                    )
+                    continue
+                out.append(
+                    {
+                        "module": module,
+                        "id": case_id,
+                        "deviceType": unit["deviceType"],
+                        "deviceTypeName": unit["deviceTypeName"],
+                        "bizPath": unit.get("bizPath") or "",
+                        "detailPath": unit.get("detailPath") or "",
+                        "deviceHex": unit.get("deviceHex") or "",
+                    }
+                )
     return out
 
 
@@ -271,7 +317,12 @@ def _run_batch_worker(case_refs: list[dict[str, Any]], started_at: str) -> None:
                 local_vars["monitorType"] = dtype
                 local_vars["deviceTypeName"] = dtype_name
                 local_vars["bizPath"] = str(ref.get("bizPath") or "")
+                local_vars["detailPath"] = str(ref.get("detailPath") or "")
                 local_vars["deviceHex"] = str(ref.get("deviceHex") or "")
+                # 电场等高频原文攒包默认 60s 才刷 MinIO；E2E 等待须盖过该间隔
+                local_vars["waitSeconds"] = (
+                    "70" if dtype in _HIGH_FREQ_DEVICE_TYPES else "5"
+                )
             if network:
                 local_vars["network"] = network
                 local_vars["networkName"] = str(ref.get("networkName") or "")
@@ -361,8 +412,40 @@ def _run_one(
             "steps": [],
         }
 
+    _ensure_radar_frame_vars(case, vars_ctx)
+
     step_results: list[dict[str, Any]] = []
     for idx, step in enumerate(case.get("steps") or []):
+        skip_if_empty = step.get("skipIfEmpty") or []
+        if isinstance(skip_if_empty, str):
+            skip_if_empty = [skip_if_empty]
+        if isinstance(skip_if_empty, list) and skip_if_empty:
+            missing = [
+                str(v)
+                for v in skip_if_empty
+                if vars_ctx.get(str(v)) is None or str(vars_ctx.get(str(v))).strip() == ""
+            ]
+            if missing:
+                title = describe_step_action(
+                    str(step.get("method") or "GET").upper(),
+                    str(step.get("path") or ""),
+                    step,
+                )
+                step_results.append(
+                    {
+                        "index": idx,
+                        "method": str(step.get("method") or "GET").upper(),
+                        "path": _render(str(step.get("path") or ""), vars_ctx),
+                        "service": str(step.get("service") or ""),
+                        "title": title,
+                        "action": title,
+                        "status": "skipped",
+                        "reason": f"变量为空已跳过: {', '.join(missing)}",
+                        "httpStatus": None,
+                        "body": None,
+                    }
+                )
+                continue
         sr = _run_step(step, env, credential, vars_ctx, idx)
         step_results.append(sr)
         if sr.get("status") == "failed":
@@ -374,11 +457,7 @@ def _run_one(
                 "reason": sr.get("reason") or "判定条件未满足",
                 "steps": step_results,
             }
-        capture = step.get("capture") or {}
-        body = sr.get("body")
-        if isinstance(capture, dict) and isinstance(body, dict):
-            for var_name, json_path in capture.items():
-                vars_ctx[var_name] = _dig(body, str(json_path))
+        # capture 已在 _run_step 内基于完整响应写入 vars_ctx（避免 truncate 后丢字段）
 
     return {
         "caseId": case_id,
@@ -403,6 +482,11 @@ def describe_step_action(method: str, path: str, step: dict[str, Any] | None = N
     if m == "KAFKA":
         topic = str((step or {}).get("topic") or path or "topic")
         return f"Kafka 投递 {topic}"
+    if m == "MINIO":
+        key = str((step or {}).get("objectKey") or path or "object")
+        return f"MinIO 上传 {key}"
+    if m == "WS":
+        return "WebSocket 等待推送"
 
     raw = str(path or "/")
     path_only = raw.split("?", 1)[0]
@@ -506,6 +590,10 @@ def _run_step(
         return _run_sleep_step(step, vars_ctx, idx)
     if method == "KAFKA":
         return _run_kafka_step(step, env, vars_ctx, idx)
+    if method == "MINIO":
+        return _run_minio_step(step, env, vars_ctx, idx)
+    if method == "WS":
+        return _run_ws_step(step, env, credential, vars_ctx, idx)
 
     path = _render(str(step.get("path") or "/"), vars_ctx)
     service = str(step.get("service") or "biz")
@@ -586,6 +674,15 @@ def _run_step(
             path_r = _render(str(field_path), vars_ctx)
             actual = _dig(parsed, path_r)
             expected_r = _render_obj(expected, vars_ctx)
+            if isinstance(expected_r, str) and expected_r == "__not_empty__":
+                if actual is None or actual == "" or actual == []:
+                    return result(
+                        status="failed",
+                        reason=f"判定条件未满足: {path_r} 期望非空 实际 {actual!r}",
+                        httpStatus=status,
+                        body=_truncate(parsed),
+                    )
+                continue
             negate = False
             if isinstance(expected_r, str) and expected_r.startswith("!"):
                 negate = True
@@ -606,7 +703,128 @@ def _run_step(
                     body=_truncate(parsed),
                 )
 
+    not_contains = expect.get("notContains") or []
+    if isinstance(not_contains, dict):
+        not_contains = [not_contains]
+    if isinstance(not_contains, list) and not_contains:
+        if not isinstance(parsed, dict):
+            return result(
+                status="failed",
+                reason="响应不是 JSON 对象，无法核对 notContains",
+                httpStatus=status,
+                body=_truncate(parsed),
+            )
+        for rule in not_contains:
+            if not isinstance(rule, dict):
+                continue
+            list_path = _render(str(rule.get("path") or "data"), vars_ctx)
+            items = _dig(parsed, list_path)
+            if not isinstance(items, list):
+                continue
+            match = rule.get("match")
+            if isinstance(match, dict) and match:
+                for item in items:
+                    if isinstance(item, dict) and _dict_matches(item, match, vars_ctx):
+                        return result(
+                            status="failed",
+                            reason=f"notContains 未满足: {list_path}[] 不应出现匹配 {match!r}",
+                            httpStatus=status,
+                            body=_truncate(parsed),
+                        )
+                continue
+            field = _render(str(rule.get("field") or ""), vars_ctx)
+            if rule.get("valueContains") is not None:
+                needle = _render(str(rule.get("valueContains")), vars_ctx)
+                if field and needle:
+                    for item in items:
+                        if not isinstance(item, dict):
+                            continue
+                        hay = item.get(field)
+                        if hay is not None and needle in str(hay):
+                            return result(
+                                status="failed",
+                                reason=f"notContains 未满足: {list_path}[].{field} 不应包含 {needle!r}",
+                                httpStatus=status,
+                                body=_truncate(parsed),
+                            )
+                continue
+            expected_r = _render_obj(rule.get("value"), vars_ctx)
+            if field:
+                for item in items:
+                    if isinstance(item, dict) and _field_value_ok(item.get(field), expected_r):
+                        return result(
+                            status="failed",
+                            reason=f"notContains 未满足: {list_path}[].{field} 不应出现 {expected_r!r}",
+                            httpStatus=status,
+                            body=_truncate(parsed),
+                        )
+
+    contains = expect.get("contains") or []
+    if isinstance(contains, dict):
+        contains = [contains]
+    if isinstance(contains, list) and contains:
+        if not isinstance(parsed, dict):
+            return result(
+                status="failed",
+                reason="响应不是 JSON 对象，无法核对 contains",
+                httpStatus=status,
+                body=_truncate(parsed),
+            )
+        for rule in contains:
+            if not isinstance(rule, dict):
+                continue
+            list_path = _render(str(rule.get("path") or "data"), vars_ctx)
+            items = _dig(parsed, list_path)
+            if not isinstance(items, list):
+                return result(
+                    status="failed",
+                    reason=f"contains 未满足: {list_path} 不是列表",
+                    httpStatus=status,
+                    body=_truncate(parsed),
+                )
+            match = rule.get("match")
+            if isinstance(match, dict) and match:
+                if not any(isinstance(item, dict) and _dict_matches(item, match, vars_ctx) for item in items):
+                    return result(
+                        status="failed",
+                        reason=f"contains 未满足: {list_path}[] 未找到匹配 {match!r}",
+                        httpStatus=status,
+                        body=_truncate(parsed),
+                    )
+                continue
+            field = _render(str(rule.get("field") or ""), vars_ctx)
+            expected_r = _render_obj(rule.get("value"), vars_ctx)
+            if field and not any(
+                isinstance(item, dict) and _field_value_ok(item.get(field), expected_r) for item in items
+            ):
+                return result(
+                    status="failed",
+                    reason=f"contains 未满足: {list_path}[].{field} 未出现 {expected_r!r}",
+                    httpStatus=status,
+                    body=_truncate(parsed),
+                )
+
+    # 必须在 truncate 之前从完整 JSON 捕获变量；超长响应 truncate 可能变成字符串
+    capture = step.get("capture") or {}
+    if isinstance(capture, dict) and isinstance(parsed, dict):
+        for var_name, json_path in capture.items():
+            vars_ctx[str(var_name)] = _dig(parsed, str(json_path))
+
     return result(status="passed", reason="", httpStatus=status, body=_truncate(parsed))
+
+
+def _field_value_ok(actual: Any, expected_r: Any) -> bool:
+    if isinstance(expected_r, str) and expected_r == "__not_empty__":
+        return not (actual is None or actual == "" or actual == [])
+    return _values_equal(actual, expected_r)
+
+
+def _dict_matches(item: dict[str, Any], match: dict[str, Any], vars_ctx: dict[str, Any]) -> bool:
+    for k, expected in match.items():
+        expected_r = _render_obj(expected, vars_ctx)
+        if not _field_value_ok(item.get(k), expected_r):
+            return False
+    return True
 
 
 def _run_sleep_step(step: dict[str, Any], vars_ctx: dict[str, Any], idx: int) -> dict[str, Any]:
@@ -714,6 +932,422 @@ def _run_kafka_step(
                 pass
 
 
+def _ensure_radar_frame_vars(case: dict[str, Any], vars_ctx: dict[str, Any]) -> None:
+    """为雷达回波用例注入唯一 frame 时间戳（合法 yyyyMMddHHmmss，且落在 recent 窗口内）。"""
+    module = str(case.get("module") or "")
+    steps = case.get("steps") or []
+    needs = module.startswith("radar-frame") or any(
+        str((s or {}).get("method") or "").upper() == "MINIO" for s in steps if isinstance(s, dict)
+    )
+    if not needs:
+        return
+    if vars_ctx.get("radarTs"):
+        return
+    import uuid
+    from datetime import datetime, timedelta, timezone
+
+    try:
+        from zoneinfo import ZoneInfo
+
+        tz = ZoneInfo("Asia/Shanghai")
+    except Exception:  # noqa: BLE001
+        tz = timezone(timedelta(hours=8))
+    # 拉开秒级偏移，避免同批全链路用例撞同一 frameId（原先仅 0~49s 极易冲突）
+    offset = 1 + (int(uuid.uuid4().hex[:8], 16) % 2900)
+    event = datetime.now(tz) - timedelta(seconds=offset)
+    radar_ts = event.strftime("%Y%m%d%H%M%S")
+    vars_ctx["radarTs"] = radar_ts
+    vars_ctx["frameId"] = f"radar-{radar_ts}"
+    vars_ctx["frameStart"] = (event - timedelta(minutes=10)).strftime("%Y-%m-%d %H:%M:%S")
+    vars_ctx["frameEnd"] = (event + timedelta(minutes=10)).strftime("%Y-%m-%d %H:%M:%S")
+    vars_ctx["radarObjectKey"] = f"upstream/radar/realtime/radar_{radar_ts}.json"
+    vars_ctx["radarAltObjectKey"] = f"upstream/radar/realtime/{event.strftime('%Y%m%d_%H%M%S')}.json"
+    # 非法名：不可解析 frameId，且不要嵌入 radarTs（避免与正向用例撞号误判）
+    vars_ctx["radarBadObjectKey"] = f"upstream/radar/realtime/badname_{uuid.uuid4().hex[:12]}.json"
+    vars_ctx["radarWrongPrefixKey"] = f"upstream/other/radar_{radar_ts}.json"
+
+
+def _rewrite_minio_endpoint(endpoint: str) -> str:
+    """Docker 内 localhost/127.0.0.1 的 MinIO 改写为同网 leidian-minio:9000。"""
+    from pathlib import Path
+    from urllib.parse import urlparse
+
+    text = str(endpoint or "").strip().rstrip("/")
+    if not text:
+        return text
+    if not Path("/.dockerenv").exists():
+        return text
+    parsed = urlparse(text if "://" in text else f"http://{text}")
+    host = (parsed.hostname or "").lower()
+    if host not in ("localhost", "127.0.0.1", "::1"):
+        return text
+    # 宿主机映射口 19000 / 默认 9000 → 容器内直连
+    if parsed.port in (19000, 9000, None):
+        return "http://leidian-minio:9000"
+    port = f":{parsed.port}" if parsed.port else ""
+    return f"{parsed.scheme or 'http'}://host.docker.internal{port}"
+
+
+def _run_minio_step(
+    step: dict[str, Any],
+    env: dict[str, Any],
+    vars_ctx: dict[str, Any],
+    idx: int,
+) -> dict[str, Any]:
+    """上传对象到 MinIO；可选向 Kafka 投递上传通知（本地 MinIO notify 常未开）。"""
+    bucket = _render(
+        str(step.get("bucket") or env.get("minioRadarBucket") or "leidian-frame"),
+        vars_ctx,
+    ).strip()
+    object_key = _render(str(step.get("objectKey") or ""), vars_ctx).strip()
+    body_raw = step.get("body")
+    if body_raw is None:
+        body_text = "{}"
+    elif isinstance(body_raw, (dict, list)):
+        body_text = json.dumps(_render_obj(body_raw, vars_ctx), ensure_ascii=False)
+    else:
+        body_text = _render(str(body_raw), vars_ctx)
+    content_type = _render(str(step.get("contentType") or "application/json"), vars_ctx)
+    title = describe_step_action("MINIO", object_key, step)
+    publish_notify = step.get("publishNotify")
+    if publish_notify is None:
+        publish_notify = True
+    notify_topic = _render(str(step.get("notifyTopic") or "radar-frame-upstream"), vars_ctx).strip()
+
+    def result(**extra: Any) -> dict[str, Any]:
+        base = {
+            "index": idx,
+            "method": "MINIO",
+            "path": object_key,
+            "service": "minio",
+            "title": title,
+            "action": f"MINIO {bucket}/{object_key}",
+        }
+        base.update(extra)
+        return base
+
+    if not object_key:
+        return result(status="failed", reason="objectKey 不能为空", httpStatus=None, body=None)
+
+    endpoint = _rewrite_minio_endpoint(str(env.get("minioEndpoint") or "http://leidian-minio:9000"))
+    access_key = str(env.get("minioAccessKey") or "minioadmin")
+    secret_key = str(env.get("minioSecretKey") or "minioadmin")
+
+    try:
+        from minio import Minio  # type: ignore
+    except ImportError:
+        return result(
+            status="failed",
+            reason="缺少 minio，请 pip install minio",
+            httpStatus=None,
+            body=None,
+        )
+
+    from io import BytesIO
+    from urllib.parse import urlparse
+
+    parsed = urlparse(endpoint if "://" in endpoint else f"http://{endpoint}")
+    host = parsed.hostname or "leidian-minio"
+    port = parsed.port or (443 if parsed.scheme == "https" else 9000)
+    secure = parsed.scheme == "https"
+
+    meta = step.get("metadata") or {}
+    metadata: dict[str, str] = {}
+    if isinstance(meta, dict):
+        for k, v in meta.items():
+            metadata[str(k)] = _render(str(v), vars_ctx)
+
+    data = body_text.encode("utf-8")
+    try:
+        client = Minio(
+            f"{host}:{port}",
+            access_key=access_key,
+            secret_key=secret_key,
+            secure=secure,
+        )
+        client.put_object(
+            bucket,
+            object_key,
+            BytesIO(data),
+            length=len(data),
+            content_type=content_type,
+            metadata=metadata or None,
+        )
+    except Exception as e:  # noqa: BLE001
+        return result(status="failed", reason=f"MinIO 上传失败: {e}", httpStatus=None, body=None)
+
+    notify_body = None
+    if publish_notify:
+        brokers = str(env.get("kafkaBrokers") or "").strip()
+        if not brokers:
+            return result(
+                status="failed",
+                reason="已上传但未配置 kafkaBrokers，无法投递 MinIO 通知",
+                httpStatus=None,
+                body={"bucket": bucket, "objectKey": object_key},
+            )
+        try:
+            from kafka import KafkaProducer  # type: ignore
+        except ImportError:
+            return result(
+                status="failed",
+                reason="缺少 kafka-python，无法投递 MinIO 通知",
+                httpStatus=None,
+                body={"bucket": bucket, "objectKey": object_key},
+            )
+        notify_payload = json.dumps(
+            {"bucket": bucket, "objectKey": object_key, "EventName": "s3:ObjectCreated:Put"},
+            ensure_ascii=False,
+        )
+        producer = None
+        try:
+            producer = KafkaProducer(
+                bootstrap_servers=[b.strip() for b in brokers.split(",") if b.strip()],
+                value_serializer=lambda v: v.encode("utf-8") if isinstance(v, str) else v,
+                acks="all",
+                max_block_ms=8000,
+                request_timeout_ms=10000,
+            )
+            meta_k = producer.send(notify_topic, value=notify_payload).get(timeout=15)
+            notify_body = {
+                "topic": meta_k.topic,
+                "partition": meta_k.partition,
+                "offset": meta_k.offset,
+            }
+        except Exception as e:  # noqa: BLE001
+            return result(
+                status="failed",
+                reason=f"MinIO 已上传，但通知 Kafka 失败: {e}",
+                httpStatus=None,
+                body={"bucket": bucket, "objectKey": object_key},
+            )
+        finally:
+            if producer is not None:
+                try:
+                    producer.flush(timeout=5)
+                    producer.close(timeout=5)
+                except Exception:  # noqa: BLE001
+                    pass
+
+    # 从 objectKey 推导 frameId（与 RadarFrameObjectKeyParser 对齐）
+    file_name = object_key.rsplit("/", 1)[-1]
+    base = file_name[:-5] if file_name.endswith(".json") else file_name
+    frame_id = None
+    m = re.search(r"radar_(\d{12,14})", base)
+    if m:
+        digits = m.group(1)
+        if len(digits) == 12:
+            digits = digits + "00"
+        frame_id = f"radar-{digits}"
+        vars_ctx["frameId"] = frame_id
+        vars_ctx["radarTs"] = digits
+    else:
+        m2 = re.search(r"(\d{8})_(\d{6})", base)
+        if m2:
+            digits = m2.group(1) + m2.group(2)
+            frame_id = f"radar-{digits}"
+            vars_ctx["frameId"] = frame_id
+            vars_ctx["radarTs"] = digits
+    vars_ctx["objectKey"] = object_key
+
+    return result(
+        status="passed",
+        reason="",
+        httpStatus=None,
+        body={
+            "bucket": bucket,
+            "objectKey": object_key,
+            "bytes": len(data),
+            "frameId": frame_id,
+            "notify": notify_body,
+            "endpoint": endpoint,
+        },
+    )
+
+
+def _resolve_ws_url(env: dict[str, Any], step: dict[str, Any]) -> str:
+    """拼 WebSocket URL：默认走网关 biz 前缀 + /realtime/ws。"""
+    from env_store import _rewrite_gateway_for_runtime, service_base
+
+    path = str(step.get("path") or "/realtime/ws").strip() or "/realtime/ws"
+    if re.match(r"^[a-zA-Z][a-zA-Z0-9+.-]*:", path):
+        raise ValueError("WS path 禁止绝对 URL，请使用相对路径 + service")
+    if not path.startswith("/"):
+        path = "/" + path
+    # 已写全网关路径
+    if path.startswith("/api/"):
+        gateway = _rewrite_gateway_for_runtime(str(env.get("gateway") or ""))
+        if not gateway:
+            raise ValueError("未配置网关根地址")
+        http_url = gateway.rstrip("/") + path
+    else:
+        service = str(step.get("service") or "biz").strip() or "biz"
+        base = service_base(env, service)
+        if not base:
+            raise ValueError(f"未配置网关根地址（服务 {service}）")
+        http_url = base.rstrip("/") + path
+    if http_url.startswith("https://"):
+        return "wss://" + http_url[len("https://") :]
+    if http_url.startswith("http://"):
+        return "ws://" + http_url[len("http://") :]
+    return http_url
+
+
+def _run_ws_step(
+    step: dict[str, Any],
+    env: dict[str, Any],
+    credential: str,
+    vars_ctx: dict[str, Any],
+    idx: int,
+) -> dict[str, Any]:
+    """连接 WebSocket，可选先执行 trigger 步骤，再等待匹配推送。"""
+    title = describe_step_action("WS", str(step.get("path") or "/realtime/ws"), step)
+    try:
+        timeout = float(_render(str(step.get("timeoutSeconds") if step.get("timeoutSeconds") is not None else "30"), vars_ctx))
+    except (TypeError, ValueError):
+        timeout = 30.0
+    timeout = max(3.0, min(timeout, 120.0))
+
+    def result(**extra: Any) -> dict[str, Any]:
+        base = {
+            "index": idx,
+            "method": "WS",
+            "path": str(step.get("path") or "/realtime/ws"),
+            "service": str(step.get("service") or "biz"),
+            "title": title,
+            "action": "WS",
+        }
+        base.update(extra)
+        return base
+
+    try:
+        import websocket  # type: ignore
+    except ImportError:
+        return result(
+            status="failed",
+            reason="缺少 websocket-client，请 pip install websocket-client",
+            httpStatus=None,
+            body=None,
+        )
+
+    try:
+        ws_url = _resolve_ws_url(env, step)
+    except ValueError as e:
+        return result(status="failed", reason=str(e), httpStatus=None, body=None)
+
+    headers: list[str] = []
+    if credential:
+        token = credential if credential.lower().startswith("bearer ") else f"Bearer {credential}"
+        headers.append(f"Authorization: {token}")
+
+    messages: list[Any] = []
+    err_box: list[str] = []
+    opened = threading.Event()
+
+    def on_open(_ws: Any) -> None:
+        opened.set()
+
+    def on_message(_ws: Any, message: Any) -> None:
+        text = message.decode("utf-8", errors="replace") if isinstance(message, (bytes, bytearray)) else str(message)
+        try:
+            messages.append(json.loads(text))
+        except json.JSONDecodeError:
+            messages.append({"_raw": text})
+
+    def on_error(_ws: Any, error: Any) -> None:
+        err_box.append(str(error))
+
+    app = websocket.WebSocketApp(
+        ws_url,
+        header=headers or None,
+        on_open=on_open,
+        on_message=on_message,
+        on_error=on_error,
+    )
+    thread = threading.Thread(
+        target=lambda: app.run_forever(ping_interval=20, ping_timeout=10),
+        daemon=True,
+        name="func-web-ws",
+    )
+    thread.start()
+    if not opened.wait(timeout=8):
+        try:
+            app.close()
+        except Exception:  # noqa: BLE001
+            pass
+        reason = err_box[0] if err_box else "WebSocket 连接超时"
+        return result(
+            status="failed",
+            reason=f"{reason} url={ws_url}",
+            httpStatus=None,
+            body={"url": ws_url, "messages": messages[:5]},
+        )
+
+    # 连接成功后再触发上传，确保在线时能收到广播
+    trigger_results: list[dict[str, Any]] = []
+    for t_idx, t_step in enumerate(step.get("trigger") or []):
+        if not isinstance(t_step, dict):
+            continue
+        tr = _run_step(t_step, env, credential, vars_ctx, t_idx)
+        trigger_results.append(tr)
+        if tr.get("status") == "failed":
+            try:
+                app.close()
+            except Exception:  # noqa: BLE001
+                pass
+            return result(
+                status="failed",
+                reason=f"WS trigger 失败: {tr.get('reason')}",
+                httpStatus=None,
+                body={"url": ws_url, "trigger": trigger_results},
+            )
+
+    expect = step.get("expect") or {}
+    want_type = _render(str(expect.get("type") or "RADAR_FRAME_READY"), vars_ctx)
+    match = expect.get("match") or expect.get("fields") or {}
+    if not isinstance(match, dict):
+        match = {}
+
+    deadline = __import__("time").time() + timeout
+    hit: Any = None
+    while __import__("time").time() < deadline:
+        for msg in messages:
+            if not isinstance(msg, dict):
+                continue
+            msg_type = msg.get("type") or msg.get("messageType") or ""
+            if want_type and str(msg_type) != want_type:
+                continue
+            data = msg.get("data") if isinstance(msg.get("data"), dict) else msg
+            if match and not _dict_matches(data if isinstance(data, dict) else {}, match, vars_ctx):
+                # 也允许 match 写在根上（兼容）
+                if not _dict_matches(msg, match, vars_ctx):
+                    continue
+            hit = msg
+            break
+        if hit is not None:
+            break
+        threading.Event().wait(0.2)
+
+    try:
+        app.close()
+    except Exception:  # noqa: BLE001
+        pass
+
+    if hit is None:
+        return result(
+            status="failed",
+            reason=f"未在 {timeout:.0f}s 内收到 type={want_type} 且匹配 {match!r} 的推送",
+            httpStatus=None,
+            body={"url": ws_url, "received": _truncate(messages[-8:]), "trigger": trigger_results, "errors": err_box},
+        )
+    return result(
+        status="passed",
+        reason="",
+        httpStatus=None,
+        body={"url": ws_url, "message": _truncate(hit), "trigger": trigger_results},
+    )
+
+
 def _render(text: str, ctx: dict[str, Any]) -> str:
     """渲染 ${var}；支持嵌套（如 ${kafkaJsonDedup} 内含 ${now-1m}/${rand}）。"""
 
@@ -723,9 +1357,20 @@ def _render(text: str, ctx: dict[str, Any]) -> str:
             import uuid
 
             return uuid.uuid4().hex[:8]
+        if key == "radarTs":
+            if not ctx.get("radarTs"):
+                _ensure_radar_frame_vars({"module": "radar-frame-e2e", "steps": [{"method": "MINIO"}]}, ctx)
+            return str(ctx.get("radarTs") or "")
+        if key == "frameId":
+            if not ctx.get("frameId") and ctx.get("radarTs"):
+                ctx["frameId"] = f"radar-{ctx['radarTs']}"
+            return str(ctx.get("frameId") or "")
         now_m = re.fullmatch(r"now([+-]\d+)([dhms])", key)
         if now_m:
             return _iso_now_offset(int(now_m.group(1)), now_m.group(2))
+        local_m = re.fullmatch(r"localNow([+-]\d+)([dhms])", key)
+        if local_m:
+            return _local_now_offset(int(local_m.group(1)), local_m.group(2))
         val = ctx.get(key)
         return "" if val is None else str(val)
 
@@ -759,6 +1404,25 @@ def _iso_now_offset(amount: int, unit: str) -> str:
         tz = timezone(timedelta(hours=8))
     # 与 FlexibleLocalDateTimeDeserializer / ISO_LOCAL_DATE_TIME 对齐：yyyy-MM-ddTHH:mm:ss
     return (datetime.now(tz) + delta).replace(tzinfo=None).strftime("%Y-%m-%dT%H:%M:%S")
+
+
+def _local_now_offset(amount: int, unit: str) -> str:
+    """监测 biz 时间窗格式：yyyy-MM-dd HH:mm:ss（东八区）。"""
+    from datetime import datetime, timedelta, timezone
+
+    delta = {
+        "d": timedelta(days=amount),
+        "h": timedelta(hours=amount),
+        "m": timedelta(minutes=amount),
+        "s": timedelta(seconds=amount),
+    }[unit]
+    try:
+        from zoneinfo import ZoneInfo
+
+        tz = ZoneInfo("Asia/Shanghai")
+    except Exception:  # noqa: BLE001
+        tz = timezone(timedelta(hours=8))
+    return (datetime.now(tz) + delta).replace(tzinfo=None).strftime("%Y-%m-%d %H:%M:%S")
 
 
 def _encode_url_query(url: str) -> str:

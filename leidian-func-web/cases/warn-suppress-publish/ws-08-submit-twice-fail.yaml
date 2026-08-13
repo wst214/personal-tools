@@ -1,8 +1,8 @@
 id: ws-08-submit-twice-fail
 name: 重复提交失败
 description: 负向：已提交/已生效后再次 submit，期望失败。
-skip: false
-skipReason: ''
+skip: true
+skipReason: 预警相关代码已移除；整包用例跳过
 steps:
 - method: POST
   service: biz

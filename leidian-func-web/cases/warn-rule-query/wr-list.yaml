@@ -1,8 +1,8 @@
 id: wr-list
 name: 规则分页列表
 description: 烟测：带 pageNum/pageSize 拉规则分页列表，期望 code=0。
-skip: false
-skipReason: ''
+skip: true
+skipReason: 预警相关代码已移除；整包用例跳过
 steps:
 - method: GET
   service: biz

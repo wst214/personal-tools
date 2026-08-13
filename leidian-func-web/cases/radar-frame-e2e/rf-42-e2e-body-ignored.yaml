@@ -1,0 +1,28 @@
+﻿id: rf-42-e2e-body-ignored
+name: JSON body 不参与解析仍入库
+description: 合法文件名 + 故意非法 JSON body，仍应按 objectKey 入库（接入不解析 body）。
+skip: false
+skipReason: ''
+expandByDeviceType: false
+steps:
+- name: 上传坏 JSON body
+  method: MINIO
+  objectKey: ${radarObjectKey}
+  body: 'this-is-not-json!!!'
+  contentType: application/json
+  publishNotify: true
+- name: 等待消费
+  method: SLEEP
+  seconds: 6
+- name: 重放源命中 frameId
+  method: GET
+  service: data
+  path: /replay/radar/source?startTime=${frameStart}&endTime=${frameEnd}&limit=20
+  expect:
+    status: 200
+    fields:
+      code: 0
+    contains:
+    - path: data
+      match:
+        dedupKey: ${frameId}

@@ -1,0 +1,16 @@
+id: rf-02-unpublished-metric
+name: 接入统计含未发布计数
+description: GET /ingest/status 暴露 data.radar.kafkaUnpublishedCount（补偿队列可观测）。
+skip: false
+skipReason: ''
+expandByDeviceType: false
+steps:
+- name: 查询接入统计
+  method: GET
+  service: data
+  path: /ingest/status
+  expect:
+    status: 200
+    fields:
+      code: 0
+      data.radar.kafkaUnpublishedCount: __not_empty__

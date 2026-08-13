@@ -1,0 +1,205 @@
+/* DevToolbox notes-style skin for AnythingLLM (theme 5: compact + soft).
+   Lean tokens + safe embed fixes. ASCII only. */
+
+/* Only constrain page shell — do NOT clip #root children (chat input is absolute). */
+html, body, #root {
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+}
+
+/* Soft mint — avoid loud filled blocks */
+html[data-theme="light"],
+html.light,
+:root {
+  --theme-loader: #0f766e;
+
+  --theme-bg-primary: #ffffff !important;
+  --theme-bg-secondary: #ffffff !important;
+  --theme-bg-sidebar: #fbfcfb !important;
+  --theme-bg-container: #f4f7f5 !important;
+  --theme-bg-chat: #ffffff !important;
+  --theme-bg-chat-input: #ffffff !important;
+
+  --theme-text-primary: #1f3a2f !important;
+  --theme-text-secondary: #6b7f74 !important;
+  --theme-placeholder: rgba(31, 58, 47, 0.4) !important;
+  --theme-home-text: #1f3a2f !important;
+  --theme-home-text-secondary: #6b7f74 !important;
+
+  --theme-sidebar-item-default: transparent !important;
+  --theme-sidebar-item-hover: rgba(15, 118, 110, 0.06) !important;
+  --theme-sidebar-item-selected: rgba(15, 118, 110, 0.08) !important;
+  --theme-sidebar-item-text-active: #0f766e !important;
+  --theme-sidebar-item-text-inactive: #6b7f74 !important;
+  --theme-sidebar-item-workspace-active: #0f766e !important;
+  --theme-sidebar-item-workspace-inactive: #8fa39a !important;
+  --theme-sidebar-subitem-default: transparent !important;
+  --theme-sidebar-subitem-selected: rgba(15, 118, 110, 0.08) !important;
+  --theme-sidebar-subitem-hover: rgba(15, 118, 110, 0.05) !important;
+  --theme-sidebar-thread-selected: rgba(15, 118, 110, 0.08) !important;
+  --theme-sidebar-border: #e4ece7 !important;
+
+  --theme-button-primary: #0f766e !important;
+  --theme-button-primary-hover: #0d9488 !important;
+  --theme-button-cta: #0f766e !important;
+
+  --theme-chat-input-border: #e4ece7 !important;
+  --theme-action-menu-bg: #f7faf8 !important;
+  --theme-action-menu-item-hover: rgba(15, 118, 110, 0.08) !important;
+  --theme-settings-input-bg: #f7faf8 !important;
+  --theme-settings-input-placeholder: rgba(31, 58, 47, 0.4) !important;
+  --theme-settings-input-active: rgba(15, 118, 110, 0.16) !important;
+  --theme-settings-input-text: #1f3a2f !important;
+  --theme-modal-border: #e4ece7 !important;
+
+  --theme-popup-menu-bg: #f2f7f5 !important;
+  --theme-file-row-even: #fbfcfb !important;
+  --theme-file-row-odd: #f4f7f5 !important;
+  --theme-file-row-selected-even: rgba(15, 118, 110, 0.08) !important;
+  --theme-file-row-selected-odd: rgba(15, 118, 110, 0.08) !important;
+  --theme-file-picker-hover: rgba(15, 118, 110, 0.06) !important;
+
+  --theme-home-bg-card: #f7faf8 !important;
+  --theme-home-bg-button: #ffffff !important;
+  --theme-home-border: #e4ece7 !important;
+  --theme-home-button-primary: #0f766e !important;
+  --theme-home-button-primary-hover: #0d9488 !important;
+  --theme-home-button-secondary: rgba(15, 118, 110, 0.08) !important;
+  --theme-home-button-secondary-hover: rgba(15, 118, 110, 0.12) !important;
+  --theme-home-button-secondary-text: #0f766e !important;
+  --theme-home-button-secondary-hover-text: #1f3a2f !important;
+  --theme-home-update-card-bg: #f7faf8 !important;
+  --theme-home-update-card-hover: rgba(15, 118, 110, 0.06) !important;
+  --theme-home-update-source: #0f766e !important;
+}
+
+/* Kill AnythingLLM default loud blues / slate fills in light mode */
+.light .light\:bg-blue-200,
+html.light .light\:bg-blue-200,
+html[data-theme="light"] .light\:bg-blue-200 {
+  background-color: rgba(15, 118, 110, 0.08) !important;
+}
+.light .light\:hover\:bg-slate-300:hover,
+html.light .light\:hover\:bg-slate-300:hover,
+.light .hover\:light\:bg-theme-sidebar-subitem-hover:hover {
+  background-color: rgba(15, 118, 110, 0.06) !important;
+}
+.light .light\:hover\:bg-sky-300:hover,
+html.light .light\:hover\:bg-sky-300:hover {
+  background-color: rgba(15, 118, 110, 0.1) !important;
+}
+.light .light\:bg-slate-200,
+.light .light\:bg-slate-50,
+.light.bg-zinc-950,
+div.w-screen.h-screen.overflow-hidden.bg-zinc-950.light\:bg-slate-50 {
+  background-color: #f4f7f5 !important;
+}
+.light .bg-theme-bg-sidebar,
+html[data-theme="light"] .bg-theme-bg-sidebar {
+  background-color: #fbfcfb !important;
+}
+
+[class*="3D4147"],
+[class*="bg-[#3D4147]"] {
+  background-color: #e4ece7 !important;
+}
+
+.sidebar-items:after,
+[class*="sidebar-items"]:after {
+  display: none !important;
+  content: none !important;
+}
+
+/* Hide only footer icon buttons — not broad layout wrappers */
+a.bg-theme-sidebar-footer-icon,
+button.bg-theme-sidebar-footer-icon,
+.bg-theme-sidebar-footer-icon {
+  display: none !important;
+}
+
+/* ---- Compact sidebar denseness ---- */
+.bg-theme-bg-sidebar {
+  font-size: 13px !important;
+}
+.bg-theme-bg-sidebar .gap-y-3 {
+  row-gap: 0.35rem !important;
+}
+.bg-theme-bg-sidebar .gap-y-1 {
+  row-gap: 0.15rem !important;
+}
+.bg-theme-bg-sidebar .pb-4 {
+  padding-bottom: 0.5rem !important;
+}
+.bg-theme-bg-sidebar .pb-6 {
+  padding-bottom: 0.65rem !important;
+}
+.bg-theme-bg-sidebar .p-2 {
+  padding: 0.3rem 0.45rem !important;
+}
+.bg-theme-bg-sidebar .px-2 {
+  padding-left: 0.4rem !important;
+  padding-right: 0.4rem !important;
+}
+.bg-theme-bg-sidebar .rounded-lg {
+  border-radius: 8px !important;
+}
+.bg-theme-bg-sidebar .h-\[34px\] {
+  height: 28px !important;
+}
+.bg-theme-bg-sidebar button,
+.bg-theme-bg-sidebar a {
+  font-size: 12.5px !important;
+  line-height: 1.25 !important;
+}
+
+/* Soften workspace / thread selected pills */
+.bg-theme-sidebar-subitem-selected,
+.bg-\[var\(--theme-sidebar-thread-selected\)\],
+.border-theme-sidebar-item-workspace-active.bg-theme-bg-secondary {
+  background-color: rgba(15, 118, 110, 0.08) !important;
+  box-shadow: none !important;
+}
+.bg-\[var\(--theme-sidebar-item-workspace-active\)\] {
+  background-color: #0f766e !important;
+}
+
+/* New Thread / CTA: quieter than stock sky-blue */
+.bg-theme-bg-sidebar .border-primary-button,
+.bg-theme-bg-sidebar button.border-primary-button {
+  border-color: #d7e4de !important;
+  background: #f2f6f4 !important;
+  color: #3d5a4c !important;
+  box-shadow: none !important;
+}
+.bg-theme-bg-sidebar .border-primary-button:hover,
+.bg-theme-bg-sidebar button.border-primary-button:hover {
+  background: rgba(15, 118, 110, 0.08) !important;
+  border-color: #b9d0c6 !important;
+  color: #0f766e !important;
+}
+
+/* Sidebar toggle — notes-style chip */
+button[data-tooltip-id="sidebar-toggle"] {
+  width: 28px !important;
+  height: 28px !important;
+  padding: 0 !important;
+  border-radius: 8px !important;
+  border: 1px solid #e4ece7 !important;
+  background: #ffffff !important;
+  box-shadow: none !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  line-height: 0 !important;
+  transition: background 0.15s ease, border-color 0.15s ease, color 0.15s ease !important;
+}
+button[data-tooltip-id="sidebar-toggle"]:hover {
+  background: rgba(15, 118, 110, 0.08) !important;
+  border-color: #0f766e !important;
+}
+button[data-tooltip-id="sidebar-toggle"] svg {
+  width: 15px !important;
+  height: 15px !important;
+  color: #0f766e !important;
+}

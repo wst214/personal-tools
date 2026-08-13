@@ -1,8 +1,8 @@
 id: wg-03-disabled-rule-ignored
 name: DISABLED 规则不参与评估
 description: 验收：规则停用后 dry-run 指定 ruleId 时无 ACTIVE 可评版本/无候选。
-skip: false
-skipReason: ''
+skip: true
+skipReason: 预警相关代码已移除；整包用例跳过
 steps:
 - method: POST
   service: biz

@@ -1,8 +1,8 @@
 id: wr-05-submit-first-publish
 name: 提交即生效（首发）
 description: 草稿首次 submit：P0 下直接视为审核通过，规则变为 ENABLED，当前版本 ACTIVE。
-skip: false
-skipReason: ''
+skip: true
+skipReason: 预警相关代码已移除；整包用例跳过
 steps:
 - method: POST
   service: biz

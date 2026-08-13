@@ -1,8 +1,8 @@
 id: wf-21-update-rejected-builtin
 name: 内置因子关键字段不可乱改
 description: 验收：运维更新仅允许展示名/就绪状态；只传 sourceTable 等关键字段应被拒绝。
-skip: false
-skipReason: ''
+skip: true
+skipReason: 预警相关代码已移除；整包用例跳过
 steps:
 - method: GET
   service: biz

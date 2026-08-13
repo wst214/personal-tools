@@ -1,8 +1,8 @@
 id: wg-08-none-unified-no-dup
 name: NONE 统一模型-重复命中续期不新建事件
 description: 验收：actionType=NONE 规则两次触发 -> 同一 RECORDED 事件、命中项仍 1（find-or-create+续期，不每次新建）。
-skip: false
-skipReason: ''
+skip: true
+skipReason: 预警相关代码已移除；整包用例跳过
 steps:
 - method: POST
   service: biz

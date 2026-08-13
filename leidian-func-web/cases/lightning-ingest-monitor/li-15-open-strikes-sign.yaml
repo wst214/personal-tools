@@ -1,0 +1,16 @@
+id: li-15-open-strikes-sign
+name: 开放大网点位需签名
+description: |
+  正式入口 GET /api/open/lightning/cmb/strikes 需 X-Open-* SM3 签名。
+  操作台暂未内置 OPEN_API_SALT 签名；上线签名助手后取消 skip。
+skip: true
+skipReason: 开放接口依赖 gateway OPEN_API_SALT + SM3 签名；操作台未接签名助手
+steps:
+- name: open strikes（占位）
+  method: GET
+  service: open
+  path: /lightning/cmb/strikes?startTime=${localNow-12h}&endTime=${localNow-0s}
+  expect:
+    status: 200
+    fields:
+      code: 0

@@ -1,8 +1,8 @@
 id: ws-06-submit-active
 name: 提交即生效
 description: 草稿 submit 后直接 ACTIVE（现阶段无审核）。
-skip: false
-skipReason: ''
+skip: true
+skipReason: 预警相关代码已移除；整包用例跳过
 steps:
 - method: POST
   service: biz

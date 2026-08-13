@@ -1,0 +1,635 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no" />
+  <title>啡外 · 小程序效果预览</title>
+  <style>
+    :root {
+      --orange: #f26b1f;
+      --blue: #1d3f9f;
+      --bg: #f7f6f4;
+      --card: #ffffff;
+      --text: #1a1a1a;
+      --muted: #8a8a8a;
+      --line: #ececec;
+      --danger: #e24b3b;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      min-height: 100vh;
+      display: grid;
+      place-items: center;
+      background:
+        radial-gradient(circle at 12% 10%, rgba(242,107,31,.18), transparent 40%),
+        radial-gradient(circle at 90% 0%, rgba(29,63,159,.16), transparent 35%),
+        #e8ebe8;
+      font-family: "PingFang SC", "Microsoft YaHei", sans-serif;
+      color: var(--text);
+      padding: 24px 12px;
+    }
+    .stage { width: min(390px, 100%); }
+    .hint {
+      text-align: center;
+      color: #445;
+      font-size: 13px;
+      margin-bottom: 12px;
+      line-height: 1.5;
+    }
+    .phone {
+      background: #111;
+      border-radius: 36px;
+      padding: 12px;
+      box-shadow: 0 24px 60px rgba(0,0,0,.28);
+    }
+    .screen {
+      position: relative;
+      height: 760px;
+      background: var(--bg);
+      border-radius: 28px;
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+    }
+    .status {
+      height: 44px;
+      padding: 12px 18px 0;
+      display: flex;
+      justify-content: space-between;
+      font-size: 12px;
+      font-weight: 600;
+      background: var(--card);
+    }
+    .pages { flex: 1; overflow: hidden; position: relative; }
+    .page {
+      position: absolute;
+      inset: 0;
+      overflow: auto;
+      padding-bottom: 70px;
+      display: none;
+      background: var(--bg);
+    }
+    .page.active { display: block; }
+    .tabbar {
+      position: absolute;
+      left: 0; right: 0; bottom: 0;
+      height: 62px;
+      background: rgba(255,255,255,.96);
+      border-top: 1px solid var(--line);
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      backdrop-filter: blur(8px);
+    }
+    .tab {
+      border: 0;
+      background: transparent;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 4px;
+      color: var(--muted);
+      font-size: 11px;
+      cursor: pointer;
+    }
+    .tab.active { color: var(--orange); font-weight: 700; }
+    .tab .ico {
+      width: 22px; height: 22px;
+      border-radius: 8px;
+      border: 1.5px solid currentColor;
+      display: grid; place-items: center;
+      font-size: 11px;
+    }
+
+    .hero {
+      background: linear-gradient(160deg, #fff 0%, #fff6ef 55%, #eef2ff 100%);
+      padding: 18px 18px 22px;
+      border-bottom: 1px solid var(--line);
+    }
+    .logo {
+      width: 132px;
+      display: block;
+      margin: 8px auto 10px;
+    }
+    .slogan {
+      text-align: center;
+      color: var(--blue);
+      font-size: 13px;
+      letter-spacing: .12em;
+      margin-bottom: 16px;
+    }
+    .cta {
+      width: 100%;
+      border: 0;
+      border-radius: 14px;
+      background: linear-gradient(90deg, var(--orange), #ff8a3d);
+      color: #fff;
+      font-size: 17px;
+      font-weight: 700;
+      padding: 14px 0;
+      cursor: pointer;
+      box-shadow: 0 10px 24px rgba(242,107,31,.28);
+    }
+    .section {
+      padding: 16px 16px 0;
+    }
+    .section h2 {
+      font-size: 15px;
+      margin-bottom: 10px;
+    }
+    .cards {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 8px;
+    }
+    .drink-card, .store-card, .item, .order-card, .points-card {
+      background: var(--card);
+      border-radius: 14px;
+      border: 1px solid var(--line);
+    }
+    .drink-card {
+      padding: 10px 8px 12px;
+      text-align: center;
+      cursor: pointer;
+    }
+    .drink-card .pic {
+      height: 54px;
+      border-radius: 10px;
+      margin-bottom: 8px;
+      background:
+        linear-gradient(135deg, rgba(242,107,31,.25), rgba(29,63,159,.3));
+    }
+    .drink-card .name { font-size: 12px; font-weight: 600; }
+    .drink-card .price { color: var(--danger); font-size: 12px; margin-top: 4px; }
+    .store-card {
+      padding: 14px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      cursor: pointer;
+    }
+    .store-card .meta { color: var(--muted); font-size: 12px; margin-top: 4px; }
+    .chev { color: var(--muted); }
+
+    .topbar {
+      background: var(--card);
+      padding: 10px 16px 12px;
+      border-bottom: 1px solid var(--line);
+      position: sticky;
+      top: 0;
+      z-index: 2;
+    }
+    .topbar h1 { font-size: 17px; text-align: center; }
+    .seg {
+      margin-top: 10px;
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      background: #f0f0f0;
+      border-radius: 10px;
+      padding: 3px;
+      gap: 3px;
+    }
+    .seg button {
+      border: 0;
+      background: transparent;
+      border-radius: 8px;
+      padding: 8px 0;
+      font-size: 13px;
+      cursor: pointer;
+      color: var(--muted);
+    }
+    .seg button.on {
+      background: #fff;
+      color: var(--blue);
+      font-weight: 700;
+      box-shadow: 0 1px 4px rgba(0,0,0,.08);
+    }
+    .order-layout {
+      display: grid;
+      grid-template-columns: 88px 1fr;
+      height: calc(100% - 0px);
+      min-height: 560px;
+    }
+    .cats {
+      background: #f1f1f1;
+      padding-top: 8px;
+    }
+    .cat {
+      width: 100%;
+      border: 0;
+      background: transparent;
+      padding: 14px 8px;
+      font-size: 12px;
+      color: #666;
+      cursor: pointer;
+      position: relative;
+    }
+    .cat.on {
+      background: var(--bg);
+      color: var(--text);
+      font-weight: 700;
+    }
+    .cat.on::before {
+      content: "";
+      position: absolute;
+      left: 0; top: 12px; bottom: 12px;
+      width: 3px;
+      background: var(--orange);
+      border-radius: 0 2px 2px 0;
+    }
+    .list { padding: 10px 10px 90px; }
+    .item {
+      display: grid;
+      grid-template-columns: 72px 1fr;
+      gap: 10px;
+      padding: 10px;
+      margin-bottom: 10px;
+    }
+    .item .thumb {
+      border-radius: 10px;
+      background: linear-gradient(145deg, #ffe4d1, #d9e2ff);
+    }
+    .item .title { font-size: 14px; font-weight: 700; }
+    .badge {
+      display: inline-block;
+      font-size: 10px;
+      color: #fff;
+      background: var(--orange);
+      border-radius: 4px;
+      padding: 1px 5px;
+      margin-left: 4px;
+      vertical-align: middle;
+    }
+    .desc { color: var(--muted); font-size: 11px; margin: 4px 0 8px; }
+    .row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    .price { color: var(--danger); font-weight: 700; }
+    .btn-spec, .btn-add, .btn-pay, .btn-ghost {
+      border: 0;
+      border-radius: 999px;
+      padding: 6px 12px;
+      font-size: 12px;
+      cursor: pointer;
+    }
+    .btn-spec, .btn-add, .btn-pay {
+      background: var(--orange);
+      color: #fff;
+      font-weight: 700;
+    }
+    .btn-ghost {
+      background: #eef1f8;
+      color: var(--blue);
+    }
+    .cartbar {
+      position: absolute;
+      left: 12px; right: 12px; bottom: 72px;
+      background: #1f2430;
+      color: #fff;
+      border-radius: 999px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 8px 8px 8px 16px;
+      z-index: 3;
+    }
+    .cartbar .go {
+      background: linear-gradient(90deg, var(--orange), #ff8f45);
+      border: 0;
+      color: #fff;
+      border-radius: 999px;
+      padding: 10px 16px;
+      font-weight: 700;
+      cursor: pointer;
+    }
+
+    .status-wrap { padding: 24px 18px; text-align: center; }
+    .pickup {
+      font-size: 56px;
+      font-weight: 800;
+      color: var(--orange);
+      letter-spacing: .04em;
+      line-height: 1;
+      margin: 10px 0 8px;
+    }
+    .state { color: var(--blue); font-size: 16px; font-weight: 700; }
+    .steps {
+      display: flex;
+      justify-content: space-between;
+      margin: 22px 8px 18px;
+      font-size: 12px;
+      color: var(--muted);
+    }
+    .steps .on { color: var(--orange); font-weight: 700; }
+    .order-card { text-align: left; padding: 14px; margin-top: 8px; }
+    .order-card .line {
+      display: flex;
+      justify-content: space-between;
+      padding: 8px 0;
+      border-bottom: 1px dashed var(--line);
+      font-size: 13px;
+    }
+    .order-card .line:last-child { border-bottom: 0; font-weight: 700; }
+
+    .points-card { margin: 16px; padding: 18px; background: linear-gradient(135deg, var(--blue), #3557c2); color: #fff; }
+    .points-card .label { opacity: .85; font-size: 13px; }
+    .points-card .num { font-size: 40px; font-weight: 800; margin: 8px 0; }
+    .panel { margin: 0 16px; padding: 14px; background: var(--card); border-radius: 14px; border: 1px solid var(--line); }
+    .panel p { font-size: 13px; color: #444; line-height: 1.6; }
+
+    .toast {
+      position: absolute;
+      left: 50%;
+      bottom: 140px;
+      transform: translateX(-50%);
+      background: rgba(0,0,0,.78);
+      color: #fff;
+      padding: 8px 14px;
+      border-radius: 999px;
+      font-size: 12px;
+      opacity: 0;
+      pointer-events: none;
+      transition: .2s;
+      z-index: 9;
+      white-space: nowrap;
+    }
+    .toast.show { opacity: 1; }
+  </style>
+</head>
+<body>
+  <div class="stage">
+    <div class="hint">可点击预览：底部 Tab、「点单」、加购、「去结算」。用浏览器打开本文件即可。</div>
+    <div class="phone">
+      <div class="screen" id="app">
+        <div class="status"><span>15:42</span><span>啡外</span><span>100%</span></div>
+        <div class="pages">
+          <!-- HOME -->
+          <section class="page active" id="page-home">
+            <div class="hero">
+              <img class="logo" src="logo.png" alt="啡外" />
+              <div class="slogan">城市之间 · 咖啡之外</div>
+              <button class="cta" data-go="order">点单</button>
+            </div>
+            <div class="section">
+              <h2>本期推荐</h2>
+              <div class="cards">
+                <div class="drink-card" data-add="热澳白" data-price="22"><div class="pic"></div><div class="name">热澳白</div><div class="price">¥22</div></div>
+                <div class="drink-card" data-add="拿铁" data-price="22"><div class="pic"></div><div class="name">拿铁</div><div class="price">¥22</div></div>
+                <div class="drink-card" data-add="冰生椰拿铁" data-price="26"><div class="pic"></div><div class="name">冰生椰拿铁</div><div class="price">¥26</div></div>
+              </div>
+            </div>
+            <div class="section" style="padding-bottom:20px">
+              <h2>门店</h2>
+              <div class="store-card" id="store-card">
+                <div>
+                  <div>国泰新天地店</div>
+                  <div class="meta">B座1楼 M121 · 08:30–18:00</div>
+                </div>
+                <div class="chev">›</div>
+              </div>
+            </div>
+          </section>
+
+          <!-- ORDER -->
+          <section class="page" id="page-order">
+            <div class="topbar">
+              <h1>点单</h1>
+              <div class="seg">
+                <button class="on" type="button" data-mode="pickup">到店自取</button>
+                <button type="button" data-mode="delivery">外卖</button>
+              </div>
+            </div>
+            <div class="order-layout">
+              <div class="cats">
+                <button class="cat on" data-cat="推荐">推荐</button>
+                <button class="cat" data-cat="啡常好">啡常好</button>
+                <button class="cat" data-cat="无啡">无啡</button>
+                <button class="cat" data-cat="匠心">匠心</button>
+                <button class="cat" data-cat="特配">特配</button>
+              </div>
+              <div class="list" id="menu-list"></div>
+            </div>
+            <div class="cartbar">
+              <div id="cart-summary">购物车是空的</div>
+              <button class="go" id="checkout">去结算</button>
+            </div>
+          </section>
+
+          <!-- STATUS -->
+          <section class="page" id="page-status">
+            <div class="topbar"><h1>订单</h1></div>
+            <div class="status-wrap">
+              <div class="meta" style="color:var(--muted);font-size:12px">国泰新天地店 · <span id="fulfill-label">到店自取</span></div>
+              <div class="pickup" id="pickup-no">—</div>
+              <div class="state" id="order-state">暂无进行中订单</div>
+              <div class="steps">
+                <span id="s1">已支付</span>
+                <span id="s2">制作中</span>
+                <span id="s3">待取餐</span>
+              </div>
+              <div class="order-card" id="order-lines">
+                <div class="line"><span>还没有订单</span><span></span></div>
+              </div>
+              <div style="margin-top:16px">
+                <button class="btn-ghost" data-go="order">再去点单</button>
+              </div>
+            </div>
+          </section>
+
+          <!-- MINE -->
+          <section class="page" id="page-mine">
+            <div class="topbar"><h1>我的</h1></div>
+            <div class="points-card">
+              <div class="label">我的积分</div>
+              <div class="num" id="points">128</div>
+              <div style="font-size:12px;opacity:.9">支付成功后自动累计（演示）</div>
+            </div>
+            <div class="panel">
+              <p><b>啡外</b> · COFFEE AND BEYOND</p>
+              <p>人民东路19号国泰新天地广场 B座1楼 M121</p>
+              <p>营业时间 08:30–18:00</p>
+            </div>
+          </section>
+        </div>
+
+        <nav class="tabbar">
+          <button class="tab active" data-go="home"><span class="ico">主</span>首页</button>
+          <button class="tab" data-go="order"><span class="ico">点</span>点单</button>
+          <button class="tab" data-go="status"><span class="ico">单</span>订单</button>
+          <button class="tab" data-go="mine"><span class="ico">我</span>我的</button>
+        </nav>
+        <div class="toast" id="toast"></div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const menu = {
+      推荐: [
+        { name: "拿铁", desc: "招牌 · 约360ml · 深烘/中度/单品", price: 22, badge: "招牌" },
+        { name: "热澳白", desc: "热饮 · 咖啡感更强", price: 22 },
+        { name: "冰生椰拿铁", desc: "冰 · 生椰", price: 26 },
+      ],
+      啡常好: [
+        { name: "美式", desc: "冰/热 · 18/22/28", price: 18 },
+        { name: "脏脏 Dirty", desc: "冰", price: 22 },
+        { name: "卡布", desc: "热", price: 22 },
+        { name: "燕麦拿铁", desc: "冰/热", price: 26 },
+      ],
+      无啡: [
+        { name: "巧克力", desc: "冰/热", price: 22 },
+        { name: "柚子苏打", desc: "非咖啡", price: 22 },
+        { name: "玫瑰乌龙", desc: "非咖啡", price: 25 },
+      ],
+      匠心: [
+        { name: "埃塞俄比亚手冲", desc: "手冲", price: 28 },
+        { name: "肯尼亚手冲", desc: "手冲", price: 32 },
+      ],
+      特配: [
+        { name: "冰酿咖啡", desc: "冷萃", price: 26 },
+        { name: "电车冷萃", desc: "冷萃", price: 28 },
+        { name: "气泡冷萃", desc: "冷萃", price: 28 },
+      ],
+    };
+
+    const state = {
+      page: "home",
+      mode: "pickup",
+      cat: "推荐",
+      cart: {},
+      order: null,
+      points: 128,
+    };
+
+    const $ = (s, el = document) => el.querySelector(s);
+    const $$ = (s, el = document) => [...el.querySelectorAll(s)];
+
+    function toast(msg) {
+      const t = $("#toast");
+      t.textContent = msg;
+      t.classList.add("show");
+      clearTimeout(toast._timer);
+      toast._timer = setTimeout(() => t.classList.remove("show"), 1400);
+    }
+
+    function go(page) {
+      state.page = page;
+      $$(".page").forEach((p) => p.classList.toggle("active", p.id === `page-${page}`));
+      $$(".tab").forEach((t) => t.classList.toggle("active", t.dataset.go === page));
+      if (page === "order") renderMenu();
+      if (page === "status") renderOrder();
+      if (page === "mine") $("#points").textContent = String(state.points);
+    }
+
+    function cartCount() {
+      return Object.values(state.cart).reduce((n, x) => n + x.qty, 0);
+    }
+    function cartTotal() {
+      return Object.values(state.cart).reduce((n, x) => n + x.qty * x.price, 0);
+    }
+
+    function renderCart() {
+      const count = cartCount();
+      const total = cartTotal();
+      $("#cart-summary").textContent = count
+        ? `已选 ${count} 件 · ¥${total}`
+        : "购物车是空的";
+    }
+
+    function addItem(name, price) {
+      if (!state.cart[name]) state.cart[name] = { name, price: Number(price), qty: 0 };
+      state.cart[name].qty += 1;
+      renderCart();
+      toast(`已加入 ${name}`);
+      if (state.page !== "order") go("order");
+    }
+
+    function renderMenu() {
+      const list = $("#menu-list");
+      list.innerHTML = "";
+      (menu[state.cat] || []).forEach((item) => {
+        const el = document.createElement("div");
+        el.className = "item";
+        el.innerHTML = `
+          <div class="thumb"></div>
+          <div>
+            <div class="title">${item.name}${item.badge ? `<span class="badge">${item.badge}</span>` : ""}</div>
+            <div class="desc">${item.desc}</div>
+            <div class="row">
+              <div class="price">¥${item.price}</div>
+              <button class="btn-spec" type="button">选规格</button>
+            </div>
+          </div>`;
+        el.querySelector("button").addEventListener("click", () => addItem(item.name, item.price));
+        list.appendChild(el);
+      });
+      renderCart();
+    }
+
+    function renderOrder() {
+      const has = !!state.order;
+      $("#pickup-no").textContent = has ? state.order.no : "—";
+      $("#order-state").textContent = has ? "制作中" : "暂无进行中订单";
+      $("#fulfill-label").textContent = state.mode === "pickup" ? "到店自取" : "外卖配送";
+      ["s1", "s2", "s3"].forEach((id, i) => {
+        $("#" + id).classList.toggle("on", has && i <= 1);
+      });
+      const box = $("#order-lines");
+      if (!has) {
+        box.innerHTML = `<div class="line"><span>还没有订单</span><span></span></div>`;
+        return;
+      }
+      const lines = state.order.items
+        .map((x) => `<div class="line"><span>${x.name} ×${x.qty}</span><span>¥${x.qty * x.price}</span></div>`)
+        .join("");
+      box.innerHTML = lines + `<div class="line"><span>合计</span><span>¥${state.order.total}</span></div>`;
+    }
+
+    function checkout() {
+      if (!cartCount()) {
+        toast("先加点饮品吧");
+        return;
+      }
+      const items = Object.values(state.cart).map((x) => ({ ...x }));
+      const total = cartTotal();
+      state.order = {
+        no: "A" + String(Math.floor(Math.random() * 80 + 10)),
+        items,
+        total,
+      };
+      state.points += Math.floor(total);
+      state.cart = {};
+      renderCart();
+      toast("支付成功（演示）");
+      go("status");
+    }
+
+    // events
+    $$("[data-go]").forEach((el) => el.addEventListener("click", () => go(el.dataset.go)));
+    $$(".drink-card").forEach((el) =>
+      el.addEventListener("click", () => addItem(el.dataset.add, el.dataset.price))
+    );
+    $$(".cat").forEach((el) =>
+      el.addEventListener("click", () => {
+        state.cat = el.dataset.cat;
+        $$(".cat").forEach((c) => c.classList.toggle("on", c === el));
+        renderMenu();
+      })
+    );
+    $$(".seg button").forEach((el) =>
+      el.addEventListener("click", () => {
+        state.mode = el.dataset.mode;
+        $$(".seg button").forEach((b) => b.classList.toggle("on", b === el));
+        toast(state.mode === "pickup" ? "到店自取" : "外卖送到家");
+      })
+    );
+    $("#checkout").addEventListener("click", checkout);
+    $("#store-card").addEventListener("click", () => toast("国泰新天地 B座1楼 M121"));
+
+    renderMenu();
+    renderCart();
+  </script>
+</body>
+</html>

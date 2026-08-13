@@ -1,0 +1,15 @@
+id: rf-10-replay-source
+name: 重放数据源可查
+description: GET /replay/radar/source，校验接口可用（有历史帧时 dedupKey 非空）。
+skip: false
+skipReason: ''
+expandByDeviceType: false
+steps:
+- name: 查雷达帧重放源
+  method: GET
+  service: data
+  path: /replay/radar/source?limit=10
+  expect:
+    status: 200
+    fields:
+      code: 0

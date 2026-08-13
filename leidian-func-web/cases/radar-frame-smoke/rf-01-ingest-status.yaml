@@ -1,0 +1,16 @@
+id: rf-01-ingest-status
+name: 接入统计含雷达帧计数
+description: GET /ingest/status，校验 code=0 且 radar.fileMetadataCount 字段存在（只读烟测）。
+skip: false
+skipReason: ''
+expandByDeviceType: false
+steps:
+- name: 查询接入统计
+  method: GET
+  service: data
+  path: /ingest/status
+  expect:
+    status: 200
+    fields:
+      code: 0
+      data.radar.fileMetadataCount: __not_empty__

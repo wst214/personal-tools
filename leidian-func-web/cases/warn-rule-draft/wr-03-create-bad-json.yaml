@@ -1,8 +1,8 @@
 id: wr-03-create-bad-json
 name: 新建非法 JSON 失败
 description: 负向校验：conditionJson / actionJson 非法时创建应失败，期望返回 400。
-skip: false
-skipReason: ''
+skip: true
+skipReason: 预警相关代码已移除；整包用例跳过
 steps:
 - method: POST
   service: biz

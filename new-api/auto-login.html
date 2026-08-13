@@ -43,6 +43,21 @@
         } catch {}
       }
 
+      const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
+
+      async function readJson(res) {
+        const text = await res.text();
+        if (!text || !String(text).trim()) {
+          if (res.status === 429) throw new Error('登录太频繁被限流，请稍等几秒后点「刷新」');
+          throw new Error('服务返回空响应 HTTP ' + res.status);
+        }
+        try {
+          return JSON.parse(text);
+        } catch {
+          throw new Error('服务返回非 JSON（HTTP ' + res.status + '）：' + text.slice(0, 120));
+        }
+      }
+
       async function stashBundle(data) {
         if (!data || !data.access_token) return;
         const body = JSON.stringify({ success: true, message: '', data });
@@ -56,9 +71,8 @@
         } catch {}
         try {
           if ('serviceWorker' in navigator) {
-            const reg = await navigator.serviceWorker.register('/mytools-sw.js', { scope: '/' });
+            await navigator.serviceWorker.register('/mytools-sw.js', { scope: '/' });
             await navigator.serviceWorker.ready;
-            // 确保控制当前页后再跳转，否则首个 refresh 可能漏拦截
             if (!navigator.serviceWorker.controller) {
               await new Promise((resolve) => {
                 const t = setTimeout(resolve, 800);
@@ -68,26 +82,55 @@
                 }, { once: true });
               });
             }
-            return reg;
           }
         } catch (e) {
           console.warn('service worker register failed', e);
         }
       }
 
-      try {
-        // 已有可用会话则直接进
-        try {
-          const rr = await fetch('/api/user/auth/refresh', {
+      async function tryRefresh() {
+        const rr = await fetch('/api/user/auth/refresh', {
+          method: 'POST',
+          credentials: 'include',
+          headers: { 'Content-Type': 'application/json' },
+          body: '{}',
+        });
+        if (!rr.ok) return null;
+        const rj = await readJson(rr);
+        if (rj && rj.success && rj.data && rj.data.access_token) return rj.data;
+        return null;
+      }
+
+      async function loginWithRetry() {
+        let lastErr;
+        for (let i = 0; i < 4; i++) {
+          if (i > 0) {
+            msg.textContent = `登录被限流，${i * 2}s 后重试…`;
+            await sleep(i * 2000);
+          }
+          const r = await fetch('/api/user/login', {
             method: 'POST',
             credentials: 'include',
             headers: { 'Content-Type': 'application/json' },
-            body: '{}',
+            body: JSON.stringify({ username, password }),
           });
-          const rj = await rr.json();
-          if (rj && rj.success && rj.data && rj.data.access_token) {
+          if (r.status === 429) {
+            lastErr = new Error('登录太频繁被限流');
+            continue;
+          }
+          const j = await readJson(r);
+          if (!j || !j.success) throw new Error((j && j.message) || ('登录失败 HTTP ' + r.status));
+          return j.data;
+        }
+        throw lastErr || new Error('登录失败');
+      }
+
+      try {
+        try {
+          const data = await tryRefresh();
+          if (data) {
             msg.textContent = '已登录，正在进入…';
-            await stashBundle(rj.data);
+            await stashBundle(data);
             location.replace(next);
             return;
           }
@@ -95,21 +138,13 @@
 
         if (!password) throw new Error('未提供密码');
 
-        const r = await fetch('/api/user/login', {
-          method: 'POST',
-          credentials: 'include',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ username, password }),
-        });
-        const j = await r.json();
-        if (!j || !j.success) throw new Error((j && j.message) || ('登录失败 HTTP ' + r.status));
-
+        const data = await loginWithRetry();
         try {
           localStorage.setItem('mytools_newapi_auto_login', JSON.stringify({ username, password }));
         } catch {}
 
         msg.textContent = '登录成功，正在进入…';
-        await stashBundle(j.data);
+        await stashBundle(data);
         location.replace(next);
       } catch (e) {
         msg.textContent = '自动登录失败';

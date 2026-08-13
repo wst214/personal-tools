@@ -1,8 +1,8 @@
 id: wg-01-hit-warning
 name: 条件满足应产出 Candidate
 description: 验收：启用规则 + 因子达标 → dry-run 返回命中候选（warningLevel/ruleId）。本轮不落事件。
-skip: false
-skipReason: ''
+skip: true
+skipReason: 预警相关代码已移除；整包用例跳过
 steps:
 - method: POST
   service: biz

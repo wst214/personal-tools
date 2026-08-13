@@ -1,0 +1,19 @@
+id: di-44-list-empty-ok
+name: 监测列表空结果仍成功
+description: |
+  keyword 无命中时列表为空是正常结果，不是业务失败。
+  期望 HTTP 200 + code=0 + total=0（对照详情设备不存在的业务 404）。
+skip: false
+skipReason: ''
+steps:
+- name: keyword 无命中应空列表
+  method: GET
+  service: biz
+  path: /monitor/disconnect-card/disconnect-cards?pageNum=1&pageSize=10&keyword=__NO_SUCH_MONITOR_DEVICE__
+  expect:
+    status: 200
+    fields:
+      code: 0
+      data.total: 0
+    contains:
+    - path: data.list

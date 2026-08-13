@@ -1,8 +1,8 @@
 id: ws-02-create-name-required
 name: 新建缺抑制名称失败
 description: 负向：抑制名称缺失时创建失败，期望 400。
-skip: false
-skipReason: ''
+skip: true
+skipReason: 预警相关代码已移除；整包用例跳过
 steps:
 - method: POST
   service: biz

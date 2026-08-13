@@ -1,8 +1,8 @@
 id: wg-21-merge-same-site
 name: 同矿区两条规则命中应归并同一事件
 description: 验收：同矿区(siteId=1000000000000050101)两条 BLUE 规则先后命中 -> 归并进同一条事件，命中项 2 条。
-skip: false
-skipReason: ''
+skip: true
+skipReason: 预警相关代码已移除；整包用例跳过
 steps:
 - method: POST
   service: biz

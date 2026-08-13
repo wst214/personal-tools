@@ -1,8 +1,8 @@
 id: wr-21-bad-schedule-type
 name: 非法 scheduleType
 description: 负向校验：scheduleType 传非法枚举时创建应失败，期望 400。
-skip: false
-skipReason: ''
+skip: true
+skipReason: 预警相关代码已移除；整包用例跳过
 steps:
 - method: POST
   service: biz

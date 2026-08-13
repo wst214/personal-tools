@@ -1,0 +1,126 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>写作操作台</title>
+    <link rel="stylesheet" href="./style.css" />
+  </head>
+  <body>
+    <div class="layout">
+      <header class="panel app-header">
+        <div class="brand">
+          <span class="mark">WS</span>
+          <div>
+            <h1>写作操作台</h1>
+            <p>按钮驱动 · 对接 oh-story · 无需 slash 命令</p>
+          </div>
+        </div>
+        <div class="header-meta">
+          <span id="deployBadge" class="badge">检测中</span>
+          <span id="jobBadge" class="badge idle">空闲</span>
+        </div>
+      </header>
+
+      <section class="panel status-bar">
+        <div>
+          <div class="label">写作根目录</div>
+          <code id="rootPath">—</code>
+        </div>
+        <div>
+          <div class="label">当前书</div>
+          <strong id="activeBookLabel">未选择</strong>
+        </div>
+        <div class="status-actions">
+          <button type="button" id="btnRefresh" class="btn secondary">刷新</button>
+          <button type="button" id="btnDashboard" class="btn secondary">打开文稿台</button>
+          <button type="button" id="btnOpenRoot" class="btn secondary">打开目录</button>
+        </div>
+      </section>
+
+      <section class="panel">
+        <div class="section-head">
+          <h2>书目</h2>
+        </div>
+        <div class="book-form">
+          <label>书名<input id="bookName" type="text" placeholder="例如：古井药方" /></label>
+          <label>类型
+            <select id="bookKind">
+              <option value="long">长篇</option>
+              <option value="short">短篇</option>
+            </select>
+          </label>
+          <button type="button" id="btnScaffold" class="btn primary">新建书目骨架</button>
+        </div>
+        <div id="bookList" class="book-list"></div>
+      </section>
+
+      <section class="panel">
+        <div class="section-head">
+          <h2>执行方式</h2>
+        </div>
+        <div class="mode-row">
+          <label class="mode-card">
+            <input type="radio" name="mode" value="queue" checked />
+            <span>
+              <strong>生成任务给 Cursor</strong>
+              <small>点按钮后，回 Cursor 说「执行当前写作任务」</small>
+            </span>
+          </label>
+          <label class="mode-card">
+            <input type="radio" name="mode" value="claude" />
+            <span>
+              <strong>直接跑 Claude Code</strong>
+              <small>后台调用 claude -p，日志在下方</small>
+            </span>
+          </label>
+        </div>
+        <label class="note-field">补充要求（可选）
+          <textarea id="note" rows="2" placeholder="题材、篇幅、本章重点、参考链接…"></textarea>
+        </label>
+        <label class="note-field narrow">章节号（写下一章时可选）
+          <input id="chapter" type="text" placeholder="例如 3" />
+        </label>
+      </section>
+
+      <section class="panel">
+        <div class="section-head"><h2>创作</h2></div>
+        <div class="action-grid">
+          <button type="button" class="action" data-action="long-new">开长篇</button>
+          <button type="button" class="action" data-action="short-new">开短篇</button>
+          <button type="button" class="action" data-action="long-next">写下一章</button>
+          <button type="button" class="action" data-action="short-write">写/续写短篇</button>
+        </div>
+      </section>
+
+      <section class="panel">
+        <div class="section-head"><h2>学习</h2></div>
+        <div class="action-grid">
+          <button type="button" class="action" data-action="long-scan">长篇扫榜</button>
+          <button type="button" class="action" data-action="short-scan">短篇扫榜</button>
+          <button type="button" class="action" data-action="long-analyze">长篇拆文</button>
+          <button type="button" class="action" data-action="short-analyze">短篇拆文</button>
+        </div>
+      </section>
+
+      <section class="panel">
+        <div class="section-head"><h2>精修与工具</h2></div>
+        <div class="action-grid">
+          <button type="button" class="action" data-action="deslop">去 AI 味</button>
+          <button type="button" class="action" data-action="review">审查</button>
+          <button type="button" class="action" data-action="cover">生成封面</button>
+          <button type="button" class="action" data-action="import">导入已有小说</button>
+        </div>
+      </section>
+
+      <section class="panel">
+        <div class="section-head">
+          <h2>结果 / 日志</h2>
+          <button type="button" id="btnCopyPrompt" class="btn tiny secondary" hidden>复制提示词</button>
+        </div>
+        <pre id="output" class="output">点上方按钮开始。默认会生成任务文件，你回到 Cursor 说一句「执行当前写作任务」即可。</pre>
+      </section>
+    </div>
+    <script src="./app.js"></script>
+  </body>
+</html>

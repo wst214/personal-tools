@@ -1,0 +1,17 @@
+id: rf-43-publish-recovery
+name: 发布补偿（unpublished → 重推）
+description: |
+  需人为制造 kafkaPublished=false 的 file_metadata 后等待补偿任务。
+  操作台无法安全注入失败态，保持 skip；用 rf-02 观测 kafkaUnpublishedCount。
+skip: true
+skipReason: 需 DB/运维注入 unpublished 失败态后等补偿任务，操作台暂不模拟
+expandByDeviceType: false
+steps:
+- name: 占位
+  method: GET
+  service: data
+  path: /ingest/status
+  expect:
+    status: 200
+    fields:
+      code: 0

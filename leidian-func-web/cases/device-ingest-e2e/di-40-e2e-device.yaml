@@ -3,6 +3,7 @@ name: 设备解析全链路入库可见
 description: |
   投递合法 HEX → 等待消费 → monitor 可见 → 附件映射可查 →（有映射时）presign。
   按勾选设备类型展开；每个勾选类型必须有 deviceHex 夹具。
+  大气电场为高频攒包（默认约 60s 刷 MinIO），等待用 ${waitSeconds}（电场 70s，其余 5s）。
 skip: false
 skipReason: ''
 expandByDeviceType: true
@@ -15,7 +16,7 @@ steps:
   value: ${deviceHex}
 - name: 等待消费落库
   method: SLEEP
-  seconds: 5
+  seconds: ${waitSeconds}
 - name: 查最近 monitor
   method: GET
   service: data
@@ -24,6 +25,7 @@ steps:
     status: 200
     fields:
       code: 0
+      data.0.id: __not_empty__
   capture:
     monitorId: data.0.id
 - name: 按 monitor 查附件映射
@@ -34,12 +36,15 @@ steps:
     status: 200
     fields:
       code: 0
+      data.0.attachmentId: __not_empty__
   capture:
     attachmentId: data.0.attachmentId
 - name: 附件预签名
   method: GET
   service: data
   path: /ingest/attachment/presign?attachmentId=${attachmentId}
+  skipIfEmpty:
+  - attachmentId
   expect:
     status: 200
     fields:

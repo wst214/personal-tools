@@ -1,0 +1,11 @@
+{
+  "name": "writing-console",
+  "version": "1.0.0",
+  "private": true,
+  "description": "oh-story 本地写作操作台（按钮驱动，无需 slash 命令）",
+  "type": "module",
+  "scripts": {
+    "start": "node server.mjs",
+    "open": "node server.mjs --open"
+  }
+}

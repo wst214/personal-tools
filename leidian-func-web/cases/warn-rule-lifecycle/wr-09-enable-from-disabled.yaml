@@ -1,8 +1,8 @@
 id: wr-09-enable-from-disabled
 name: 再启用已停用规则
 description: 对已停用规则再启用，期望状态回到 ENABLED。
-skip: false
-skipReason: ''
+skip: true
+skipReason: 预警相关代码已移除；整包用例跳过
 steps:
 - method: POST
   service: biz

@@ -1,8 +1,8 @@
 id: ws-04-create-expired-fail
 name: 新建 ONCE 结束时间已过期失败
 description: 负向：ONCE 的结束时间已过期，期望创建失败。
-skip: false
-skipReason: ''
+skip: true
+skipReason: 预警相关代码已移除；整包用例跳过
 steps:
 - method: POST
   service: biz

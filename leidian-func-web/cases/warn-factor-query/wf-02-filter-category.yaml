@@ -1,8 +1,8 @@
 id: wf-02-filter-category
 name: 可按 DEVICE/DERIVED 筛选因子
 description: 验收：可按 DEVICE/DERIVED 类别筛选因子。
-skip: false
-skipReason: ''
+skip: true
+skipReason: 预警相关代码已移除；整包用例跳过
 steps:
 - method: GET
   service: biz

@@ -25,6 +25,8 @@
 | Monitor | 三网最近记录可查 | **是** | 可跑 |
 | Monitor | 非法分页参数 | **是** | 可跑 |
 | Monitor | 三网互不串扰 | **是** | 可跑 |
+| Monitor | 大网落雷点位 biz `li-14` | 否 | 可跑 |
+| Monitor | 开放大网点位签名 `li-15` | 否 | **skip**（需 OPEN_API_SALT） |
 | 附件 | 按 monitor 查映射 | 否 | 可跑 |
 | 附件 | presign 原文下载 | 否 | 可跑 |
 | 全链路 | Kafka → monitor → 附件 | **是** | 可跑 |
@@ -42,6 +44,7 @@
 ## 后端接口
 
 - `GET /api/biz/monitor/lightning/{cmb|locator|radar}/lightnings`（分页）
+- `GET /api/biz/lightning/cmb/strikes`（大网落雷点位，时间窗 ≤24h；开放入口 `/api/open/...` 需签名）
 - `GET /api/data/ingest/standard/{cmb|locator|radar}/recent`（最近摘要）
 - `GET /api/data/ingest/monitor/lightning/recent`（三网混合）
 - `GET /api/data/ingest/attachment/refs?monitorId=` / `attachmentId=`

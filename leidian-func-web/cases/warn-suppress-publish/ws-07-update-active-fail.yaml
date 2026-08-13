@@ -1,8 +1,8 @@
 id: ws-07-update-active-fail
 name: 非草稿不可编辑
 description: 负向：已生效抑制不可再编辑，期望失败。
-skip: false
-skipReason: ''
+skip: true
+skipReason: 预警相关代码已移除；整包用例跳过
 steps:
 - method: POST
   service: biz

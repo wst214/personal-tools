@@ -1,8 +1,8 @@
 id: ws-01-create-draft
 name: 新建抑制草稿（ONCE+等级）
 description: 新建抑制草稿：ONCE 时间窗 + WARNING_LEVEL 目标，期望 DRAFT 且 targetMode=LEVEL。
-skip: false
-skipReason: ''
+skip: true
+skipReason: 预警相关代码已移除；整包用例跳过
 steps:
 - method: POST
   service: biz

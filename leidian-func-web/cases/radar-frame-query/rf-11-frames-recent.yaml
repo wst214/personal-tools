@@ -1,0 +1,15 @@
+id: rf-11-frames-recent
+name: biz 最近帧列表可查
+description: GET /api/v1/radar/frames/recent?minutes=60，校验接口可用。
+skip: false
+skipReason: ''
+expandByDeviceType: false
+steps:
+- name: 查最近雷达帧
+  method: GET
+  service: radar
+  path: /frames/recent?minutes=60
+  expect:
+    status: 200
+    fields:
+      code: 0

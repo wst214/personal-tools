@@ -1,0 +1,29 @@
+﻿id: rf-47-native-minio-notify
+name: 真·MinIO 桶通知（不补投 Kafka）
+description: |
+  publishNotify=false，仅依赖 MinIO → Kafka 桶通知。
+  当前本地 notify_kafka 常为 off，故默认 skip；环境配好桶通知后可改 skip=false。
+skip: true
+skipReason: 本地 MinIO notify_kafka 未启用；启用桶通知后将 skip 改为 false 再跑
+expandByDeviceType: false
+steps:
+- name: 仅 MinIO 上传（不补投通知）
+  method: MINIO
+  objectKey: ${radarObjectKey}
+  body: '{"funcWeb":true,"nativeNotify":true}'
+  publishNotify: false
+- name: 等待桶通知消费
+  method: SLEEP
+  seconds: 10
+- name: 重放源命中
+  method: GET
+  service: data
+  path: /replay/radar/source?startTime=${frameStart}&endTime=${frameEnd}&limit=20
+  expect:
+    status: 200
+    fields:
+      code: 0
+    contains:
+    - path: data
+      match:
+        dedupKey: ${frameId}

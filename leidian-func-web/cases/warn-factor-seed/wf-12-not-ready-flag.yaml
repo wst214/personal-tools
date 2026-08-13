@@ -1,8 +1,8 @@
 id: wf-12-not-ready-flag
 name: 未就绪因子应带 NOT_READY 标记
 description: 验收：未就绪因子应带 NOT_READY 标记。
-skip: false
-skipReason: ''
+skip: true
+skipReason: 预警相关代码已移除；整包用例跳过
 steps:
 - method: GET
   service: biz

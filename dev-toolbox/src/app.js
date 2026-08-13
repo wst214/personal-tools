@@ -28,6 +28,10 @@ const TOOL_ICONS = {
   // 多上游汇聚到中心再转发，契合 API 网关
   newapi: svg('<circle cx="12" cy="12" r="2.8"/><circle cx="5" cy="6.5" r="1.7"/><circle cx="19" cy="6.5" r="1.7"/><circle cx="5" cy="17.5" r="1.7"/><circle cx="19" cy="17.5" r="1.7"/><path d="M6.5 7.6 9.8 10.4M17.5 7.6 14.2 10.4M6.5 16.4 9.8 13.6M17.5 16.4 14.2 13.6"/>'),
   llmprobe: svg('<path d="M12 3.5v3M12 17.5v3M3.5 12h3M17.5 12h3"/><circle cx="12" cy="12" r="5.5"/><circle cx="12" cy="12" r="1.8"/>'),
+  writing: svg('<path d="M5 19.5h14"/><path d="M7.5 16.5 17 7l2.2 2.2L9.7 18.7 6.5 19.5z"/><path d="M14.8 9.2 17 11.4"/>'),
+  openacme: svg('<circle cx="12" cy="8" r="2.2"/><circle cx="6.5" cy="15.5" r="2"/><circle cx="17.5" cy="15.5" r="2"/><circle cx="12" cy="18" r="1.7"/><path d="M12 10.2v4M10.2 9.2 7.8 13.8M13.8 9.2l2.4 4.6"/>'),
+  stirling: svg('<path d="M7 4.5h10a1.5 1.5 0 0 1 1.5 1.5v12a1.5 1.5 0 0 1-1.5 1.5H7A1.5 1.5 0 0 1 5.5 18V6A1.5 1.5 0 0 1 7 4.5z"/><path d="M8.5 9h7M8.5 12h7M8.5 15h4"/>'),
+  anythingllm: svg('<path d="M6 7.5h12v9H6z"/><path d="M9 10.5h6M9 13.5h4"/><path d="M8 7.5V6a4 4 0 0 1 8 0v1.5"/>'),
 };
 
 // 每个工具的图标底色（彩色圆角方块）
@@ -54,6 +58,10 @@ const ICON_COLORS = {
   embed: 'linear-gradient(135deg,#8b5cf6,#7c3aed)',
   newapi: 'linear-gradient(135deg,#0ea5e9,#0284c8)',
   llmprobe: 'linear-gradient(135deg,#22c55e,#16a34a)',
+  writing: 'linear-gradient(135deg,#0f766e,#0d9488)',
+  openacme: 'linear-gradient(135deg,#14b8a6,#0d9488)',
+  stirling: 'linear-gradient(135deg,#ef4444,#dc2626)',
+  anythingllm: 'linear-gradient(135deg,#6366f1,#4f46e5)',
 };
 
 // 主图标（对点连线，调细版）
@@ -62,7 +70,8 @@ const LOGO_SVG = `<img src="./logo.png" alt="DevTool" style="width:100%;height:1
 
 const ICONS = {
   search: svg('<circle cx="10.8" cy="10.8" r="6.2"/><path d="m16 16 4.3 4.3"/>'),
-  group: svg('<rect x="4" y="5" width="6" height="6" rx="1.5"/><rect x="14" y="5" width="6" height="6" rx="1.5"/><rect x="4" y="15" width="6" height="4" rx="1.4"/><path d="M14 17h6M17 14v6"/>'),
+  // 分组管理：点阵图标，样式与搜索框旁按钮一致
+  group: `<svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="6" cy="6" r="2" fill="currentColor"/><circle cx="12" cy="6" r="2" fill="currentColor"/><circle cx="18" cy="6" r="2" fill="currentColor"/><circle cx="6" cy="12" r="2" fill="currentColor"/><circle cx="12" cy="12" r="2" fill="currentColor"/><circle cx="18" cy="12" r="2" fill="currentColor"/><circle cx="6" cy="18" r="2" fill="currentColor"/><circle cx="12" cy="18" r="2" fill="currentColor"/><circle cx="18" cy="18" r="2" fill="currentColor"/></svg>`,
   plus: svg('<path d="M12 5v14M5 12h14"/>'),
   pin: svg('<path d="M9 4h6l-.7 5.2 3.7 3.6v1.4h-5.1L12 20l-.9-5.8H6v-1.4l3.7-3.6L9 4Z"/>'),
   pinOn: `<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 4h6l-.7 5.2 3.7 3.6v1.4h-5.1L12 20l-.9-5.8H6v-1.4l3.7-3.6L9 4Z" fill="currentColor"/></svg>`,
@@ -81,8 +90,9 @@ function toolIconSvg(tool) {
 const PINS_KEY = 'devtool-pins';
 const GROUPS_KEY = 'devtool-groups';
 const GROUPS_VERSION_KEY = 'devtool-groups-version';
+const KNOWN_TOOLS_KEY = 'devtool-known-tools';
 // 仅用于一次性 schema 迁移；加工具时不要再靠 bump 版本去改分组
-const GROUPS_VERSION = 10;
+const GROUPS_VERSION = 11;
 function loadPins() { try { return JSON.parse(localStorage.getItem(PINS_KEY)) || []; } catch { return []; } }
 function savePins(p) { localStorage.setItem(PINS_KEY, JSON.stringify(p)); }
 
@@ -92,29 +102,88 @@ function defaultGroups() {
     g('\u7f16\u7801\u8f6c\u6362', ['json', 'timestamp', 'crypto']),
     g('\u6587\u672c\u5904\u7406', ['sql', 'regex', 'diff']),
     g('\u7f51\u7edc\u5de5\u5177', ['http', 'llmprobe', 'ssh']),
-    g('\u7cfb\u7edf\u5de5\u5177', ['sysinfo', 'hosts', 'deploy', 'embed', 'newapi']),
-    g('\u5176\u5b83\u5de5\u5177', ['qrcode', 'cron']),
+    g('\u7cfb\u7edf\u5de5\u5177', ['sysinfo', 'hosts', 'deploy', 'embed', 'newapi', 'openacme', 'stirling']),
+    g('\u5176\u5b83\u5de5\u5177', ['qrcode', 'cron', 'writing']),
   ];
 }
 
 const OTHER_GROUP_ID = 'group-\u5176\u5b83\u5de5\u5177';
 const OTHER_GROUP_NAME = '\u5176\u5b83\u5de5\u5177';
+const SYSTEM_GROUP_NAME = '\u7cfb\u7edf\u5de5\u5177';
+/** 侧栏「置顶」区固定工具（与用户 pin 并列，且不出现在下方分组里） */
+const ALWAYS_TOP_IDS = ['notes', 'anythingllm'];
 
-/** 把尚未入组的新工具放进已有「其它工具」；若用户删过该组，才临时建一个，绝不还原其它默认分组 */
+function loadKnownTools() {
+  try {
+    const a = JSON.parse(localStorage.getItem(KNOWN_TOOLS_KEY));
+    return Array.isArray(a) ? new Set(a) : new Set();
+  } catch {
+    return new Set();
+  }
+}
+
+function saveKnownTools(ids) {
+  localStorage.setItem(KNOWN_TOOLS_KEY, JSON.stringify([...ids]));
+}
+
+function defaultGroupForTool(toolId) {
+  for (const g of defaultGroups()) {
+    if (g.toolIds.includes(toolId)) return g;
+  }
+  return null;
+}
+
+function ensureGroup(base, id, name) {
+  let g = base.find((x) => x.id === id || x.name === name);
+  if (!g) {
+    g = { id, name, toolIds: [] };
+    base.push(g);
+  }
+  return g;
+}
+
+/** 把未入组的新工具放进默认分组（或「其它」）；用户主动移出的不再自动塞回 */
 function placeOrphanTools(groups) {
   const base = (Array.isArray(groups) && groups.length ? groups : defaultGroups())
     .map((g) => ({ ...g, toolIds: [...(g.toolIds || [])] }));
-  const haveTool = (id) => base.some((g) => g.toolIds.includes(id));
-  const orphans = visibleTools.map((t) => t.id).filter((id) => !haveTool(id));
-  if (!orphans.length) return base;
+  const allIds = visibleTools.map((t) => t.id);
+  let known = loadKnownTools();
 
-  let other = base.find((g) => g.id === OTHER_GROUP_ID || g.name === OTHER_GROUP_NAME);
-  if (!other) {
-    other = { id: OTHER_GROUP_ID, name: OTHER_GROUP_NAME, toolIds: [] };
-    base.push(other);
+  // 首次启用：只把「已在分组里的」记为已知，未入组的当作新工具补进去
+  if (!known.size) {
+    known = new Set();
+    for (const g of base) for (const id of g.toolIds || []) known.add(id);
   }
+
+  const haveTool = (id) => base.some((g) => g.toolIds.includes(id));
+  const orphans = allIds.filter((id) => !ALWAYS_TOP_IDS.includes(id) && !haveTool(id) && !known.has(id));
   for (const id of orphans) {
-    if (!other.toolIds.includes(id)) other.toolIds.push(id);
+    const pref = defaultGroupForTool(id);
+    const target = pref
+      ? ensureGroup(base, pref.id, pref.name)
+      : ensureGroup(base, OTHER_GROUP_ID, OTHER_GROUP_NAME);
+    if (!target.toolIds.includes(id)) target.toolIds.push(id);
+  }
+  // 恒置顶工具不进分组，避免侧栏重复
+  for (const g of base) {
+    g.toolIds = g.toolIds.filter((id) => !ALWAYS_TOP_IDS.includes(id));
+  }
+  saveKnownTools(allIds);
+  return base;
+}
+
+/** 补回未入任何分组的 PDF 工具（known-tools 误标后会永久消失） */
+function recoverMissingSystemTools(groups) {
+  const base = groups.map((g) => ({ ...g, toolIds: [...(g.toolIds || [])] }));
+  const haveTool = (id) => base.some((g) => g.toolIds.includes(id));
+  const sys = ensureGroup(base, 'group-' + SYSTEM_GROUP_NAME, SYSTEM_GROUP_NAME);
+  for (const id of ['stirling']) {
+    if (visibleTools.some((t) => t.id === id) && !haveTool(id) && !sys.toolIds.includes(id)) {
+      sys.toolIds.push(id);
+    }
+  }
+  for (const g of base) {
+    g.toolIds = g.toolIds.filter((id) => !ALWAYS_TOP_IDS.includes(id));
   }
   return base;
 }
@@ -125,11 +194,12 @@ function loadGroups() {
     if (!Array.isArray(saved) || !saved.length) {
       const defaults = defaultGroups();
       saveGroups(defaults);
+      saveKnownTools(visibleTools.map((t) => t.id));
       localStorage.setItem(GROUPS_VERSION_KEY, String(GROUPS_VERSION));
       return defaults;
     }
-    // 有用户配置：只补孤儿工具，不因版本变化还原已删分组
-    const next = placeOrphanTools(saved);
+    // 有用户配置：只补真正的新工具，不还原已删/已移出项；系统内嵌工具除外
+    let next = recoverMissingSystemTools(placeOrphanTools(saved));
     if (JSON.stringify(next) !== JSON.stringify(saved)) saveGroups(next);
     localStorage.setItem(GROUPS_VERSION_KEY, String(GROUPS_VERSION));
     return next;
@@ -185,7 +255,13 @@ export function initApp(root) {
   });
 
   const nav = el('nav', { class: 'nav' });
-  const directoryBtn = el('button', { class: 'sidebar-tool', type: 'button', title: '\u7ba1\u7406\u5206\u7ec4', html: ICONS.group, onclick: openGroupManager });
+  const directoryBtn = el('button', {
+    class: 'sidebar-tool',
+    type: 'button',
+    title: '\u7ba1\u7406\u5206\u7ec4',
+    html: ICONS.group,
+    onclick: openGroupManager,
+  });
   const settingsBtn = el('button', { class: 'sidebar-tool', type: 'button', title: '\u8bbe\u7f6e', html: ICONS.setting, onclick: openSettings });
 
   sidebar.append(
@@ -275,16 +351,20 @@ export function initApp(root) {
       }
       return;
     }
-    // 随手记恒置顶 + 用户置顶
-    const topIds = ['notes', ...pins.filter((id) => id !== 'notes')];
+    // 随手记 / 知识库恒置顶 + 用户置顶
+    const topIds = [...ALWAYS_TOP_IDS, ...pins.filter((id) => !ALWAYS_TOP_IDS.includes(id))];
     const topTools = topIds.map((id) => visibleTools.find((t) => t.id === id)).filter(Boolean);
     if (topTools.length) {
       nav.append(el('div', { class: 'nav-group-title', text: '\u7f6e\u9876' }));
       topTools.forEach((t) => nav.append(navItem(t)));
     }
+    const topSet = new Set(ALWAYS_TOP_IDS);
     const visibleCustomGroups = normalizedGroups(customGroups).filter((g) => g.toolIds.length);
     for (const group of visibleCustomGroups) {
-      const groupTools = group.toolIds.map((id) => visibleTools.find((t) => t.id === id)).filter(Boolean);
+      const groupTools = group.toolIds
+        .filter((id) => !topSet.has(id))
+        .map((id) => visibleTools.find((t) => t.id === id))
+        .filter(Boolean);
       if (!groupTools.length) continue;
       nav.append(el('div', { class: 'nav-group-title', text: group.name }));
       groupTools.forEach((t) => nav.append(navItem(t)));
@@ -329,6 +409,8 @@ export function initApp(root) {
     function saveAndClose() {
       customGroups = normalizedGroups(draft);
       saveGroups(customGroups);
+      // 标记全部工具为已知，避免下次启动把主动移出的工具再塞回「其它」
+      saveKnownTools(visibleTools.map((t) => t.id));
       renderSidebar();
       close();
     }
@@ -417,7 +499,13 @@ export function initApp(root) {
             el('div', { class: 'group-modal-subtitle', text: '\u81ea\u5b9a\u4e49\u4fa7\u8fb9\u680f\u5206\u7ec4\u4e0e\u5de5\u5177\u6392\u5e8f' }),
           ]),
         ]),
-        el('button', { class: 'group-close-btn', type: 'button', text: '\u00d7', onclick: close }),
+        el('button', {
+          class: 'group-close-btn',
+          type: 'button',
+          title: '\u5173\u95ed',
+          html: '<svg viewBox="0 0 24 24" width="16" height="16" aria-hidden="true"><path d="M6.5 6.5l11 11M17.5 6.5l-11 11" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>',
+          onclick: close,
+        }),
       ]),
       el('div', { class: 'group-modal-body' }, [
         el('aside', { class: 'group-sidebar' }, [groupList]),
@@ -512,7 +600,13 @@ export function initApp(root) {
     modal.append(
       el('div', { class: 'settings-head' }, [
         el('div', { class: 'settings-title', text: '\u8bbe\u7f6e' }),
-        el('button', { class: 'settings-close', type: 'button', text: '\u00d7', onclick: close }),
+        el('button', {
+          class: 'settings-close',
+          type: 'button',
+          title: '\u5173\u95ed',
+          html: '<svg viewBox="0 0 24 24" width="16" height="16" aria-hidden="true"><path d="M6.5 6.5l11 11M17.5 6.5l-11 11" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>',
+          onclick: close,
+        }),
       ]),
       el('div', { class: 'settings-body' }, [listEl, detailEl]),
     );
@@ -528,12 +622,13 @@ export function initApp(root) {
     content.innerHTML = '';
     const tool = visibleTools.find((t) => t.id === state.activeId) || visibleTools[0];
     pageTitle.textContent = tool.name;
-    pageSub.textContent = tool.desc || '';
-    // TestHub 内嵌：去掉标题栏，iframe 占满；New API 用自有页面，保留标题
-    const embedIds = new Set(['embed', 'newapi']);
+    pageSub.textContent = tool.id === 'llmprobe' ? '' : (tool.desc || '');
+    pageSub.hidden = tool.id === 'llmprobe';
+    // TestHub / New API / OpenAcme / Stirling / AnythingLLM 内嵌：去掉标题栏，iframe 占满
+    const embedIds = new Set(['embed', 'newapi', 'openacme', 'stirling', 'anythingllm']);
     pageHead.hidden = embedIds.has(tool.id);
     // notes/deploy/ssh/json 等：内容区隐藏外层滚动，工具内部（输入/输出框）自己滚
-    const fillTools = new Set(['notes', 'deploy', 'ssh', 'json', 'crypto', 'sql', 'text', 'hosts', 'http', 'sysinfo', 'diff', 'embed', 'newapi']);
+    const fillTools = new Set(['notes', 'deploy', 'ssh', 'json', 'crypto', 'sql', 'text', 'hosts', 'http', 'sysinfo', 'diff', 'embed', 'newapi', 'llmprobe', 'openacme', 'stirling', 'anythingllm']);
     content.className = 'content' + (fillTools.has(tool.id) ? ' content-notes' : '') + (embedIds.has(tool.id) ? ' content-embed' : '');
     const wrap = el('div', { class: 'tool-wrap' });
     content.append(wrap);

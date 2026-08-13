@@ -1,0 +1,80 @@
+id: di-35-monitor-list-matrix
+name: 九类监测列表烟测矩阵
+description: |
+  不按勾选展开：固定打齐业务列表（含 SPD 摘要）；SPD 心跳明确无 BFF 不覆盖。
+  与 di-30 互补——di-30 随勾选展开，本用例保证九类路径字面量齐全。
+skip: false
+skipReason: ''
+steps:
+- name: 大气电场列表
+  method: GET
+  service: biz
+  path: /monitor/atmosphere/atmospheres?pageNum=1&pageSize=10
+  expect:
+    status: 200
+    fields:
+      code: 0
+- name: 接地电阻列表
+  method: GET
+  service: biz
+  path: /monitor/grounding/groundings?pageNum=1&pageSize=10
+  expect:
+    status: 200
+    fields:
+      code: 0
+- name: 雷击电流列表
+  method: GET
+  service: biz
+  path: /monitor/surge-current/surge-currents?pageNum=1&pageSize=10
+  expect:
+    status: 200
+    fields:
+      code: 0
+- name: iSPD/PDU 列表
+  method: GET
+  service: biz
+  path: /monitor/ispd-pdu/ispd-pdus?pageNum=1&pageSize=10
+  expect:
+    status: 200
+    fields:
+      code: 0
+- name: 断接卡列表
+  method: GET
+  service: biz
+  path: /monitor/disconnect-card/disconnect-cards?pageNum=1&pageSize=10
+  expect:
+    status: 200
+    fields:
+      code: 0
+- name: 远程终端列表
+  method: GET
+  service: biz
+  path: /monitor/remote-terminal/remote-terminals?pageNum=1&pageSize=10
+  expect:
+    status: 200
+    fields:
+      code: 0
+- name: 避雷器在线监测列表
+  method: GET
+  service: biz
+  path: /monitor/surge-monitor/surge-monitors?pageNum=1&pageSize=10
+  expect:
+    status: 200
+    fields:
+      code: 0
+- name: 电源控制板列表
+  method: GET
+  service: biz
+  path: /monitor/power-board/power-boards?pageNum=1&pageSize=10
+  expect:
+    status: 200
+    fields:
+      code: 0
+- name: SPD 波形摘要列表
+  method: GET
+  service: biz
+  path: /monitor/spd-waveform/spd-waveforms?pageNum=1&pageSize=10
+  expect:
+    status: 200
+    fields:
+      code: 0

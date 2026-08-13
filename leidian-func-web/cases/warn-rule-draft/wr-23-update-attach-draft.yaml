@@ -1,8 +1,8 @@
 id: wr-23-update-attach-draft
 name: 已发布无草稿时更新会挂接新草稿
 description: 规则已发布且无草稿时再更新：应自动挂接新的草稿版本，draftVersionId 非空。
-skip: false
-skipReason: ''
+skip: true
+skipReason: 预警相关代码已移除；整包用例跳过
 steps:
 - method: POST
   service: biz

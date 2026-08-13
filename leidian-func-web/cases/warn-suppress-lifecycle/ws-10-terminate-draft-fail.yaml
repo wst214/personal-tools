@@ -1,8 +1,8 @@
 id: ws-10-terminate-draft-fail
 name: 终止非 ACTIVE 失败
 description: 负向：草稿态不可终止，期望失败。
-skip: false
-skipReason: ''
+skip: true
+skipReason: 预警相关代码已移除；整包用例跳过
 steps:
 - method: POST
   service: biz

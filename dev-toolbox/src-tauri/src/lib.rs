@@ -710,6 +710,137 @@ async fn deploy_pick_dir(window: tauri::Window) -> Result<serde_json::Value, Str
     Ok(serde_json::json!({ "ok": true, "path": path.into_path().unwrap_or_default().to_string_lossy() }))
 }
 
+const DIFF_SKIP_DIRS: &[&str] = &[
+    "node_modules", ".git", ".svn", ".hg", "dist", "build", "target",
+    "__pycache__", ".idea", ".vscode", ".next", "coverage", ".cache",
+    ".turbo", ".nuxt", "vendor",
+];
+
+fn diff_should_skip(name: &str) -> bool {
+    DIFF_SKIP_DIRS.iter().any(|s| *s == name)
+}
+
+fn diff_scan_walk(root: &Path, dir: &Path, out: &mut Vec<serde_json::Value>, depth: u32) {
+    if depth > 40 || out.len() >= 20000 {
+        return;
+    }
+    let Ok(entries) = fs::read_dir(dir) else {
+        return;
+    };
+    let mut items: Vec<_> = entries.flatten().collect();
+    items.sort_by_key(|e| e.file_name());
+    for e in items {
+        if out.len() >= 20000 {
+            return;
+        }
+        let name = e.file_name().to_string_lossy().to_string();
+        if diff_should_skip(&name) {
+            continue;
+        }
+        let p = e.path();
+        let Ok(meta) = e.metadata() else {
+            continue;
+        };
+        if meta.is_dir() {
+            diff_scan_walk(root, &p, out, depth + 1);
+            continue;
+        }
+        if !meta.is_file() {
+            continue;
+        }
+        let rel = p
+            .strip_prefix(root)
+            .unwrap_or(&p)
+            .to_string_lossy()
+            .replace('\\', "/");
+        let mtime = meta
+            .modified()
+            .ok()
+            .and_then(|t| t.duration_since(std::time::UNIX_EPOCH).ok())
+            .map(|d| d.as_secs())
+            .unwrap_or(0);
+        out.push(serde_json::json!({
+            "path": rel,
+            "size": meta.len(),
+            "mtime": mtime,
+        }));
+    }
+}
+
+/// 选择文件夹（Diff 文件夹对比）
+#[tauri::command]
+async fn diff_pick_dir(window: tauri::Window) -> Result<serde_json::Value, String> {
+    use tauri_plugin_dialog::DialogExt;
+    let res = window.dialog().file().blocking_pick_folder();
+    let Some(path) = res else {
+        return Ok(serde_json::json!({ "ok": false, "canceled": true }));
+    };
+    Ok(serde_json::json!({
+        "ok": true,
+        "path": path.into_path().unwrap_or_default().to_string_lossy()
+    }))
+}
+
+/// 递归扫描目录文件列表（跳过常见构建/依赖目录）
+#[tauri::command]
+async fn diff_scan_dir(dir: String) -> Result<serde_json::Value, String> {
+    tauri::async_runtime::spawn_blocking(move || {
+        let root = PathBuf::from(dir.trim());
+        if !root.is_dir() {
+            return Ok(serde_json::json!({ "ok": false, "error": "不是有效目录" }));
+        }
+        let mut files = Vec::new();
+        diff_scan_walk(&root, &root, &mut files, 0);
+        let truncated = files.len() >= 20000;
+        Ok(serde_json::json!({
+            "ok": true,
+            "dir": root.to_string_lossy(),
+            "files": files,
+            "count": files.len(),
+            "truncated": truncated,
+        }))
+    })
+    .await
+    .map_err(|e| e.to_string())?
+}
+
+/// 读取文本文件供 Diff 内容对比（有大小上限）
+#[tauri::command]
+async fn diff_read_text(path: String, max_bytes: Option<u64>) -> Result<serde_json::Value, String> {
+    tauri::async_runtime::spawn_blocking(move || {
+        let p = PathBuf::from(path);
+        let lim = max_bytes.unwrap_or(2 * 1024 * 1024);
+        let meta = match fs::metadata(&p) {
+            Ok(m) => m,
+            Err(e) => return Ok(serde_json::json!({ "ok": false, "error": e.to_string() })),
+        };
+        if meta.len() > lim {
+            return Ok(serde_json::json!({
+                "ok": false,
+                "tooLarge": true,
+                "error": format!("文件过大（{} bytes），无法文本对比", meta.len())
+            }));
+        }
+        match fs::read(&p) {
+            Ok(bytes) => {
+                let sample_len = bytes.len().min(8000);
+                if bytes[..sample_len].iter().any(|b| *b == 0) {
+                    return Ok(serde_json::json!({
+                        "ok": false,
+                        "binary": true,
+                        "error": "二进制文件，无法文本对比"
+                    }));
+                }
+                let body = String::from_utf8_lossy(&bytes).into_owned();
+                Ok(serde_json::json!({ "ok": true, "body": body }))
+            }
+            Err(e) => Ok(serde_json::json!({ "ok": false, "error": e.to_string() })),
+        }
+    })
+    .await
+    .map_err(|e| e.to_string())?
+}
+
 #[tauri::command]
 async fn deploy_stop(state: tauri::State<'_, Mutex<DeployState>>, app: tauri::AppHandle) -> Result<serde_json::Value, String> {
     let mut st = state.lock().unwrap();
@@ -874,7 +1005,16 @@ async fn ssh_connect(
 }
 
 #[tauri::command]
-fn ssh_write(_app: tauri::AppHandle, state: tauri::State<'_, SharedSsh>, id: String, data: String) -> Result<serde_json::Value, String> {
+fn ssh_write(
+    _app: tauri::AppHandle,
+    state: tauri::State<'_, SharedSsh>,
+    local: tauri::State<'_, SharedLocalShell>,
+    id: String,
+    data: String,
+) -> Result<serde_json::Value, String> {
+    if id.starts_with("local-") {
+        return local_shell_write(local.inner().clone(), &id, &data);
+    }
     let st = state.lock().unwrap();
     let Some(stream) = st.streams.get(&id) else {
         return Ok(serde_json::json!({ "ok": false, "error": "未连接" }));
@@ -901,7 +1041,16 @@ fn ssh_write(_app: tauri::AppHandle, state: tauri::State<'_, SharedSsh>, id: Str
 }
 
 #[tauri::command]
-fn ssh_resize(state: tauri::State<'_, SharedSsh>, id: String, cols: u32, rows: u32) -> Result<serde_json::Value, String> {
+fn ssh_resize(
+    state: tauri::State<'_, SharedSsh>,
+    local: tauri::State<'_, SharedLocalShell>,
+    id: String,
+    cols: u32,
+    rows: u32,
+) -> Result<serde_json::Value, String> {
+    if id.starts_with("local-") {
+        return local_shell_resize(local.inner().clone(), &id, cols, rows);
+    }
     let st = state.lock().unwrap();
     let Some(stream) = st.streams.get(&id) else {
         return Ok(serde_json::json!({ "ok": false, "error": "未连接" }));
@@ -916,7 +1065,14 @@ fn ssh_resize(state: tauri::State<'_, SharedSsh>, id: String, cols: u32, rows: u
 }
 
 #[tauri::command]
-fn ssh_disconnect(state: tauri::State<'_, SharedSsh>, id: String) -> Result<serde_json::Value, String> {
+fn ssh_disconnect(
+    state: tauri::State<'_, SharedSsh>,
+    local: tauri::State<'_, SharedLocalShell>,
+    id: String,
+) -> Result<serde_json::Value, String> {
+    if id.starts_with("local-") {
+        return local_shell_disconnect(local.inner().clone(), &id);
+    }
     let mut st = state.lock().unwrap();
     st.streams.remove(&id);
     st.sessions.remove(&id);
@@ -926,10 +1082,279 @@ fn ssh_disconnect(state: tauri::State<'_, SharedSsh>, id: String) -> Result<serd
 }
 
 #[tauri::command]
-fn ssh_list(state: tauri::State<'_, SharedSsh>) -> Result<serde_json::Value, String> {
-    let st = state.lock().unwrap();
-    let sessions: Vec<serde_json::Value> = st.sessions.keys().map(|id| serde_json::json!({ "id": id })).collect();
+fn ssh_list(
+    state: tauri::State<'_, SharedSsh>,
+    local: tauri::State<'_, SharedLocalShell>,
+) -> Result<serde_json::Value, String> {
+    let mut sessions: Vec<serde_json::Value> = {
+        let st = state.lock().unwrap();
+        st.sessions
+            .keys()
+            .map(|id| serde_json::json!({ "id": id, "kind": "ssh" }))
+            .collect()
+    };
+    {
+        let st = local.lock().unwrap();
+        for (id, entry) in st.sessions.iter() {
+            sessions.push(serde_json::json!({
+                "id": id,
+                "kind": "local",
+                "name": entry.name,
+                "shell": entry.shell,
+                "user": "",
+                "host": "localhost",
+            }));
+        }
+    }
     Ok(serde_json::json!({ "ok": true, "sessions": sessions }))
+}
+
+// ---- 本机终端（CMD / PowerShell，ConPTY）----
+use portable_pty::{CommandBuilder, MasterPty, NativePtySystem, PtySize, PtySystem};
+
+struct LocalShellEntry {
+    name: String,
+    shell: String,
+    writer: Mutex<Box<dyn Write + Send>>,
+    master: Box<dyn MasterPty + Send>,
+    killer: Mutex<Box<dyn portable_pty::ChildKiller + Send + Sync>>,
+}
+
+struct LocalShellState {
+    sessions: HashMap<String, LocalShellEntry>,
+}
+
+type SharedLocalShell = Arc<Mutex<LocalShellState>>;
+
+fn local_shell_targets(shell: &str) -> Result<(&'static str, Vec<&'static str>, String, String), String> {
+    let key = shell.trim().to_lowercase();
+    #[cfg(windows)]
+    {
+        match key.as_str() {
+            "cmd" => Ok(("cmd.exe", vec![], "cmd".into(), "CMD".into())),
+            "powershell" | "ps" => Ok(("powershell.exe", vec!["-NoLogo"], "powershell".into(), "PowerShell".into())),
+            "pwsh" => Ok(("pwsh.exe", vec!["-NoLogo"], "pwsh".into(), "PowerShell".into())),
+            _ => Err(format!("不支持的本机 shell：{shell}（可用 cmd / powershell）")),
+        }
+    }
+    #[cfg(not(windows))]
+    {
+        match key.as_str() {
+            "cmd" | "sh" | "bash" => Ok(("bash", vec![], "bash".into(), "Bash".into())),
+            "powershell" | "ps" | "pwsh" => Ok(("pwsh", vec!["-NoLogo"], "pwsh".into(), "PowerShell".into())),
+            _ => Err(format!("不支持的本机 shell：{shell}")),
+        }
+    }
+}
+
+fn local_shell_builder(shell: &str) -> Result<(CommandBuilder, String, String), String> {
+    let (exe, args, shell_key, base_name) = local_shell_targets(shell)?;
+    let mut cmd = CommandBuilder::new(exe);
+    for a in args {
+        cmd.arg(a);
+    }
+    Ok((cmd, shell_key, base_name))
+}
+
+fn local_shell_spawn_reader(
+    app: tauri::AppHandle,
+    id: String,
+    mut reader: Box<dyn Read + Send>,
+    state: SharedLocalShell,
+) {
+    std::thread::spawn(move || {
+        let mut buf = [0u8; 8192];
+        loop {
+            match reader.read(&mut buf) {
+                Ok(0) => {
+                    let _ = app.emit("ssh-output", serde_json::json!({ "id": id, "type": "closed" }));
+                    let mut st = state.lock().unwrap();
+                    st.sessions.remove(&id);
+                    break;
+                }
+                Ok(n) => {
+                    let text = String::from_utf8_lossy(&buf[..n]).to_string();
+                    let _ = app.emit("ssh-output", serde_json::json!({ "id": id, "type": "data", "data": text }));
+                }
+                Err(e) => {
+                    let kind = e.kind();
+                    if kind == std::io::ErrorKind::WouldBlock
+                        || kind == std::io::ErrorKind::TimedOut
+                        || kind == std::io::ErrorKind::Interrupted
+                    {
+                        std::thread::sleep(Duration::from_millis(20));
+                        continue;
+                    }
+                    let _ = app.emit("ssh-output", serde_json::json!({ "id": id, "type": "closed" }));
+                    let mut st = state.lock().unwrap();
+                    st.sessions.remove(&id);
+                    break;
+                }
+            }
+        }
+    });
+}
+
+fn local_shell_open_inner(
+    app: tauri::AppHandle,
+    state: SharedLocalShell,
+    shell: String,
+) -> Result<serde_json::Value, String> {
+    let (mut cmd, shell_key, display_name) = local_shell_builder(&shell)?;
+    if let Ok(home) = std::env::var(if cfg!(windows) { "USERPROFILE" } else { "HOME" }) {
+        if !home.is_empty() {
+            cmd.cwd(home);
+        }
+    }
+
+    let pty_system = NativePtySystem::default();
+    let pair = pty_system
+        .openpty(PtySize {
+            rows: 30,
+            cols: 100,
+            pixel_width: 0,
+            pixel_height: 0,
+        })
+        .map_err(|e| format!("openpty: {e}"))?;
+
+    let reader = pair
+        .master
+        .try_clone_reader()
+        .map_err(|e| format!("clone_reader: {e}"))?;
+    let mut writer = pair
+        .master
+        .take_writer()
+        .map_err(|e| format!("take_writer: {e}"))?;
+
+    let mut child = pair
+        .slave
+        .spawn_command(cmd)
+        .map_err(|e| format!("spawn {shell_key}: {e}"))?;
+    // slave 端交给子进程后即可丢弃
+    drop(pair.slave);
+
+    // Windows ConPTY 启动时可能发 ESC[6n 等待光标位置，不回复会卡住
+    #[cfg(windows)]
+    {
+        let _ = writer.write_all(b"\x1b[1;1R");
+        let _ = writer.flush();
+    }
+
+    let id = format!(
+        "local-{}-{}",
+        shell_key,
+        std::time::SystemTime::now()
+            .duration_since(std::time::UNIX_EPOCH)
+            .unwrap()
+            .as_millis()
+    );
+    let killer = child.clone_killer();
+    {
+        let mut st = state.lock().unwrap();
+        st.sessions.insert(
+            id.clone(),
+            LocalShellEntry {
+                name: display_name.clone(),
+                shell: shell_key.clone(),
+                writer: Mutex::new(writer),
+                master: pair.master,
+                killer: Mutex::new(killer),
+            },
+        );
+    }
+
+    // 后台等子进程退出（读线程 EOF 也会清理）
+    {
+        let app2 = app.clone();
+        let id2 = id.clone();
+        let state2 = state.clone();
+        std::thread::spawn(move || {
+            let _ = child.wait();
+            let removed = {
+                let mut st = state2.lock().unwrap();
+                st.sessions.remove(&id2).is_some()
+            };
+            if removed {
+                let _ = app2.emit("ssh-output", serde_json::json!({ "id": id2, "type": "closed" }));
+            }
+        });
+    }
+
+    local_shell_spawn_reader(app, id.clone(), reader, state);
+    Ok(serde_json::json!({
+        "ok": true,
+        "id": id,
+        "name": display_name,
+        "shell": shell_key,
+    }))
+}
+
+#[tauri::command]
+async fn local_shell_open(
+    app: tauri::AppHandle,
+    local: tauri::State<'_, SharedLocalShell>,
+    shell: String,
+) -> Result<serde_json::Value, String> {
+    let state = local.inner().clone();
+    tauri::async_runtime::spawn_blocking(move || local_shell_open_inner(app, state, shell))
+        .await
+        .map_err(|e| e.to_string())?
+}
+
+fn local_shell_write(state: SharedLocalShell, id: &str, data: &str) -> Result<serde_json::Value, String> {
+    let st = state.lock().unwrap();
+    let Some(entry) = st.sessions.get(id) else {
+        return Ok(serde_json::json!({ "ok": false, "error": "未连接" }));
+    };
+    let mut writer = entry.writer.lock().map_err(|e| e.to_string())?;
+    let bytes = data.as_bytes();
+    let mut off = 0usize;
+    let deadline = Instant::now() + Duration::from_secs(10);
+    while off < bytes.len() {
+        match writer.write(&bytes[off..]) {
+            Ok(0) => break,
+            Ok(n) => off += n,
+            Err(e)
+                if e.kind() == std::io::ErrorKind::WouldBlock
+                    || e.kind() == std::io::ErrorKind::TimedOut
+                    || e.kind() == std::io::ErrorKind::Interrupted =>
+            {
+                if Instant::now() >= deadline {
+                    return Ok(serde_json::json!({ "ok": false, "error": e.to_string() }));
+                }
+                std::thread::sleep(Duration::from_millis(10));
+            }
+            Err(e) => return Ok(serde_json::json!({ "ok": false, "error": e.to_string() })),
+        }
+    }
+    let _ = writer.flush();
+    Ok(serde_json::json!({ "ok": true }))
+}
+
+fn local_shell_resize(state: SharedLocalShell, id: &str, cols: u32, rows: u32) -> Result<serde_json::Value, String> {
+    let st = state.lock().unwrap();
+    let Some(entry) = st.sessions.get(id) else {
+        return Ok(serde_json::json!({ "ok": false, "error": "未连接" }));
+    };
+    match entry.master.resize(PtySize {
+        rows: rows.max(1) as u16,
+        cols: cols.max(1) as u16,
+        pixel_width: 0,
+        pixel_height: 0,
+    }) {
+        Ok(()) => Ok(serde_json::json!({ "ok": true })),
+        Err(e) => Ok(serde_json::json!({ "ok": false, "error": e.to_string() })),
+    }
+}
+
+fn local_shell_disconnect(state: SharedLocalShell, id: &str) -> Result<serde_json::Value, String> {
+    let mut st = state.lock().unwrap();
+    if let Some(entry) = st.sessions.remove(id) {
+        if let Ok(mut killer) = entry.killer.lock() {
+            let _ = killer.kill();
+        }
+    }
+    Ok(serde_json::json!({ "ok": true }))
 }
 
 fn ssh_saved_file(app: &tauri::AppHandle) -> PathBuf {
@@ -1490,6 +1915,381 @@ async fn newapi_ensure(app: tauri::AppHandle) -> Result<serde_json::Value, Strin
     .map_err(|e| e.to_string())?
 }
 
+/// 确保本机 OpenAcme（:3456）已启动；已在跑则直接返回。
+#[tauri::command]
+async fn openacme_ensure(app: tauri::AppHandle) -> Result<serde_json::Value, String> {
+    tauri::async_runtime::spawn_blocking(move || {
+        if testhub_port_up(3456) {
+            return Ok(serde_json::json!({
+                "ok": true,
+                "started": false,
+                "message": "already running"
+            }));
+        }
+
+        let root = openacme_root(&app);
+        let script = root.join("ensure-openacme.ps1");
+        if !script.is_file() {
+            return Ok(serde_json::json!({
+                "ok": false,
+                "started": false,
+                "message": format!("找不到 ensure-openacme.ps1：{}（可设置环境变量 OPENACME_ROOT）", script.display())
+            }));
+        }
+
+        #[cfg(windows)]
+        {
+            use std::os::windows::process::CommandExt;
+            const CREATE_NO_WINDOW: u32 = 0x08000000;
+            let out = Command::new("powershell")
+                .args([
+                    "-NoProfile",
+                    "-ExecutionPolicy",
+                    "Bypass",
+                    "-File",
+                    &script.to_string_lossy(),
+                ])
+                .current_dir(&root)
+                .creation_flags(CREATE_NO_WINDOW)
+                .stdout(Stdio::piped())
+                .stderr(Stdio::piped())
+                .output()
+                .map_err(|e| e.to_string())?;
+            let stdout = String::from_utf8_lossy(&out.stdout).trim().to_string();
+            let stderr = String::from_utf8_lossy(&out.stderr).trim().to_string();
+            if let Ok(v) = serde_json::from_str::<serde_json::Value>(&stdout) {
+                let ready = testhub_port_up(3456)
+                    || v.get("ok").and_then(|x| x.as_bool()).unwrap_or(false);
+                let mut obj = v;
+                if let Some(map) = obj.as_object_mut() {
+                    map.insert("ok".into(), serde_json::json!(ready));
+                    map.insert("started".into(), serde_json::json!(true));
+                }
+                return Ok(obj);
+            }
+            let ready = testhub_port_up(3456);
+            let msg = if !stdout.is_empty() {
+                stdout
+            } else if !stderr.is_empty() {
+                stderr
+            } else if ready {
+                "ready".to_string()
+            } else {
+                format!("exit={}", out.status.code().unwrap_or(-1))
+            };
+            Ok(serde_json::json!({
+                "ok": ready,
+                "started": true,
+                "message": msg
+            }))
+        }
+        #[cfg(not(windows))]
+        {
+            Ok(serde_json::json!({
+                "ok": false,
+                "started": false,
+                "message": "openacme_ensure 当前打包仅实现了 Windows 启动脚本；请本机直接执行 openacme"
+            }))
+        }
+    })
+    .await
+    .map_err(|e| e.to_string())?
+}
+
+fn openacme_root(app: &tauri::AppHandle) -> PathBuf {
+    if let Ok(p) = std::env::var("OPENACME_ROOT") {
+        let pb = PathBuf::from(p.trim());
+        if pb.is_dir() {
+            return pb;
+        }
+    }
+    let cfg = app
+        .path()
+        .app_config_dir()
+        .unwrap_or_else(|_| PathBuf::from("."))
+        .join("openacme-root.txt");
+    if let Ok(s) = fs::read_to_string(&cfg) {
+        let pb = PathBuf::from(s.trim());
+        if pb.is_dir() {
+            return pb;
+        }
+    }
+    PathBuf::from(r"D:\mytools\dev-toolbox\openacme")
+}
+
+fn stirling_root(app: &tauri::AppHandle) -> PathBuf {
+    if let Ok(p) = std::env::var("STIRLING_ROOT") {
+        let pb = PathBuf::from(p.trim());
+        if pb.is_dir() {
+            return pb;
+        }
+    }
+    let cfg = app
+        .path()
+        .app_config_dir()
+        .unwrap_or_else(|_| PathBuf::from("."))
+        .join("stirling-root.txt");
+    if let Ok(s) = fs::read_to_string(&cfg) {
+        let pb = PathBuf::from(s.trim());
+        if pb.is_dir() {
+            return pb;
+        }
+    }
+    PathBuf::from(r"D:\mytools\dev-toolbox\stirling-pdf")
+}
+
+/// 确保本机 Stirling-PDF（Docker :8090）已启动；已在跑则直接返回。
+#[tauri::command]
+async fn stirling_ensure(app: tauri::AppHandle) -> Result<serde_json::Value, String> {
+    tauri::async_runtime::spawn_blocking(move || {
+        if testhub_port_up(8090) {
+            return Ok(serde_json::json!({
+                "ok": true,
+                "started": false,
+                "message": "already running"
+            }));
+        }
+
+        let root = stirling_root(&app);
+        let script = root.join("ensure-stirling-pdf.ps1");
+        if !script.is_file() {
+            return Ok(serde_json::json!({
+                "ok": false,
+                "started": false,
+                "code": "no_script",
+                "message": format!("找不到 ensure-stirling-pdf.ps1：{}（可设置环境变量 STIRLING_ROOT）", script.display())
+            }));
+        }
+
+        #[cfg(windows)]
+        {
+            use std::os::windows::process::CommandExt;
+            const CREATE_NO_WINDOW: u32 = 0x08000000;
+            let out = Command::new("powershell")
+                .args([
+                    "-NoProfile",
+                    "-ExecutionPolicy",
+                    "Bypass",
+                    "-File",
+                    &script.to_string_lossy(),
+                ])
+                .current_dir(&root)
+                .creation_flags(CREATE_NO_WINDOW)
+                .stdout(Stdio::piped())
+                .stderr(Stdio::piped())
+                .output()
+                .map_err(|e| e.to_string())?;
+            let stdout = String::from_utf8_lossy(&out.stdout).trim().to_string();
+            let stderr = String::from_utf8_lossy(&out.stderr).trim().to_string();
+            if let Ok(v) = serde_json::from_str::<serde_json::Value>(&stdout) {
+                let ready = testhub_port_up(8090)
+                    || v.get("ok").and_then(|x| x.as_bool()).unwrap_or(false);
+                let mut obj = v;
+                if let Some(map) = obj.as_object_mut() {
+                    map.insert("ok".into(), serde_json::json!(ready));
+                    map.insert("started".into(), serde_json::json!(true));
+                }
+                return Ok(obj);
+            }
+            let ready = testhub_port_up(8090);
+            let msg = if !stdout.is_empty() {
+                stdout
+            } else if !stderr.is_empty() {
+                stderr
+            } else if ready {
+                "ready".to_string()
+            } else {
+                format!("exit={}", out.status.code().unwrap_or(-1))
+            };
+            Ok(serde_json::json!({
+                "ok": ready,
+                "started": true,
+                "message": msg
+            }))
+        }
+        #[cfg(not(windows))]
+        {
+            Ok(serde_json::json!({
+                "ok": false,
+                "started": false,
+                "message": "stirling_ensure 当前打包仅实现了 Windows 启动脚本；请本机执行 docker compose up -d"
+            }))
+        }
+    })
+    .await
+    .map_err(|e| e.to_string())?
+}
+
+fn anythingllm_root(app: &tauri::AppHandle) -> PathBuf {
+    if let Ok(p) = std::env::var("ANYTHINGLLM_ROOT") {
+        let pb = PathBuf::from(p.trim());
+        if pb.is_dir() {
+            return pb;
+        }
+    }
+    let cfg = app
+        .path()
+        .app_config_dir()
+        .unwrap_or_else(|_| PathBuf::from("."))
+        .join("anythingllm-root.txt");
+    if let Ok(s) = fs::read_to_string(&cfg) {
+        let pb = PathBuf::from(s.trim());
+        if pb.is_dir() {
+            return pb;
+        }
+    }
+    PathBuf::from(r"D:\mytools\dev-toolbox\anythingllm")
+}
+
+/// 确保本机 AnythingLLM（Docker :3002）已启动；已在跑则直接返回。
+/// 注意：TestHub 占用 :3001，故 AnythingLLM 映射到本机 3002。
+#[tauri::command]
+async fn anythingllm_ensure(app: tauri::AppHandle) -> Result<serde_json::Value, String> {
+    tauri::async_runtime::spawn_blocking(move || {
+        if testhub_port_up(3002) {
+            return Ok(serde_json::json!({
+                "ok": true,
+                "started": false,
+                "message": "already running"
+            }));
+        }
+
+        let root = anythingllm_root(&app);
+        let script = root.join("ensure-anythingllm.ps1");
+        if !script.is_file() {
+            return Ok(serde_json::json!({
+                "ok": false,
+                "started": false,
+                "code": "no_script",
+                "message": format!("找不到 ensure-anythingllm.ps1：{}（可设置环境变量 ANYTHINGLLM_ROOT）", script.display())
+            }));
+        }
+
+        #[cfg(windows)]
+        {
+            use std::os::windows::process::CommandExt;
+            const CREATE_NO_WINDOW: u32 = 0x08000000;
+            let out = Command::new("powershell")
+                .args([
+                    "-NoProfile",
+                    "-ExecutionPolicy",
+                    "Bypass",
+                    "-File",
+                    &script.to_string_lossy(),
+                ])
+                .current_dir(&root)
+                .creation_flags(CREATE_NO_WINDOW)
+                .stdout(Stdio::piped())
+                .stderr(Stdio::piped())
+                .output()
+                .map_err(|e| e.to_string())?;
+            let stdout = String::from_utf8_lossy(&out.stdout).trim().to_string();
+            let stderr = String::from_utf8_lossy(&out.stderr).trim().to_string();
+            if let Ok(v) = serde_json::from_str::<serde_json::Value>(&stdout) {
+                let ready = testhub_port_up(3002)
+                    || v.get("ok").and_then(|x| x.as_bool()).unwrap_or(false);
+                let mut obj = v;
+                if let Some(map) = obj.as_object_mut() {
+                    map.insert("ok".into(), serde_json::json!(ready));
+                    map.insert("started".into(), serde_json::json!(true));
+                }
+                return Ok(obj);
+            }
+            let ready = testhub_port_up(3002);
+            let msg = if !stdout.is_empty() {
+                stdout
+            } else if !stderr.is_empty() {
+                stderr
+            } else if ready {
+                "ready".to_string()
+            } else {
+                format!("exit={}", out.status.code().unwrap_or(-1))
+            };
+            Ok(serde_json::json!({
+                "ok": ready,
+                "started": true,
+                "message": msg
+            }))
+        }
+        #[cfg(not(windows))]
+        {
+            Ok(serde_json::json!({
+                "ok": false,
+                "started": false,
+                "message": "anythingllm_ensure 当前打包仅实现了 Windows 启动脚本；请本机执行 docker compose up -d"
+            }))
+        }
+    })
+    .await
+    .map_err(|e| e.to_string())?
+}
+
+/// 把 New API 令牌一键写入 CC Switch（Codex 供应商列表）。
+#[tauri::command]
+async fn newapi_push_ccswitch(app: tauri::AppHandle, activate: Option<String>) -> Result<serde_json::Value, String> {
+    tauri::async_runtime::spawn_blocking(move || {
+        let root = newapi_root(&app);
+        let script = root.join("push-to-ccswitch.ps1");
+        if !script.is_file() {
+            return Ok(serde_json::json!({
+                "ok": false,
+                "message": format!("找不到 push-to-ccswitch.ps1：{}", script.display())
+            }));
+        }
+
+        #[cfg(windows)]
+        {
+            use std::os::windows::process::CommandExt;
+            const CREATE_NO_WINDOW: u32 = 0x08000000;
+            let mut args = vec![
+                "-NoProfile".to_string(),
+                "-ExecutionPolicy".to_string(),
+                "Bypass".to_string(),
+                "-File".to_string(),
+                script.to_string_lossy().to_string(),
+            ];
+            if let Some(a) = activate {
+                let t = a.trim().to_string();
+                if !t.is_empty() && t != "-" && t != "none" {
+                    args.push(t);
+                }
+            }
+            let out = Command::new("powershell")
+                .args(&args)
+                .current_dir(&root)
+                .creation_flags(CREATE_NO_WINDOW)
+                .stdout(Stdio::piped())
+                .stderr(Stdio::piped())
+                .output()
+                .map_err(|e| e.to_string())?;
+            let stdout = String::from_utf8_lossy(&out.stdout).trim().to_string();
+            let stderr = String::from_utf8_lossy(&out.stderr).trim().to_string();
+            if let Ok(v) = serde_json::from_str::<serde_json::Value>(&stdout) {
+                return Ok(v);
+            }
+            Ok(serde_json::json!({
+                "ok": false,
+                "message": if !stdout.is_empty() {
+                    stdout
+                } else if !stderr.is_empty() {
+                    stderr
+                } else {
+                    format!("exit={}", out.status.code().unwrap_or(-1))
+                }
+            }))
+        }
+        #[cfg(not(windows))]
+        {
+            Ok(serde_json::json!({
+                "ok": false,
+                "message": "newapi_push_ccswitch 仅支持 Windows"
+            }))
+        }
+    })
+    .await
+    .map_err(|e| e.to_string())?
+}
+
 fn base64_encode(data: &[u8]) -> String {
     use base64::Engine;
     base64::engine::general_purpose::STANDARD.encode(data)
@@ -1511,6 +2311,9 @@ pub fn run() {
             creds: HashMap::new(),
             sftp: HashMap::new(),
         })))
+        .manage(Arc::new(Mutex::new(LocalShellState {
+            sessions: HashMap::new(),
+        })))
         .setup(|app| {
             #[cfg(target_os = "windows")]
             {
@@ -1528,10 +2331,16 @@ pub fn run() {
             notes_search, notes_save, notes_create, notes_create_dir, notes_delete, notes_rename, notes_reveal, notes_read,
             http_request, sys_info, port_scan, ip_query, translate, hosts_read, hosts_write,
             deploy_list, deploy_save, deploy_delete, deploy_run, deploy_stop, deploy_pick_dir,
+            diff_pick_dir, diff_scan_dir, diff_read_text,
             ssh_connect, ssh_write, ssh_resize, ssh_disconnect, ssh_list, ssh_sessions_load, ssh_sessions_save, ssh_sysinfo,
+            local_shell_open,
             sftp_list, sftp_read, sftp_write, sftp_mkdir, sftp_delete,
             testhub_ensure,
             newapi_ensure,
+            openacme_ensure,
+            stirling_ensure,
+            anythingllm_ensure,
+            newapi_push_ccswitch,
             open_external_url
         ])
         .run(tauri::generate_context!())

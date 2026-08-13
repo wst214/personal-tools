@@ -1,8 +1,8 @@
 id: wg-32-timeline
 name: 事件应可查状态时间线
 description: 验收：事件详情含状态流转时间线，CREATE 动作可查。
-skip: false
-skipReason: ''
+skip: true
+skipReason: 预警相关代码已移除；整包用例跳过
 steps:
 - method: POST
   service: biz

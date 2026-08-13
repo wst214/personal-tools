@@ -1,0 +1,26 @@
+id: di-43-page-boundary
+name: 监测列表分页边界
+description: |
+  pageNum=0 触发 PageRequest 校验应 400；
+  pageNum=2 合法翻页应 200 且 data.list 为数组（可空）。
+skip: false
+skipReason: ''
+steps:
+- name: pageNum=0 非法
+  method: GET
+  service: biz
+  path: /monitor/disconnect-card/disconnect-cards?pageNum=0&pageSize=10
+  expect:
+    status: 400
+    fields:
+      code: 400
+- name: pageNum=2 合法
+  method: GET
+  service: biz
+  path: /monitor/disconnect-card/disconnect-cards?pageNum=2&pageSize=10
+  expect:
+    status: 200
+    fields:
+      code: 0
+    contains:
+    - path: data.list

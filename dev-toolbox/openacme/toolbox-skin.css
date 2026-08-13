@@ -1,0 +1,63 @@
+/* DevToolbox skin for OpenAcme — mint/teal to match toolbox default theme.
+   Loaded after OpenAcme base CSS; safe to re-apply after CLI upgrades. */
+
+:root,
+html:not(.dark) {
+  --paper: #eef6f2;
+  --paper-sunk: #f2f8f5;
+  --paper-rule: #dcebe4;
+  --ink: #173b2c;
+  --ink-soft: #5f7a6d;
+  --ink-faint: #87a296;
+  --muted: #f2f8f5;
+  --muted-foreground: #5f7a6d;
+  --border: #dcebe4;
+  --plot-red: #0d9488;
+  --accent: #0d9488;
+  --accent-foreground: #ffffff;
+}
+
+html.dark {
+  --paper: #12261e;
+  --paper-sunk: #173b2c;
+  --paper-rule: #2a4a3c;
+  --ink: #e8f5ef;
+  --ink-soft: #a7c4b6;
+  --ink-faint: #7fa894;
+  --muted: #173b2c;
+  --muted-foreground: #a7c4b6;
+  --border: #2a4a3c;
+  --plot-red: #2dd4bf;
+  --accent: #2dd4bf;
+  --accent-foreground: #0b1f18;
+}
+
+html,
+body,
+#root,
+main {
+  font-family: "Segoe UI Variable Text", "Segoe UI", "Microsoft YaHei UI", "Microsoft YaHei", system-ui, sans-serif !important;
+}
+
+/* Soften the newspaper/editorial edges toward toolbox cards */
+.bg-paper,
+main.bg-paper {
+  background: #eef6f2 !important;
+}
+
+html.dark .bg-paper,
+html.dark main.bg-paper {
+  background: #12261e !important;
+}
+
+/* Buttons / chips closer to toolbox accent */
+button,
+[role="button"] {
+  border-radius: 9px;
+}
+
+/* Status accents */
+.status-dot,
+[class*="status-dot"] {
+  filter: none;
+}

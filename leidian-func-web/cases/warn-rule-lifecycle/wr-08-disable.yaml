@@ -1,8 +1,8 @@
 id: wr-08-disable
 name: 停用已启用规则
 description: 对已启用规则执行停用，期望状态变为 DISABLED。
-skip: false
-skipReason: ''
+skip: true
+skipReason: 预警相关代码已移除；整包用例跳过
 steps:
 - method: POST
   service: biz

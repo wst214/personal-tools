@@ -1,0 +1,27 @@
+﻿id: rf-44-e2e-alt-filename
+name: 第二种文件名 yyyyMMdd_HHmmss 可入库
+description: 上传 upstream/radar/realtime/yyyyMMdd_HHmmss.json → frameId=radar-{14位} → replay 命中。
+skip: false
+skipReason: ''
+expandByDeviceType: false
+steps:
+- name: MinIO 上传交替命名
+  method: MINIO
+  objectKey: ${radarAltObjectKey}
+  body: '{"funcWeb":true,"naming":"yyyyMMdd_HHmmss"}'
+  publishNotify: true
+- name: 等待消费
+  method: SLEEP
+  seconds: 6
+- name: 重放源命中 frameId
+  method: GET
+  service: data
+  path: /replay/radar/source?startTime=${frameStart}&endTime=${frameEnd}&limit=20
+  expect:
+    status: 200
+    fields:
+      code: 0
+    contains:
+    - path: data
+      match:
+        dedupKey: ${frameId}

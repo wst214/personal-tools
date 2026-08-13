@@ -1,0 +1,17 @@
+id: di-34-atmosphere-span-reject
+name: 大气电场详情超跨度应拒
+description: |
+  详情手动时间跨度不得超过 MONITOR_ATMOSPHERE_TREND_DAYS（默认 1 天）。
+  使用占位 deviceId + 2 天窗，期望业务 code=400（跨度校验先于设备存在性）。
+  对外接口 HTTP 固定 200，业务成败看 body.code。
+skip: false
+skipReason: ''
+steps:
+- name: 详情时间跨度 2 天
+  method: GET
+  service: biz
+  path: /monitor/atmosphere/devices/1000000000000100002?startTime=${localNow-2d}&endTime=${localNow-0s}
+  expect:
+    status: 200
+    fields:
+      code: 400

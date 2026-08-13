@@ -1,8 +1,8 @@
 id: ws-17-create-device-only
 name: 新建抑制草稿（纯 DEVICE）
 description: 新建仅 DEVICE 目标的抑制草稿，期望 targetMode=DEVICE。
-skip: false
-skipReason: ''
+skip: true
+skipReason: 预警相关代码已移除；整包用例跳过
 steps:
 - method: POST
   service: biz

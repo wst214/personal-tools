@@ -1,8 +1,8 @@
 id: wr-22-golden-path
 name: 黄金路径串联（创建→提交→停用→启用→删除）
 description: 端到端黄金路径：创建→提交生效→停用→再启用→删除，逐步断言状态变迁。
-skip: false
-skipReason: ''
+skip: true
+skipReason: 预警相关代码已移除；整包用例跳过
 steps:
 - method: POST
   service: biz

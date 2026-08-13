@@ -1,0 +1,16 @@
+id: li-14-cmb-strikes-biz
+name: 大网落雷点位 biz 列表
+description: |
+  GET /lightning/cmb/strikes（biz JWT）：startTime/endTime 必填，跨度 ≤24h。
+  正式开放入口为 /api/open/...（SM3 签名），本用例走 /api/biz 验业务数据。
+skip: false
+skipReason: ''
+steps:
+- name: 近 12 小时大网点位
+  method: GET
+  service: biz
+  path: /lightning/cmb/strikes?startTime=${localNow-12h}&endTime=${localNow-0s}
+  expect:
+    status: 200
+    fields:
+      code: 0

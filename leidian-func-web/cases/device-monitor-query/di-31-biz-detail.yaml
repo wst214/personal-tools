@@ -1,0 +1,31 @@
+id: di-31-biz-detail
+name: 业务监测详情可查
+description: |
+  通用：列表取首台设备 id → GET ${detailPath}。
+  按所选类型展开（仅有 BFF 的类型/变体）；列表为空则跳过详情步。
+  大气电场详情默认近 1 分钟；其余类型未传时间走 MONITOR_*_TREND_DAYS。
+skip: false
+skipReason: ''
+expandByDeviceType: true
+expandRequiresBiz: true
+steps:
+- name: 查业务列表取 deviceId
+  method: GET
+  service: biz
+  path: ${bizPath}
+  expect:
+    status: 200
+    fields:
+      code: 0
+  capture:
+    deviceId: data.list.0.id
+- name: 查业务详情
+  method: GET
+  service: biz
+  path: ${detailPath}
+  skipIfEmpty:
+  - deviceId
+  expect:
+    status: 200
+    fields:
+      code: 0

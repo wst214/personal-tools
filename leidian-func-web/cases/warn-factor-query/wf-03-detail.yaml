@@ -1,8 +1,8 @@
 id: wf-03-detail
 name: 可查看因子详情
 description: 验收：可按编码查看因子定义详情。
-skip: false
-skipReason: ''
+skip: true
+skipReason: 预警相关代码已移除；整包用例跳过
 steps:
 - method: GET
   service: biz

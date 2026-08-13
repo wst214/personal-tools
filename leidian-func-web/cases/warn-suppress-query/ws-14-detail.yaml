@@ -1,8 +1,8 @@
 id: ws-14-detail
 name: 抑制详情
 description: 先创建再查抑制详情，校验头信息与目标列表。
-skip: false
-skipReason: ''
+skip: true
+skipReason: 预警相关代码已移除；整包用例跳过
 steps:
 - method: POST
   service: biz

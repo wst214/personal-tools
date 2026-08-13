@@ -1,0 +1,25 @@
+id: di-36-detail-not-found
+name: 监测详情设备不存在
+description: |
+  占位 deviceId 查详情：接口存在，业务资源不存在。
+  对外约定 HTTP 200 + body.code=404（不是 HTTP 404「接口不存在」）。
+  抽大气与断接卡各一条，校验契约一致。
+skip: false
+skipReason: ''
+steps:
+- name: 大气详情设备不存在
+  method: GET
+  service: biz
+  path: /monitor/atmosphere/devices/1999999999999999999
+  expect:
+    status: 200
+    fields:
+      code: 404
+- name: 断接卡详情设备不存在
+  method: GET
+  service: biz
+  path: /monitor/disconnect-card/devices/1999999999999999999
+  expect:
+    status: 200
+    fields:
+      code: 404

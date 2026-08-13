@@ -178,6 +178,10 @@ function fillEnvForm() {
   $("envName").value = e.name || "";
   $("gateway").value = e.gateway || "";
   $("kafkaBrokers").value = e.kafkaBrokers || "127.0.0.1:9092";
+  if ($("minioEndpoint")) $("minioEndpoint").value = e.minioEndpoint || "http://leidian-minio:9000";
+  if ($("minioAccessKey")) $("minioAccessKey").value = e.minioAccessKey || "minioadmin";
+  if ($("minioSecretKey")) $("minioSecretKey").value = e.minioSecretKey || "minioadmin";
+  if ($("minioRadarBucket")) $("minioRadarBucket").value = e.minioRadarBucket || "leidian-frame";
   $("loginUser").value = e.username || "";
   $("loginPass").value = e.password || "";
   $("credential").value = e.credential || "";
@@ -252,6 +256,10 @@ function collectEnvForm() {
     name: $("envName").value.trim() || "未命名",
     gateway: $("gateway").value.trim(),
     kafkaBrokers: ($("kafkaBrokers").value || "").trim() || "127.0.0.1:9092",
+    minioEndpoint: ($("minioEndpoint")?.value || "").trim() || "http://leidian-minio:9000",
+    minioAccessKey: ($("minioAccessKey")?.value || "").trim() || "minioadmin",
+    minioSecretKey: ($("minioSecretKey")?.value || "").trim() || "minioadmin",
+    minioRadarBucket: ($("minioRadarBucket")?.value || "").trim() || "leidian-frame",
     prefixes: collectPrefixes(),
     username: $("loginUser").value.trim(),
     password: $("loginPass").value,
@@ -493,8 +501,9 @@ function renderCaseRow(c, { selectable }) {
   if (c.skip) meta.push('<span class="pill warn">跳过</span>');
   if (c.expandByDeviceType) meta.push('<span class="pill muted-pill">按所选类型展开</span>');
   else if (c.expandByNetwork) meta.push('<span class="pill muted-pill">按所选网络展开</span>');
-  else if (selectable && state.runCapability === "device-ingest") meta.push('<span class="pill muted-pill">通用</span>');
+  else if (selectable && (state.runCapability === "device-ingest" || state.runCapability === "device-monitor")) meta.push('<span class="pill muted-pill">通用</span>');
   else if (selectable && state.runCapability === "lightning-ingest") meta.push('<span class="pill muted-pill">通用</span>');
+  else if (selectable && state.runCapability === "radar-frame-ingest") meta.push('<span class="pill muted-pill">通用</span>');
   if (c.sub) meta.push(`<span class="pill muted-pill">${escapeHtml(c.sub)}</span>`);
 
   const actions = selectable
@@ -532,7 +541,7 @@ function renderDeviceTypeFilter() {
   const panel = $("deviceTypeFilter");
   const list = $("deviceTypeFilterList");
   if (!panel || !list) return;
-  const show = state.runCapability === "device-ingest" && state.deviceTypes.length > 0;
+  const show = (state.runCapability === "device-ingest" || state.runCapability === "device-monitor") && state.deviceTypes.length > 0;
   panel.hidden = !show;
   if (!show) return;
   ensureDeviceTypeSelection();
@@ -605,7 +614,7 @@ function applyNetworkFilterToCases() {
 }
 
 function applyDeviceTypeFilterToCases() {
-  if (state.runCapability !== "device-ingest") return;
+  if (state.runCapability !== "device-ingest" && state.runCapability !== "device-monitor") return;
   // 用例列表固定通用；设备多选只影响开跑时的展开参数
   document.querySelectorAll("#runCaseCardList .run-case-row").forEach((row) => {
     row.hidden = false;
@@ -841,7 +850,7 @@ async function reloadRunCases() {
   renderGroupedCases("runCaseCardList", data, { selectable: true });
   renderDeviceTypeFilter();
   renderNetworkFilter();
-  if (state.runCapability === "device-ingest") {
+  if (state.runCapability === "device-ingest" || state.runCapability === "device-monitor") {
     applyDeviceTypeFilterToCases();
   } else if (state.runCapability === "lightning-ingest") {
     applyNetworkFilterToCases();
@@ -1039,7 +1048,7 @@ async function startRun(caseRefs = null) {
       body: JSON.stringify({
         cases: refs,
         deviceTypes:
-          state.runCapability === "device-ingest"
+          state.runCapability === "device-ingest" || state.runCapability === "device-monitor"
             ? [...state.selectedDeviceTypes]
             : undefined,
         networks:

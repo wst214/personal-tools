@@ -1,8 +1,8 @@
 id: wr-12-page-filter
 name: 分页列表与关键词筛选
 description: 创建带唯一关键字的草稿后，分页列表按 keyword + DRAFT 筛选，应命中刚创建的规则。
-skip: false
-skipReason: ''
+skip: true
+skipReason: 预警相关代码已移除；整包用例跳过
 steps:
 - method: POST
   service: biz

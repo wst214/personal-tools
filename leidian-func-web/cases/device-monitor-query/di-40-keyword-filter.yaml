@@ -1,0 +1,31 @@
+id: di-40-keyword-filter
+name: 监测列表 keyword 筛选
+description: |
+  用 V1_010 演示设备名/通讯地址做 keyword 模糊匹配，应命中对应卡片。
+skip: false
+skipReason: ''
+steps:
+- name: keyword=设备名 DJK001
+  method: GET
+  service: biz
+  path: /monitor/disconnect-card/disconnect-cards?pageNum=1&pageSize=10&keyword=DJK001
+  expect:
+    status: 200
+    fields:
+      code: 0
+    contains:
+    - path: data.list
+      match:
+        deviceName: DJK001
+- name: keyword=通讯地址 00060001
+  method: GET
+  service: biz
+  path: /monitor/disconnect-card/disconnect-cards?pageNum=1&pageSize=10&keyword=00060001
+  expect:
+    status: 200
+    fields:
+      code: 0
+    contains:
+    - path: data.list
+      match:
+        deviceAddr: '00060001'

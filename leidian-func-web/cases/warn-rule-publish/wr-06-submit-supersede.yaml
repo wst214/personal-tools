@@ -1,8 +1,8 @@
 id: wr-06-submit-supersede
 name: 已启用改内容再提交（升版）
 description: 已启用规则修改内容后再 submit：生成新版本并升版，旧版本被替代。
-skip: false
-skipReason: ''
+skip: true
+skipReason: 预警相关代码已移除；整包用例跳过
 steps:
 - method: POST
   service: biz

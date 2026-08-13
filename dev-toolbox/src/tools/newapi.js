@@ -83,9 +83,10 @@ export const newapiTool = {
     const bar = el('div', { class: 'embed-bar', hidden: true });
     const barHint = el('span', { class: 'embed-bar-hint', text: '' });
     const barAccount = el('button', { class: 'embed-bar-btn', type: 'button', text: '账号' });
+    const barCcswitch = el('button', { class: 'embed-bar-btn', type: 'button', text: '接入 Codex' });
     const barRestart = el('button', { class: 'embed-bar-btn', type: 'button', text: '重启服务' });
     const barReload = el('button', { class: 'embed-bar-btn', type: 'button', text: '刷新' });
-    bar.append(barHint, barAccount, barRestart, barReload);
+    bar.append(barHint, barAccount, barCcswitch, barRestart, barReload);
 
     const frame = el('iframe', { class: 'embed-frame', title: 'New API', hidden: true });
     frame.setAttribute('referrerpolicy', 'no-referrer');
@@ -161,12 +162,44 @@ export const newapiTool = {
       }
     }
 
+    async function pushCcswitch() {
+      if (busy) return;
+      const tb = window.toolbox;
+      const invokePush = () => {
+        if (tb?.newapiPushCcswitch) return tb.newapiPushCcswitch(null);
+        if (window.__TAURI__?.core?.invoke) {
+          return window.__TAURI__.core.invoke('newapi_push_ccswitch', { activate: null });
+        }
+        return Promise.resolve({ ok: false, message: '当前版本不支持，请重新打包 DevToolbox' });
+      };
+      busy = true;
+      barCcswitch.disabled = true;
+      const prev = barCcswitch.textContent;
+      barCcswitch.textContent = '写入中…';
+      try {
+        const r = await invokePush();
+        if (!r?.ok) {
+          window.alert(`接入失败：${r?.message || '未知错误'}`);
+          return;
+        }
+        const names = (r.providers || []).map((p) => `· ${p.name}（${p.action}）`).join('\n');
+        window.alert(`${r.message}\n\n${names}\n\n${r.hint || ''}`);
+      } catch (e) {
+        window.alert(`接入失败：${e}`);
+      } finally {
+        busy = false;
+        barCcswitch.disabled = false;
+        barCcswitch.textContent = prev;
+      }
+    }
+
     startBtn.addEventListener('click', () => start());
     barRestart.addEventListener('click', () => start());
     barReload.addEventListener('click', () => {
       if (!frame.hidden) frame.src = consoleUrl();
     });
     barAccount.addEventListener('click', editCreds);
+    barCcswitch.addEventListener('click', () => pushCcswitch());
 
     start();
 

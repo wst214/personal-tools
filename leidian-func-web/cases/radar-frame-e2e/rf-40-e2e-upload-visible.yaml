@@ -1,0 +1,46 @@
+﻿id: rf-40-e2e-upload-visible
+name: 上传合规帧后入库可查
+description: |
+  MinIO 上传合法 objectKey（并投递 radar-frame-upstream 通知）→ 等待消费 →
+  replay 按时间窗命中 frameId → biz recent 命中且含 downloadUrl。
+  注：本地 MinIO Kafka notify 常未开启，由 runner 在上传后补投通知消息。
+skip: false
+skipReason: ''
+expandByDeviceType: false
+steps:
+- name: MinIO 上传雷达帧 JSON
+  method: MINIO
+  objectKey: ${radarObjectKey}
+  body: '{"funcWeb":true,"note":"radar-frame-e2e","frameId":"${frameId}"}'
+  contentType: application/json
+  publishNotify: true
+  metadata:
+    traceid: func-web-${rand}
+- name: 等待消费落库
+  method: SLEEP
+  seconds: 6
+- name: 按时间窗查重放源命中 frameId
+  method: GET
+  service: data
+  path: /replay/radar/source?startTime=${frameStart}&endTime=${frameEnd}&limit=20
+  expect:
+    status: 200
+    fields:
+      code: 0
+    contains:
+    - path: data
+      match:
+        dedupKey: ${frameId}
+- name: biz 最近帧命中 frameId 且有 downloadUrl
+  method: GET
+  service: radar
+  path: /frames/recent?minutes=60
+  expect:
+    status: 200
+    fields:
+      code: 0
+    contains:
+    - path: data
+      match:
+        frameId: ${frameId}
+        downloadUrl: __not_empty__

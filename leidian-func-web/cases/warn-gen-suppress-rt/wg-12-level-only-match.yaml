@@ -1,8 +1,8 @@
 id: wg-12-level-only-match
 name: 仅等级目标按等级匹配触发 FULL 抑制
 description: 验收：仅配置 WARNING_LEVEL 目标 -> 等级命中即 FULL 抑制，SUPPRESSED 事件。
-skip: false
-skipReason: ''
+skip: true
+skipReason: 预警相关代码已移除；整包用例跳过
 steps:
 - method: POST
   service: biz

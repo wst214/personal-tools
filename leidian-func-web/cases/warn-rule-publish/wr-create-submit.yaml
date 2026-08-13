@@ -1,8 +1,8 @@
 id: wr-create-submit
 name: 新建草稿并提交生效（兼容旧用例）
 description: 兼容旧路径：创建草稿后立即 submit，串联验证「新建即生效」。
-skip: false
-skipReason: ''
+skip: true
+skipReason: 预警相关代码已移除；整包用例跳过
 steps:
 - method: POST
   service: biz

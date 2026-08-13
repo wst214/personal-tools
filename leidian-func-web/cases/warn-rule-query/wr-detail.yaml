@@ -1,8 +1,8 @@
 id: wr-detail
 name: 规则详情
 description: 烟测：先分页取一条规则 id，再查详情，期望成功。
-skip: false
-skipReason: ''
+skip: true
+skipReason: 预警相关代码已移除；整包用例跳过
 steps:
 - method: GET
   service: biz

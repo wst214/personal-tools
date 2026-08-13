@@ -1,0 +1,29 @@
+id: rf-50-prefix-skip
+name: 非雷达前缀不入库
+description: |
+  上传到错误前缀并投递通知 → 不应出现该 objectKey。
+  断言按 payloadSummary 排查，避免与同批正向用例 frameId 撞号误杀。
+skip: false
+skipReason: ''
+expandByDeviceType: false
+steps:
+- name: 上传到错误前缀
+  method: MINIO
+  objectKey: ${radarWrongPrefixKey}
+  body: '{"funcWeb":true}'
+  publishNotify: true
+- name: 等待处理
+  method: SLEEP
+  seconds: 5
+- name: 重放源不应出现该 objectKey
+  method: GET
+  service: data
+  path: /replay/radar/source?startTime=${frameStart}&endTime=${frameEnd}&limit=50
+  expect:
+    status: 200
+    fields:
+      code: 0
+    notContains:
+    - path: data
+      field: payloadSummary
+      valueContains: ${objectKey}

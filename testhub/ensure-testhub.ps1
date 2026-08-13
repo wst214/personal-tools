@@ -21,16 +21,9 @@ function Test-LocalPort([int]$Port) {
 }
 
 function Ensure-Mysql {
-  docker start mytools-testhub-mysql 2>$null | Out-Null
-  if ($LASTEXITCODE -ne 0) {
-    docker run -d --name mytools-testhub-mysql `
-      -e MYSQL_ROOT_PASSWORD=root123 `
-      -e MYSQL_DATABASE=testhub `
-      -e MYSQL_USER=testhub `
-      -e MYSQL_PASSWORD=testhub123 `
-      -p 3307:3306 mysql:8.0 `
-      --character-set-server=utf8mb4 --collation-server=utf8mb4_unicode_ci 2>$null | Out-Null
-  }
+  $compose = Join-Path (Split-Path -Parent $Root) 'docker-compose.yml'
+  # 归入 mytools-stack，避免 Docker Desktop 里变成游离容器
+  docker compose -f $compose up -d mytools-testhub-mysql 2>$null | Out-Null
   for ($i = 0; $i -lt 40; $i++) {
     if (Test-LocalPort 3307) { return $true }
     Start-Sleep -Seconds 2

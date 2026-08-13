@@ -1,0 +1,21 @@
+# Stirling-PDF for DevToolbox（本机 :8090）
+# 关闭登录以便 iframe 内嵌；数据落在 ./data
+# 项目名固定 mytools-stack，与仓库根 compose 同栈，避免 Docker Desktop 单独成组
+name: mytools-stack
+
+services:
+  mytools-stirling-pdf:
+    image: stirlingtools/stirling-pdf:latest
+    container_name: mytools-stirling-pdf
+    ports:
+      - "8090:8080"
+    environment:
+      SECURITY_ENABLELOGIN: "false"
+      DISABLE_ADDITIONAL_FEATURES: "false"
+      SYSTEM_DEFAULTLOCALE: zh_CN
+      SYSTEM_GOOGLEVISIBILITY: "false"
+      SECURITY_XFRAMEOPTIONS: DISABLED
+    volumes:
+      - ./data:/configs
+      - ./tessdata:/usr/share/tessdata
+    restart: unless-stopped

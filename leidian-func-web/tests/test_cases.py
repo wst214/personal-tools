@@ -12,16 +12,32 @@ import case_store  # noqa: E402
 
 def test_capabilities_are_l1():
     caps = {c["id"]: c for c in case_store.list_capabilities()}
-    assert list(caps) == ["lightning-ingest", "device-ingest", "warn-rule", "warn-suppress", "warn-runtime"]
-    assert caps["warn-rule"]["name"] == "预警规则管理"
+    assert list(caps) == [
+        "lightning-ingest",
+        "device-ingest",
+        "device-monitor",
+        "radar-frame-ingest",
+    ]
+    assert "warn-rule" not in caps
+    assert "warn-suppress" not in caps
+    assert "warn-runtime" not in caps
     assert caps["device-ingest"]["name"] == "设备解析接入"
+    assert caps["device-monitor"]["name"] == "业务监测查询"
+    assert caps["radar-frame-ingest"]["name"] == "雷达回波接入"
     device_ids = [m["id"] for m in caps["device-ingest"]["modules"]]
     assert device_ids == [
         "device-ingest-smoke",
         "device-ingest-monitor",
         "device-ingest-attachment",
-        "device-ingest-biz-query",
         "device-ingest-e2e",
+    ]
+    assert [m["id"] for m in caps["device-monitor"]["modules"]] == ["device-monitor-query"]
+    radar_ids = [m["id"] for m in caps["radar-frame-ingest"]["modules"]]
+    assert radar_ids == [
+        "radar-frame-smoke",
+        "radar-frame-query",
+        "radar-frame-e2e",
+        "radar-frame-boundary",
     ]
     assert caps["lightning-ingest"]["name"] == "闪电定位接入"
     lightning_ids = [m["id"] for m in caps["lightning-ingest"]["modules"]]
@@ -31,6 +47,11 @@ def test_capabilities_are_l1():
         "lightning-ingest-attachment",
         "lightning-ingest-e2e",
     ]
+    all_caps = {c["id"]: c for c in case_store.CAPABILITIES}
+    assert all_caps["warn-rule"].get("hidden") is True
+    assert all_caps["warn-suppress"].get("hidden") is True
+    assert all_caps["warn-runtime"].get("hidden") is True
+    assert all_caps["warn-rule"]["name"] == "预警规则管理"
     li_smoke = case_store.list_cases("lightning-ingest-smoke")
     assert any(c["id"] == "li-01-lightning-status" and not c.get("expandByNetwork") for c in li_smoke)
     li_mon = case_store.list_cases("lightning-ingest-monitor")
@@ -44,9 +65,24 @@ def test_capabilities_are_l1():
     assert any(c["id"] == "di-51-low-quality-grounding" for c in di_e2e)
     assert any(c["id"] == "di-60-e2e-crc-reject" and not c.get("skip") for c in di_e2e)
     assert any(c["id"] == "di-62-e2e-fragment-reassemble" and not c.get("skip") for c in di_e2e)
-    assert any(t["id"] == "ATMOSPHERE_ELECTRIC_FIELD" and t.get("deviceHex") for t in case_store.DEVICE_TYPES)
-    missing_hex = [t["id"] for t in case_store.DEVICE_TYPES if not str(t.get("deviceHex") or "").strip()]
+    rf_e2e = case_store.list_cases("radar-frame-e2e")
+    assert any(c["id"] == "rf-40-e2e-upload-visible" and not c.get("skip") for c in rf_e2e)
+    assert any(c["id"] == "rf-41-e2e-idempotent" for c in rf_e2e)
+    assert any(c["id"] == "rf-44-e2e-alt-filename" for c in rf_e2e)
+    assert any(c["id"] == "rf-45-e2e-presign-via-recent" for c in rf_e2e)
+    assert any(c["id"] == "rf-46-e2e-ws-ready" for c in rf_e2e)
+    assert any(c["id"] == "rf-43-publish-recovery" and c.get("skip") for c in rf_e2e)
+    assert any(c["id"] == "rf-47-native-minio-notify" and c.get("skip") for c in rf_e2e)
+    rf_smoke = case_store.list_cases("radar-frame-smoke")
+    assert any(c["id"] == "rf-01-ingest-status" for c in rf_smoke)
+    assert any(c["id"] == "rf-02-unpublished-metric" for c in rf_smoke)
+    rf_query = case_store.list_cases("radar-frame-query")
+    assert any(c["id"] == "rf-12-recent-minutes-bound" for c in rf_query)
+    assert any(t["id"] == "ATMOSPHERE_ELECTRIC_FIELD" and case_store.device_has_hex_fixture(t) for t in case_store.DEVICE_TYPES)
+    missing_hex = [t["id"] for t in case_store.DEVICE_TYPES if not case_store.device_has_hex_fixture(t)]
     assert not missing_hex, f"勾选类型必须具备 deviceHex: {missing_hex}"
+    assert any(t["id"] == "SPD_WAVEFORM" for t in case_store.DEVICE_TYPES)
+    assert not any(t["id"] in ("SPD_WAVEFORM_HEARTBEAT", "SPD_WAVEFORM_SUMMARY") for t in case_store.DEVICE_TYPES)
     from runner import expand_case_refs as _expand_li
 
     li_expanded = _expand_li(
@@ -57,13 +93,28 @@ def test_capabilities_are_l1():
     assert li_expanded[1]["network"] == "LOCATOR"
     assert li_expanded[2]["network"] == "RADAR"
     types = case_store.list_device_types()
-    assert len(types) == 10
+    assert len(types) == 9
     assert types[0]["id"] == "ATMOSPHERE_ELECTRIC_FIELD"
+    assert "01/19" in types[0]["name"] or "19" in types[0]["name"]
+    assert types[-1]["id"] == "SPD_WAVEFORM"
+    assert "18" in types[-1]["name"]
     assert types[3]["hasBizQuery"] is True
-    assert types[4]["hasBizQuery"] is False
+    assert types[4]["hasBizQuery"] is True  # SURGE_MONITOR 14
+    assert types[-1]["hasBizQuery"] is True  # SPD 摘要有 BFF
     mon = case_store.list_cases("device-ingest-monitor")
     assert any(c["id"] == "di-20-monitor-recent" and c.get("expandByDeviceType") for c in mon)
     assert any(c["id"] == "di-39-monitor-type-invalid" and not c.get("expandByDeviceType") for c in mon)
+    biz_q = case_store.list_cases("device-monitor-query")
+    assert any(c["id"] == "di-30-biz-page" and c.get("expandRequiresBiz") for c in biz_q)
+    assert any(c["id"] == "di-31-biz-detail" and c.get("expandRequiresBiz") for c in biz_q)
+    assert any(c["id"] == "di-35-monitor-list-matrix" for c in biz_q)
+    assert any(c["id"] == "di-36-detail-not-found" for c in biz_q)
+    assert any(c["id"] == "di-44-list-empty-ok" for c in biz_q)
+    assert any(c["id"] == "di-45-detail-empty-points" for c in biz_q)
+    assert case_store.list_capability_cases("device-ingest-biz-query")["id"] == "device-monitor"
+    li_mon = case_store.list_cases("lightning-ingest-monitor")
+    assert any(c["id"] == "li-14-cmb-strikes-biz" and not c.get("skip") for c in li_mon)
+    assert any(c["id"] == "li-15-open-strikes-sign" and c.get("skip") for c in li_mon)
     from runner import expand_case_refs
 
     expanded = expand_case_refs(
@@ -72,12 +123,27 @@ def test_capabilities_are_l1():
     )
     assert len(expanded) == 2
     assert expanded[0]["deviceType"] == "ATMOSPHERE_ELECTRIC_FIELD"
-    assert caps["warn-suppress"]["name"] == "预警抑制管理"
-    assert caps["warn-runtime"]["name"] == "预警运行"
-    assert "warn-factor" not in caps
-    assert "warn-notify" not in caps
-    assert "warn-gen" not in caps
-    rule_ids = [m["id"] for m in caps["warn-rule"]["modules"]]
+    biz_expanded = expand_case_refs(
+        [{"module": "device-monitor-query", "id": "di-30-biz-page"}],
+        ["SPD_WAVEFORM", "SURGE_MONITOR"],
+    )
+    assert {x["deviceType"] for x in biz_expanded} == {"SPD_WAVEFORM_SUMMARY", "SURGE_MONITOR"}
+    assert all(x.get("detailPath") for x in biz_expanded)
+    spd_expanded = expand_case_refs(
+        [{"module": "device-ingest-e2e", "id": "di-40-e2e-device"}],
+        ["SPD_WAVEFORM"],
+    )
+    assert len(spd_expanded) == 2
+    assert {x["deviceType"] for x in spd_expanded} == {
+        "SPD_WAVEFORM_HEARTBEAT",
+        "SPD_WAVEFORM_SUMMARY",
+    }
+    assert all_caps["warn-suppress"]["name"] == "预警抑制管理"
+    assert all_caps["warn-runtime"]["name"] == "预警运行"
+    assert "warn-factor" not in all_caps
+    assert "warn-notify" not in all_caps
+    assert "warn-gen" not in all_caps
+    rule_ids = [m["id"] for m in all_caps["warn-rule"]["modules"]]
     assert rule_ids[:6] == [
         "warn-rule-draft",
         "warn-rule-publish",
@@ -88,7 +154,7 @@ def test_capabilities_are_l1():
     ]
     assert "warn-factor-query" in rule_ids
     assert "warn-backtest-run" in rule_ids
-    runtime_ids = [m["id"] for m in caps["warn-runtime"]["modules"]]
+    runtime_ids = [m["id"] for m in all_caps["warn-runtime"]["modules"]]
     assert runtime_ids[0] == "warn-gen-smoke"
     assert "warn-notify-confirm" in runtime_ids
     assert case_store.UI_LABELS["caseFile"] == "用例文件"
@@ -133,7 +199,7 @@ def test_suppress_capability_has_cases():
 
 def test_warn_gen_smoke_case_exists():
     rows = case_store.list_cases("warn-gen-smoke")
-    assert any(r["id"] == "wg-00-mock-list" and not r["skip"] for r in rows)
+    assert any(r["id"] == "wg-00-mock-list" and r["skip"] for r in rows)
     tree = case_store.list_capability_cases("warn-runtime")
     assert tree["caseCount"] >= 25
     # 旧一级 id 仍可解析
@@ -156,11 +222,12 @@ def test_gap_fill_packages_registered():
 def test_render_now_offset():
     from runner import _render
 
-    text = _render("${now+1d}|${now-1d}|${rand}", {})
+    text = _render("${now+1d}|${now-1d}|${rand}|${localNow-1h}", {})
     parts = text.split("|")
     assert "T" in parts[0] and len(parts[0]) >= 19
     assert "T" in parts[1]
     assert len(parts[2]) == 8
+    assert "T" not in parts[3] and " " in parts[3]
 
 
 def test_render_now_uses_shanghai_timezone():

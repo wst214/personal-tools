@@ -1,0 +1,30 @@
+id: rf-45-e2e-presign-via-recent
+name: recent 含 downloadUrl（presign）
+description: |
+  上传后 biz /frames/recent 列表中本 frameId 带非空 downloadUrl（biz 经 RPC presign）。
+  不直连 /rpc（网关不对外），用对外 recent 验收预签名结果。
+skip: false
+skipReason: ''
+expandByDeviceType: false
+steps:
+- name: MinIO 上传
+  method: MINIO
+  objectKey: ${radarObjectKey}
+  body: '{"funcWeb":true,"presign":true}'
+  publishNotify: true
+- name: 等待入库与推送侧缓存
+  method: SLEEP
+  seconds: 8
+- name: recent 命中 frameId 且有 downloadUrl
+  method: GET
+  service: radar
+  path: /frames/recent?minutes=60
+  expect:
+    status: 200
+    fields:
+      code: 0
+    contains:
+    - path: data
+      match:
+        frameId: ${frameId}
+        downloadUrl: __not_empty__

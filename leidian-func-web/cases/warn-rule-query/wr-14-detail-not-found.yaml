@@ -1,8 +1,8 @@
 id: wr-14-detail-not-found
 name: 详情不存在
 description: 查询不存在的规则 id，期望返回 404。
-skip: false
-skipReason: ''
+skip: true
+skipReason: 预警相关代码已移除；整包用例跳过
 steps:
 - method: GET
   service: biz

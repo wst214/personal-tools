@@ -1,0 +1,34 @@
+id: di-41-device-type-filter
+name: 新增类 deviceType 筛选
+description: |
+  断接卡 / SPD 波形列表参数名为 deviceType（device_type_code），不是 deviceCategory。
+  依赖 V1_010/V1_012 类型与演示设备种子。
+skip: false
+skipReason: ''
+steps:
+- name: 断接卡 deviceType=SMART_GROUNDING_DISCONNECT
+  method: GET
+  service: biz
+  path: /monitor/disconnect-card/disconnect-cards?pageNum=1&pageSize=10&deviceType=SMART_GROUNDING_DISCONNECT
+  expect:
+    status: 200
+    fields:
+      code: 0
+      data.list.0.id: __not_empty__
+    contains:
+    - path: data.list
+      match:
+        deviceTypeName: 智能接地断接卡
+- name: SPD 波形 deviceType=SPD_WAVEFORM_MONITOR
+  method: GET
+  service: biz
+  path: /monitor/spd-waveform/spd-waveforms?pageNum=1&pageSize=10&deviceType=SPD_WAVEFORM_MONITOR
+  expect:
+    status: 200
+    fields:
+      code: 0
+      data.list.0.id: __not_empty__
+    contains:
+    - path: data.list
+      match:
+        deviceTypeName: SPD多重雷击波形监测仪

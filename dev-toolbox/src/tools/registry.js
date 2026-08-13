@@ -86,7 +86,7 @@ const deployTool = lazyTool(
   () => import('./deploy.js'),
 );
 const diffTool = lazyTool(
-  { id: 'diff', exportName: 'diffTool', name: 'Diff 对比', category: '文本', keywords: 'diff compare text json 对比 差异', desc: '文本 / JSON 左右 Diff' },
+  { id: 'diff', exportName: 'diffTool', name: 'Diff 对比', category: '文本', keywords: 'diff compare text json folder directory 对比 差异 文件夹', desc: '文本 / JSON / 文件夹 Diff' },
   () => import('./diff.js'),
 );
 const embedTool = lazyTool(
@@ -98,8 +98,24 @@ const newapiTool = lazyTool(
   () => import('./newapi.js'),
 );
 const llmprobeTool = lazyTool(
-  { id: 'llmprobe', exportName: 'llmprobeTool', name: '模型测通', category: '网络', keywords: 'llm model probe test openai 测通 连通性 火山 讯飞 基元 newapi', desc: '一键检测第三方大模型是否通' },
+  { id: 'llmprobe', exportName: 'llmprobeTool', name: '模型测通', category: '网络', keywords: 'llm model probe test openai deepseek 测通 连通性 火山 讯飞 基元 newapi', desc: '一键检测第三方大模型是否通' },
   () => import('./llmprobe.js'),
+);
+const writingTool = lazyTool(
+  { id: 'writing', exportName: 'writingTool', name: '开书助手', category: '其它', keywords: 'writing oh-story 网文 小说 写作 开书 去AI味 story 开书助手', desc: '按钮驱动 oh-story：开书 / 续写 / 去AI味 / 审查' },
+  () => import('./writing.js'),
+);
+const openacmeTool = lazyTool(
+  { id: 'openacme', exportName: 'openacmeTool', name: 'AI 编制', category: '系统', keywords: 'openacme ai 虚拟员工 数字员工 编制 多智能体 产品经理 架构师 测试', desc: '内嵌 OpenAcme：产品交付 AI 虚拟员工编制' },
+  () => import('./openacme.js'),
+);
+const stirlingTool = lazyTool(
+  { id: 'stirling', exportName: 'stirlingTool', name: 'PDF 工具', category: '系统', keywords: 'stirling pdf merge split compress ocr 合并 拆分 压缩', desc: '内嵌本机 Stirling-PDF：合并 / 拆分 / 压缩 / OCR' },
+  () => import('./stirling.js'),
+);
+const anythingllmTool = lazyTool(
+  { id: 'anythingllm', exportName: 'anythingllmTool', name: '知识库', category: '系统', keywords: 'anythingllm rag 知识库 文档 工作区 llm workspace', desc: '内嵌本机 AnythingLLM：文档知识库 + RAG 工作台' },
+  () => import('./anythingllm.js'),
 );
 
 // 工具注册表。侧边栏按「置顶 → 分类」渲染。notes/json 等常用工具仍静态引入以保证首屏快开。
@@ -107,7 +123,7 @@ export const tools = [
   notesTool,
   jsonTool, timestampTool, cryptoTool, baseTool, uuidTool,
   sqlTool, regexTool, textTool, diffTool,
-  qrcodeTool, cronTool, translateTool, embedTool, newapiTool,
+  qrcodeTool, cronTool, translateTool, writingTool, embedTool, newapiTool, openacmeTool, stirlingTool, anythingllmTool,
   httpTool, llmprobeTool, portScanTool, sshTool,
   sysInfoTool, hostsTool, deployTool,
 ];

@@ -63,8 +63,8 @@ export const sshTool = {
   name: 'SSH 终端',
   category: '网络',
   icon: svg('<path d="M4 6h16M4 12h16M4 18h10"/><path d="m19 16 2.5 2.5L19 21"/>'),
-  keywords: 'ssh terminal shell linux 远程 终端',
-  desc: 'SSH 远程终端连接（支持多会话）',
+  keywords: 'ssh terminal shell linux 远程 终端 powershell cmd 本机',
+  desc: 'SSH 远程终端 + 本机 CMD / PowerShell',
 
   render(container) {
     this.container = container;
@@ -161,7 +161,9 @@ export const sshTool = {
     if (!r.ok || !r.sessions?.length) return;
     for (const s of r.sessions) {
       if (this.tabs.some((t) => t.id === s.id)) continue;
-      const tab = await this.createTab(s.id, s.name || s.host, s.user || '', s.host || '');
+      const isLocal = s.kind === 'local' || String(s.id || '').startsWith('local-');
+      const name = s.name || (isLocal ? (s.shell === 'cmd' ? 'CMD' : 'PowerShell') : (s.host || 'session'));
+      const tab = await this.createTab(s.id, name, s.user || '', isLocal ? 'localhost' : (s.host || ''), { local: isLocal, shell: s.shell });
       if (tab?.term) {
         tab.term.writeln('\x1b[90m── 会话已恢复（历史输出未缓存；按回车继续）──\x1b[0m');
       }
@@ -200,7 +202,21 @@ export const sshTool = {
       this.paintListRefresh();
     }, { variant: 'primary' });
 
+    const openLocal = (shell) => async () => {
+      if (!window.toolbox?.ssh?.localOpen) { toast('本机终端需在桌面端运行', 'error'); return; }
+      const r = await window.toolbox.ssh.localOpen(shell);
+      if (!r?.ok) { toast('打开失败：' + (r?.error || '未知错误'), 'error'); return; }
+      await this.createTab(r.id, r.name || (shell === 'cmd' ? 'CMD' : 'PowerShell'), '', 'localhost', { local: true, shell: r.shell || shell });
+    };
+
+    const localRow = el('div', { class: 'ssh-local-row' }, [
+      btn('PowerShell', openLocal('powershell'), { variant: 'ghost' }),
+      btn('CMD', openLocal('cmd'), { variant: 'ghost' }),
+    ]);
+
     left.append(
+      el('div', { class: 'ssh-sidebar-head', text: '本机' }),
+      localRow,
       el('div', { class: 'ssh-sidebar-head', text: '连接' }),
       newBtn,
       list,
@@ -240,7 +256,7 @@ export const sshTool = {
         class: 'ssh-tab' + (isActive ? ' active' : ''),
         type: 'button',
         onclick: () => this.activateTab(tab.id),
-        title: `${tab.user}@${tab.host}`,
+        title: tab.local ? `本机 · ${tab.name}` : `${tab.user}@${tab.host}`,
       }, [
         el('span', { class: 'ssh-tab-dot' + (tab.status === 'closed' ? ' closed' : '') }),
         el('span', { class: 'ssh-tab-name', text: tab.name }),
@@ -271,9 +287,10 @@ export const sshTool = {
     // 更新 tab 上的状态点
     const bar = this.tabsBar;
     if (!bar) return;
+    const label = tab.local ? `本机 · ${tab.name}` : `${tab.user}@${tab.host}`;
     const btns = bar.querySelectorAll('.ssh-tab');
     for (const b of btns) {
-      if (b.title?.includes(`${tab.user}@${tab.host}`)) {
+      if (b.title === label || b.title?.includes(label)) {
         const dot = b.querySelector('.ssh-tab-dot');
         if (dot) dot.classList.toggle('closed', tab.status === 'closed');
       }
@@ -472,27 +489,49 @@ export const sshTool = {
   },
 
   // ---- 创建 tab + 终端 ----
-  async createTab(sessionId, name, user, host) {
+  async createTab(sessionId, name, user, host, opts = {}) {
+    const isLocal = !!opts.local || String(sessionId || '').startsWith('local-');
     const { Terminal, FitAddon } = await loadXterm();
     // 终端盒子
-    const sftpBtn = btn('文件', () => this.toggleSftp(sessionId), { variant: 'ghost' });
-    const infoBtn = btn('系统信息', () => this.toggleSysInfo(sessionId), { variant: 'ghost' });
-    const bar = el('div', { class: 'ssh-term-bar' }, [
+    const statusText = isLocal ? (name || '本机') : `${user}@${host}`;
+    const barChildren = [
       el('div', { class: 'ssh-term-status' }, [
         el('span', { class: 'ssh-term-dot' }),
-        el('span', { class: 'ssh-term-status-text', text: `${user}@${host}` }),
+        el('span', { class: 'ssh-term-status-text', text: statusText }),
       ]),
-      el('div', { class: 'ssh-term-host', text: name }),
-      infoBtn,
-      sftpBtn,
-      el('button', { class: 'btn ghost', type: 'button', onclick: () => this.closeTab(sessionId) }, '断开'),
-    ]);
+      el('div', { class: 'ssh-term-host', text: isLocal ? `本机 · ${name}` : name }),
+    ];
+    let sftpBtn = null;
+    let infoBtn = null;
+    if (!isLocal) {
+      sftpBtn = btn('文件', () => this.toggleSftp(sessionId), { variant: 'ghost' });
+      infoBtn = btn('系统信息', () => this.toggleSysInfo(sessionId), { variant: 'ghost' });
+      barChildren.push(infoBtn, sftpBtn);
+    }
+    barChildren.push(el('button', { class: 'btn ghost', type: 'button', onclick: () => this.closeTab(sessionId) }, '断开'));
+    const bar = el('div', { class: 'ssh-term-bar' }, barChildren);
     const termBox = el('div', { class: 'ssh-term-box' });
     const infoPanel = el('div', { class: 'ssh-sysinfo' });
     const boxEl = el('div', { class: 'ssh-tab-pane' }, [bar, infoPanel, termBox]);
     this.termBoxes.append(boxEl);
 
-    const tab = { id: sessionId, name, user, host, term: null, fitAddon: null, boxEl, sftpBtn, infoBtn, infoPanel, sftpPath: '/', status: 'connected', cleanup: null };
+    const tab = {
+      id: sessionId,
+      name,
+      user,
+      host,
+      local: isLocal,
+      shell: opts.shell || '',
+      term: null,
+      fitAddon: null,
+      boxEl,
+      sftpBtn,
+      infoBtn,
+      infoPanel,
+      sftpPath: '/',
+      status: 'connected',
+      cleanup: null,
+    };
     this.tabs.push(tab);
     this._curTab = tab;
 
@@ -553,7 +592,7 @@ export const sshTool = {
   // ---- 服务器系统信息 ----
   toggleSysInfo(sessionId) {
     const tab = this.tabs.find((t) => t.id === sessionId);
-    if (!tab) return;
+    if (!tab || tab.local) return;
     const visible = tab.infoPanel.classList.contains('open');
     if (visible) {
       tab.infoPanel.classList.remove('open');
@@ -644,7 +683,7 @@ export const sshTool = {
       return;
     }
     const tab = this.tabs.find((t) => t.id === sessionId);
-    if (!tab) return;
+    if (!tab || tab.local) return;
     this.sftpTab = tab;
     tab.sftpPath = tab.sftpPath || '/';
     this.sftpLocalPath = this.sftpLocalPath || '';

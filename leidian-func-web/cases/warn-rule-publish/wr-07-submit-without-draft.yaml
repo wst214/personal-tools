@@ -1,8 +1,8 @@
 id: wr-07-submit-without-draft
 name: 无草稿时二次提交失败
 description: 已发布且无编辑中草稿时再次 submit，期望业务失败（无草稿可提交）。
-skip: false
-skipReason: ''
+skip: true
+skipReason: 预警相关代码已移除；整包用例跳过
 steps:
 - method: POST
   service: biz

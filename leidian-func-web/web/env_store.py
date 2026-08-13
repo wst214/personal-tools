@@ -96,6 +96,11 @@ def _blank_env(name: str = "新环境") -> dict[str, Any]:
         "loginApi": DEFAULT_LOGIN_API,
         "tokenPath": DEFAULT_LOGIN_PATH,
         "kafkaBrokers": "127.0.0.1:9092",
+        # Docker 同网默认连 leidian-minio:9000；宿主机可改 http://127.0.0.1:19000
+        "minioEndpoint": "http://leidian-minio:9000",
+        "minioAccessKey": "minioadmin",
+        "minioSecretKey": "minioadmin",
+        "minioRadarBucket": "leidian-frame",
     }
 
 
@@ -124,6 +129,10 @@ def _normalize_env(raw: dict[str, Any] | None) -> dict[str, Any]:
         env["loginApi"] = "/" + env["loginApi"]
     env["tokenPath"] = str(src.get("tokenPath") or DEFAULT_LOGIN_PATH)
     env["kafkaBrokers"] = str(src.get("kafkaBrokers") or "127.0.0.1:9092").strip()
+    env["minioEndpoint"] = str(src.get("minioEndpoint") or "http://leidian-minio:9000").strip()
+    env["minioAccessKey"] = str(src.get("minioAccessKey") or "minioadmin").strip()
+    env["minioSecretKey"] = str(src.get("minioSecretKey") or "minioadmin").strip()
+    env["minioRadarBucket"] = str(src.get("minioRadarBucket") or "leidian-frame").strip()
 
     # 兼容展示：baseUrl 指向 biz（旧测试/UI 过渡）
     env["baseUrl"] = service_base(env, "biz")
@@ -239,6 +248,10 @@ def save_doc(doc: dict[str, Any], path: Path | None = None) -> dict[str, Any]:
                 "loginApi": e["loginApi"],
                 "tokenPath": e["tokenPath"],
                 "kafkaBrokers": e["kafkaBrokers"],
+                "minioEndpoint": e.get("minioEndpoint") or "http://leidian-minio:9000",
+                "minioAccessKey": e.get("minioAccessKey") or "minioadmin",
+                "minioSecretKey": e.get("minioSecretKey") or "minioadmin",
+                "minioRadarBucket": e.get("minioRadarBucket") or "leidian-frame",
             }
         )
     out = {"activeId": active, "environments": stored}

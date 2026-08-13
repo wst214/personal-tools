@@ -1,0 +1,31 @@
+id: rf-12-recent-minutes-bound
+name: recent minutes 边界不 5xx
+description: minutes=1 / 默认 60 / 过大值（如 99999）均应业务成功或合理截断，不因参数直接 5xx。
+skip: false
+skipReason: ''
+expandByDeviceType: false
+steps:
+- name: minutes=1
+  method: GET
+  service: radar
+  path: /frames/recent?minutes=1
+  expect:
+    status: 200
+    fields:
+      code: 0
+- name: minutes 默认 60
+  method: GET
+  service: radar
+  path: /frames/recent
+  expect:
+    status: 200
+    fields:
+      code: 0
+- name: minutes 过大
+  method: GET
+  service: radar
+  path: /frames/recent?minutes=99999
+  expect:
+    status: 200
+    fields:
+      code: 0

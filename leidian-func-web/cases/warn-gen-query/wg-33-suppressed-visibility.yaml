@@ -1,8 +1,8 @@
 id: wg-33-suppressed-visibility
 name: SUPPRESSED 默认不可见、includeHidden 可查
 description: 验收：FULL 抑制产生的 SUPPRESSED 事件，默认列表排除(lifecycleStatus=SUPPRESSED 查不到)，includeHidden=true 可查。
-skip: false
-skipReason: ''
+skip: true
+skipReason: 预警相关代码已移除；整包用例跳过
 steps:
 - method: POST
   service: biz

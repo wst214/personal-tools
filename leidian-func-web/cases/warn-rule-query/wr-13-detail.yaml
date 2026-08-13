@@ -1,8 +1,8 @@
 id: wr-13-detail
 name: 规则详情查询
 description: 先创建规则再按 id 查详情，校验出参字段与创建内容一致。
-skip: false
-skipReason: ''
+skip: true
+skipReason: 预警相关代码已移除；整包用例跳过
 steps:
 - method: POST
   service: biz

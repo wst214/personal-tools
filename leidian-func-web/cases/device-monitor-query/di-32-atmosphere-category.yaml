@@ -1,0 +1,24 @@
+id: di-32-atmosphere-category
+name: 大气电场按 deviceCategory 筛选
+description: |
+  01 / 19 共用 atmospheres 列表；分别带 deviceCategory=01、19 应均可分页返回。
+  列表无时间窗（最新快照）。
+skip: false
+skipReason: ''
+steps:
+- name: 大气电场仪 01 列表
+  method: GET
+  service: biz
+  path: /monitor/atmosphere/atmospheres?pageNum=1&pageSize=10&deviceCategory=01
+  expect:
+    status: 200
+    fields:
+      code: 0
+- name: 大气电场仪 GPS 19 列表
+  method: GET
+  service: biz
+  path: /monitor/atmosphere/atmospheres?pageNum=1&pageSize=10&deviceCategory=19
+  expect:
+    status: 200
+    fields:
+      code: 0

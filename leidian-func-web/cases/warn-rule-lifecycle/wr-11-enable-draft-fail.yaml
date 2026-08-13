@@ -1,8 +1,8 @@
 id: wr-11-enable-draft-fail
 name: 未发布规则再启用失败
 description: 负向：未发布的草稿直接启用，期望失败。
-skip: false
-skipReason: ''
+skip: true
+skipReason: 预警相关代码已移除；整包用例跳过
 steps:
 - method: POST
   service: biz

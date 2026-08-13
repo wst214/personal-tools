@@ -1,0 +1,29 @@
+id: di-37-list-shape
+name: 监测列表响应结构
+description: |
+  验列表契约：code=0，data.list 必须是数组（允许空）。
+  依赖 V1_010 演示种子时，断接卡列表应至少有一条并可取 id。
+skip: false
+skipReason: ''
+steps:
+- name: 断接卡列表结构
+  method: GET
+  service: biz
+  path: /monitor/disconnect-card/disconnect-cards?pageNum=1&pageSize=10
+  expect:
+    status: 200
+    fields:
+      code: 0
+      data.list.0.id: __not_empty__
+    contains:
+    - path: data.list
+- name: SPD 波形列表结构（允许仅验数组）
+  method: GET
+  service: biz
+  path: /monitor/spd-waveform/spd-waveforms?pageNum=1&pageSize=10
+  expect:
+    status: 200
+    fields:
+      code: 0
+    contains:
+    - path: data.list

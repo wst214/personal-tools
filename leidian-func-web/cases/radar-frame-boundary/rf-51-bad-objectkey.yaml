@@ -1,0 +1,29 @@
+id: rf-51-bad-objectkey
+name: 非法文件名不入库
+description: |
+  合法前缀但无法解析 frameId 的文件名 → 投递后不应出现该 objectKey。
+  断言按 payloadSummary 含 objectKey 排查，避免与同批正向用例的 frameId 撞号误杀。
+skip: false
+skipReason: ''
+expandByDeviceType: false
+steps:
+- name: 上传非法文件名
+  method: MINIO
+  objectKey: ${radarBadObjectKey}
+  body: '{"funcWeb":true}'
+  publishNotify: true
+- name: 等待处理
+  method: SLEEP
+  seconds: 5
+- name: 重放源不应出现该 objectKey
+  method: GET
+  service: data
+  path: /replay/radar/source?startTime=${frameStart}&endTime=${frameEnd}&limit=50
+  expect:
+    status: 200
+    fields:
+      code: 0
+    notContains:
+    - path: data
+      field: payloadSummary
+      valueContains: ${objectKey}

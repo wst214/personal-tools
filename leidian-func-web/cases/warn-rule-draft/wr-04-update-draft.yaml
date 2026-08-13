@@ -1,8 +1,8 @@
 id: wr-04-update-draft
 name: 编辑草稿内容
 description: 先建草稿再 PUT 更新名称与描述等字段，期望仍为 DRAFT 且内容已变更。
-skip: false
-skipReason: ''
+skip: true
+skipReason: 预警相关代码已移除；整包用例跳过
 steps:
 - method: POST
   service: biz

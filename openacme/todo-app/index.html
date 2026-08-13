@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>我的待办</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <div id="app">
+    <header>
+      <h1>我的待办</h1>
+    </header>
+
+    <form id="add-form" novalidate>
+      <label class="sr-only" for="new-todo">新增待办</label>
+      <input id="new-todo" type="text" placeholder="输入待办内容…" autocomplete="off">
+      <button type="submit">添加</button>
+      <p id="add-error" class="field-error" role="alert"></p>
+    </form>
+
+    <p id="save-error" class="save-error" role="alert" hidden></p>
+
+    <ul id="todo-list"></ul>
+  </div>
+
+  <!-- 经典脚本（依依赖顺序加载），支持 file:// 直接打开 -->
+  <script src="store.js"></script>
+  <script src="render.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>

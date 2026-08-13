@@ -1,8 +1,8 @@
 id: wr-01-create-draft
 name: 新建规则草稿
 description: 新建一条自定义预警规则草稿：提交规则名、条件/动作 JSON、预见期与 ALWAYS 策略，期望返回 DRAFT 状态并可捕获 ruleId。
-skip: false
-skipReason: ''
+skip: true
+skipReason: 预警相关代码已移除；整包用例跳过
 steps:
 - method: POST
   service: biz

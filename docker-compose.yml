@@ -112,6 +112,24 @@ services:
 
     restart: unless-stopped
 
+  # TestHub MySQL（宿主机 :3307）
+  mytools-testhub-mysql:
+    image: mysql:8.0
+    container_name: mytools-testhub-mysql
+    ports:
+      - "3307:3306"
+    environment:
+      MYSQL_ROOT_PASSWORD: root123
+      MYSQL_DATABASE: testhub
+      MYSQL_USER: testhub
+      MYSQL_PASSWORD: testhub123
+    volumes:
+      - testhub-mysql-data:/var/lib/mysql
+    command:
+      - --character-set-server=utf8mb4
+      - --collation-server=utf8mb4_unicode_ci
+    restart: unless-stopped
+
   # New API：多上游 LLM 统一转发（SQLite，个人本机用）
   mytools-new-api:
     image: calciumion/new-api:latest
@@ -139,10 +157,53 @@ services:
       - mytools-new-api
     restart: unless-stopped
 
+  # AnythingLLM 知识库（DevToolbox :3002）
+  mytools-anythingllm:
+    image: mintplexlabs/anythingllm:latest
+    container_name: mytools-anythingllm
+    ports:
+      - "3002:3001"
+    cap_add:
+      - SYS_ADMIN
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    environment:
+      STORAGE_DIR: /app/server/storage
+      JWT_SECRET: mytools-anythingllm-local-dev-secret-change-me
+      DISABLE_TELEMETRY: "true"
+      LLM_PROVIDER: generic-openai
+      GENERIC_OPEN_AI_BASE_PATH: http://host.docker.internal:5780/v1
+      GENERIC_OPEN_AI_MODEL_PREF: deepseek-v4-flash-0731
+      EMBEDDING_ENGINE: native
+    volumes:
+      - ./dev-toolbox/anythingllm/storage:/app/server/storage
+      - ./dev-toolbox/anythingllm/.env:/app/server/.env
+    restart: unless-stopped
+
+  # Stirling-PDF（DevToolbox :8090；与 personal-dev-site 同端口，勿同时启动两者）
+  mytools-stirling-pdf:
+    image: stirlingtools/stirling-pdf:latest
+    container_name: mytools-stirling-pdf
+    ports:
+      - "8090:8080"
+    environment:
+      SECURITY_ENABLELOGIN: "false"
+      DISABLE_ADDITIONAL_FEATURES: "false"
+      SYSTEM_DEFAULTLOCALE: zh_CN
+      SYSTEM_GOOGLEVISIBILITY: "false"
+      SECURITY_XFRAMEOPTIONS: DISABLED
+    volumes:
+      - ./dev-toolbox/stirling-pdf/data:/configs
+      - ./dev-toolbox/stirling-pdf/tessdata:/usr/share/tessdata
+    restart: unless-stopped
+
 volumes:
   linux-remote-data:
     external: true
     name: mytools_linux-remote-data
+  testhub-mysql-data:
+    name: mytools_testhub-mysql-data
+    external: true
 
 
 

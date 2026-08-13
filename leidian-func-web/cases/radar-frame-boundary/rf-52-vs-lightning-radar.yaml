@@ -1,0 +1,25 @@
+id: rf-52-vs-lightning-radar
+name: 与小小网雷击接口隔离
+description: |
+  /ingest/standard/radar/recent 属于小小网雷击（monitor_lightning_strike），不是雷达回波帧。
+  本用例仅确认该接口可调用，避免与回波验收路径混淆。
+skip: false
+skipReason: ''
+expandByDeviceType: false
+steps:
+- name: 小小网雷击 recent（非回波）
+  method: GET
+  service: data
+  path: /ingest/standard/radar/recent
+  expect:
+    status: 200
+    fields:
+      code: 0
+- name: 回波验收走 replay
+  method: GET
+  service: data
+  path: /replay/radar/source?limit=5
+  expect:
+    status: 200
+    fields:
+      code: 0

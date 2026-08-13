@@ -1,8 +1,8 @@
 id: ws-11-delete-draft
 name: 删除草稿抑制
 description: 删除草稿抑制单，期望成功。
-skip: false
-skipReason: ''
+skip: true
+skipReason: 预警相关代码已移除；整包用例跳过
 steps:
 - method: POST
   service: biz

@@ -1,0 +1,30 @@
+id: di-42-region-filter
+name: 监测列表行政区域筛选
+description: |
+  administrativeRegionCode 对齐演示站点区划 620102（兰州市城关区）。
+  断接卡演示设备挂在该站点下，应能筛到。
+skip: false
+skipReason: ''
+steps:
+- name: 断接卡按区划 620102
+  method: GET
+  service: biz
+  path: /monitor/disconnect-card/disconnect-cards?pageNum=1&pageSize=10&administrativeRegionCode=620102
+  expect:
+    status: 200
+    fields:
+      code: 0
+      data.list.0.id: __not_empty__
+    contains:
+    - path: data.list
+- name: 不存在区划应空列表
+  method: GET
+  service: biz
+  path: /monitor/disconnect-card/disconnect-cards?pageNum=1&pageSize=10&administrativeRegionCode=999999
+  expect:
+    status: 200
+    fields:
+      code: 0
+      data.total: 0
+    contains:
+    - path: data.list

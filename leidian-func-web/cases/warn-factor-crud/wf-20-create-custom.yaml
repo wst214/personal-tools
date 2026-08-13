@@ -1,8 +1,8 @@
 id: wf-20-create-custom
 name: 一期不开放新建自定义因子
 description: 验收：一期不提供 POST 新建因子；请求应失败（接口不存在或方法不允许）。
-skip: false
-skipReason: ''
+skip: true
+skipReason: 预警相关代码已移除；整包用例跳过
 steps:
 - method: POST
   service: biz

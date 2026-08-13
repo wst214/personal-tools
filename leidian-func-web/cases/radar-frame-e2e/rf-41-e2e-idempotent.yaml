@@ -1,0 +1,36 @@
+﻿id: rf-41-e2e-idempotent
+name: 同 frameId 重复上传幂等
+description: |
+  同一 objectKey / frameId 上传两次 → replay 仍可按 frameId 命中（upsert，不因重复而失败）。
+skip: false
+skipReason: ''
+expandByDeviceType: false
+steps:
+- name: 首次上传
+  method: MINIO
+  objectKey: ${radarObjectKey}
+  body: '{"funcWeb":true,"round":1}'
+  publishNotify: true
+- name: 等待首次消费
+  method: SLEEP
+  seconds: 5
+- name: 再次上传同 key
+  method: MINIO
+  objectKey: ${radarObjectKey}
+  body: '{"funcWeb":true,"round":2,"ignoredBody":true}'
+  publishNotify: true
+- name: 等待二次消费
+  method: SLEEP
+  seconds: 5
+- name: 重放源仍可命中同一 frameId
+  method: GET
+  service: data
+  path: /replay/radar/source?startTime=${frameStart}&endTime=${frameEnd}&limit=20
+  expect:
+    status: 200
+    fields:
+      code: 0
+    contains:
+    - path: data
+      match:
+        dedupKey: ${frameId}

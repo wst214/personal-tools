@@ -1,0 +1,24 @@
+id: di-33-surge-category
+name: 雷击电流按 deviceCategory 筛选
+description: |
+  05 / 15 共用 surge-currents 列表；分别带 deviceCategory=05、15 应均可分页返回。
+  未传时间默认 MONITOR_SURGE_CURRENT_TREND_DAYS（90 天）。
+skip: false
+skipReason: ''
+steps:
+- name: 基础型 05 列表
+  method: GET
+  service: biz
+  path: /monitor/surge-current/surge-currents?pageNum=1&pageSize=10&deviceCategory=05
+  expect:
+    status: 200
+    fields:
+      code: 0
+- name: GPS 型 15 列表
+  method: GET
+  service: biz
+  path: /monitor/surge-current/surge-currents?pageNum=1&pageSize=10&deviceCategory=15
+  expect:
+    status: 200
+    fields:
+      code: 0

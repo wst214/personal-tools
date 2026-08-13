@@ -1,0 +1,20 @@
+id: di-45-detail-empty-points
+name: 监测详情无监测点仍成功
+description: |
+  演示断接卡设备存在，但查询远古且合法跨度的时间窗（1 天，远早于演示监测入库），
+  应返回 code=0、basicInfo 有值、points 为空数组。
+  区分「设备不存在」(业务 404) 与「窗口内无点」(成功空列表)。
+skip: false
+skipReason: ''
+steps:
+- name: 断接卡远古时间窗详情
+  method: GET
+  service: biz
+  path: /monitor/disconnect-card/devices/1000000000000080112?startTime=2000-01-01 00:00:00&endTime=2000-01-02 00:00:00
+  expect:
+    status: 200
+    fields:
+      code: 0
+      data.basicInfo.deviceName: __not_empty__
+      data.basicInfo.deviceAddr: __not_empty__
+      data.points: []

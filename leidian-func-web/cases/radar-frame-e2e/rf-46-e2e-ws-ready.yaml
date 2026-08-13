@@ -1,0 +1,30 @@
+id: rf-46-e2e-ws-ready
+name: WebSocket 推送 RADAR_FRAME_READY
+description: |
+  先连 WS（经网关 /api/biz/realtime/ws），再上传帧，等待 type=RADAR_FRAME_READY，
+  且 data.frameId / downloadUrl 匹配。
+skip: false
+skipReason: ''
+expandByDeviceType: false
+steps:
+- name: 连接 WS 并上传后等待推送
+  method: WS
+  service: biz
+  path: /realtime/ws
+  timeoutSeconds: 35
+  trigger:
+  - name: MinIO 上传
+    method: MINIO
+    objectKey: ${radarObjectKey}
+    body: '{"funcWeb":true,"ws":true}'
+    publishNotify: true
+    metadata:
+      traceid: func-web-ws-${rand}
+  - name: 稍等消费
+    method: SLEEP
+    seconds: 2
+  expect:
+    type: RADAR_FRAME_READY
+    match:
+      frameId: ${frameId}
+      downloadUrl: __not_empty__
