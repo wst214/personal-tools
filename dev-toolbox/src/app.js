@@ -32,6 +32,7 @@ const TOOL_ICONS = {
   openacme: svg('<circle cx="12" cy="8" r="2.2"/><circle cx="6.5" cy="15.5" r="2"/><circle cx="17.5" cy="15.5" r="2"/><circle cx="12" cy="18" r="1.7"/><path d="M12 10.2v4M10.2 9.2 7.8 13.8M13.8 9.2l2.4 4.6"/>'),
   stirling: svg('<path d="M7 4.5h10a1.5 1.5 0 0 1 1.5 1.5v12a1.5 1.5 0 0 1-1.5 1.5H7A1.5 1.5 0 0 1 5.5 18V6A1.5 1.5 0 0 1 7 4.5z"/><path d="M8.5 9h7M8.5 12h7M8.5 15h4"/>'),
   anythingllm: svg('<path d="M6 7.5h12v9H6z"/><path d="M9 10.5h6M9 13.5h4"/><path d="M8 7.5V6a4 4 0 0 1 8 0v1.5"/>'),
+  dsh: svg('<circle cx="12" cy="12" r="8"/><path d="M8.5 12.5l2.2 2.2 4.8-5.2"/>'),
 };
 
 // 每个工具的图标底色（彩色圆角方块）
@@ -62,6 +63,7 @@ const ICON_COLORS = {
   openacme: 'linear-gradient(135deg,#14b8a6,#0d9488)',
   stirling: 'linear-gradient(135deg,#ef4444,#dc2626)',
   anythingllm: 'linear-gradient(135deg,#6366f1,#4f46e5)',
+  dsh: 'linear-gradient(135deg,#0ea5e9,#0284c8)',
 };
 
 // 主图标（对点连线，调细版）
@@ -102,7 +104,7 @@ function defaultGroups() {
     g('\u7f16\u7801\u8f6c\u6362', ['json', 'timestamp', 'crypto']),
     g('\u6587\u672c\u5904\u7406', ['sql', 'regex', 'diff']),
     g('\u7f51\u7edc\u5de5\u5177', ['http', 'llmprobe', 'ssh']),
-    g('\u7cfb\u7edf\u5de5\u5177', ['sysinfo', 'hosts', 'deploy', 'embed', 'newapi', 'openacme', 'stirling']),
+    g('\u7cfb\u7edf\u5de5\u5177', ['sysinfo', 'hosts', 'deploy', 'embed', 'newapi', 'openacme', 'stirling', 'dsh']),
     g('\u5176\u5b83\u5de5\u5177', ['qrcode', 'cron', 'writing']),
   ];
 }
@@ -177,7 +179,7 @@ function recoverMissingSystemTools(groups) {
   const base = groups.map((g) => ({ ...g, toolIds: [...(g.toolIds || [])] }));
   const haveTool = (id) => base.some((g) => g.toolIds.includes(id));
   const sys = ensureGroup(base, 'group-' + SYSTEM_GROUP_NAME, SYSTEM_GROUP_NAME);
-  for (const id of ['stirling']) {
+  for (const id of ['stirling', 'dsh']) {
     if (visibleTools.some((t) => t.id === id) && !haveTool(id) && !sys.toolIds.includes(id)) {
       sys.toolIds.push(id);
     }
@@ -624,11 +626,11 @@ export function initApp(root) {
     pageTitle.textContent = tool.name;
     pageSub.textContent = tool.id === 'llmprobe' ? '' : (tool.desc || '');
     pageSub.hidden = tool.id === 'llmprobe';
-    // TestHub / New API / OpenAcme / Stirling / AnythingLLM 内嵌：去掉标题栏，iframe 占满
-    const embedIds = new Set(['embed', 'newapi', 'openacme', 'stirling', 'anythingllm']);
+    // TestHub / New API / OpenAcme / Stirling / AnythingLLM / DeepSeek Harness 内嵌：去掉标题栏，iframe 占满
+    const embedIds = new Set(['embed', 'newapi', 'openacme', 'stirling', 'anythingllm', 'dsh']);
     pageHead.hidden = embedIds.has(tool.id);
     // notes/deploy/ssh/json 等：内容区隐藏外层滚动，工具内部（输入/输出框）自己滚
-    const fillTools = new Set(['notes', 'deploy', 'ssh', 'json', 'crypto', 'sql', 'text', 'hosts', 'http', 'sysinfo', 'diff', 'embed', 'newapi', 'llmprobe', 'openacme', 'stirling', 'anythingllm']);
+    const fillTools = new Set(['notes', 'deploy', 'ssh', 'json', 'crypto', 'sql', 'text', 'hosts', 'http', 'sysinfo', 'diff', 'embed', 'newapi', 'llmprobe', 'openacme', 'stirling', 'anythingllm', 'dsh']);
     content.className = 'content' + (fillTools.has(tool.id) ? ' content-notes' : '') + (embedIds.has(tool.id) ? ' content-embed' : '');
     const wrap = el('div', { class: 'tool-wrap' });
     content.append(wrap);

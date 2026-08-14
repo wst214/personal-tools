@@ -1,0 +1,18 @@
+id: li-16-page-all
+name: 闪电定位全量分页列表可查
+description: |
+  不区分大网/小网/雷达：GET /monitor/lightning/lightnings。
+  验 code=0 且 data.list 为数组（可空）；有数据时项含 sourceKind。
+skip: false
+skipReason: ''
+steps:
+- name: 全量列表
+  method: GET
+  service: biz
+  path: /monitor/lightning/lightnings?pageNum=1&pageSize=10
+  expect:
+    status: 200
+    fields:
+      code: 0
+    contains:
+    - path: data.list

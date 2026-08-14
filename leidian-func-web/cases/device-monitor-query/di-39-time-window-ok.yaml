@@ -1,8 +1,8 @@
 id: di-39-time-window-ok
 name: 合法时间窗列表可查
 description: |
-  接地电阻默认跨度上限 30 天；传入近 7 天合法窗口应成功。
-  仅验 code 与 list 为数组，不要求窗口内一定有监测点。
+  接地电阻默认跨度上限 30 天；断接卡/SPD 分别为 7/30 天。
+  传入合法窗口应成功。仅验 code 与 list 为数组，不要求窗口内一定有监测点。
 skip: false
 skipReason: ''
 steps:
@@ -10,6 +10,16 @@ steps:
   method: GET
   service: biz
   path: /monitor/grounding/groundings?pageNum=1&pageSize=10&startTime=${localNow-7d}&endTime=${localNow-0s}
+  expect:
+    status: 200
+    fields:
+      code: 0
+    contains:
+    - path: data.list
+- name: 断接卡合法时间窗
+  method: GET
+  service: biz
+  path: /monitor/disconnect-card/disconnect-cards?pageNum=1&pageSize=10&startTime=${localNow-3d}&endTime=${localNow-0s}
   expect:
     status: 200
     fields:

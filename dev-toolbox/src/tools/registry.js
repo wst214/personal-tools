@@ -117,13 +117,17 @@ const anythingllmTool = lazyTool(
   { id: 'anythingllm', exportName: 'anythingllmTool', name: '知识库', category: '系统', keywords: 'anythingllm rag 知识库 文档 工作区 llm workspace', desc: '内嵌本机 AnythingLLM：文档知识库 + RAG 工作台' },
   () => import('./anythingllm.js'),
 );
+const dshTool = lazyTool(
+  { id: 'dsh', exportName: 'dshTool', name: 'DeepSeek Harness', category: '系统', keywords: 'deepseek harness dsh agent coding 智能体 本地 agent web', desc: '本机 DeepSeek Harness（dsh web）：本地 Agent 工作台' },
+  () => import('./dsh.js'),
+);
 
 // 工具注册表。侧边栏按「置顶 → 分类」渲染。notes/json 等常用工具仍静态引入以保证首屏快开。
 export const tools = [
   notesTool,
   jsonTool, timestampTool, cryptoTool, baseTool, uuidTool,
   sqlTool, regexTool, textTool, diffTool,
-  qrcodeTool, cronTool, translateTool, writingTool, embedTool, newapiTool, openacmeTool, stirlingTool, anythingllmTool,
+  qrcodeTool, cronTool, translateTool, writingTool, embedTool, newapiTool, openacmeTool, stirlingTool, anythingllmTool, dshTool,
   httpTool, llmprobeTool, portScanTool, sshTool,
   sysInfoTool, hostsTool, deployTool,
 ];

@@ -30,6 +30,7 @@
       openacmeEnsure: () => invoke('openacme_ensure').catch((e) => ({ ok: false, message: String(e) })),
       stirlingEnsure: () => invoke('stirling_ensure').catch((e) => ({ ok: false, message: String(e) })),
       anythingllmEnsure: () => invoke('anythingllm_ensure').catch((e) => ({ ok: false, message: String(e) })),
+      dshEnsure: () => invoke('dsh_ensure').catch((e) => ({ ok: false, message: String(e) })),
       newapiPushCcswitch: (activate) => invoke('newapi_push_ccswitch', { activate: activate || null }).catch((e) => ({ ok: false, message: String(e) })),
       openExternal: (url) => invoke('open_external_url', { url }).catch((e) => ({ ok: false, error: String(e) })),
       diffPickDir: () => invoke('diff_pick_dir').catch((e) => ({ ok: false, error: String(e) })),

@@ -7,13 +7,14 @@
 
 ## 网络（开跑参数）
 
-对齐 `monitor_lightning_strike.strike_type` 共 3 类：
+对齐 `monitor_lightning_strike.source_kind` 共 3 类（合表）：
 
-| 网络 | strike_type | Kafka topic | biz 分页路径 |
+| 网络 | source_kind | Kafka topic | biz 分页路径 |
 |------|-------------|-------------|--------------|
 | 大网 | CMB | `lightning-strike-cmb` | `/monitor/lightning/cmb/lightnings` |
 | 小网 | LOCATOR | `lightning-strike-locator` | `/monitor/lightning/locator/lightnings` |
 | 小小网 | RADAR | `lightning-strike-radar` | `/monitor/lightning/radar/lightnings` |
+| 全量 | — | — | `/monitor/lightning/lightnings`（含 `sourceKind`） |
 
 ## 通用用例
 
@@ -27,6 +28,9 @@
 | Monitor | 三网互不串扰 | **是** | 可跑 |
 | Monitor | 大网落雷点位 biz `li-14` | 否 | 可跑 |
 | Monitor | 开放大网点位签名 `li-15` | 否 | **skip**（需 OPEN_API_SALT） |
+| Monitor | 全量分页列表 `li-16` | 否 | 可跑 |
+| Monitor | 超跨度拒 `li-17` | 否 | 可跑（默认 7 天） |
+| Monitor | 筛选/合法时间窗烟测 `li-18` | 否 | 可跑 |
 | 附件 | 按 monitor 查映射 | 否 | 可跑 |
 | 附件 | presign 原文下载 | 否 | 可跑 |
 | 全链路 | Kafka → monitor → 附件 | **是** | 可跑 |
@@ -43,6 +47,7 @@
 
 ## 后端接口
 
+- `GET /api/biz/monitor/lightning/lightnings`（全量分页，项含 `sourceKind`）
 - `GET /api/biz/monitor/lightning/{cmb|locator|radar}/lightnings`（分页）
 - `GET /api/biz/lightning/cmb/strikes`（大网落雷点位，时间窗 ≤24h；开放入口 `/api/open/...` 需签名）
 - `GET /api/data/ingest/standard/{cmb|locator|radar}/recent`（最近摘要）

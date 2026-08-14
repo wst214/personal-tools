@@ -111,10 +111,17 @@ def test_capabilities_are_l1():
     assert any(c["id"] == "di-36-detail-not-found" for c in biz_q)
     assert any(c["id"] == "di-44-list-empty-ok" for c in biz_q)
     assert any(c["id"] == "di-45-detail-empty-points" for c in biz_q)
+    assert any(c["id"] == "di-46-extra-span-reject" for c in biz_q)
+    assert any(c["id"] == "di-47-bad-time" for c in biz_q)
+    assert any(c["id"] == "di-48-new-type-list-shape" for c in biz_q)
+    assert any(c["id"] == "di-49-power-detail-shape" for c in biz_q)
     assert case_store.list_capability_cases("device-ingest-biz-query")["id"] == "device-monitor"
     li_mon = case_store.list_cases("lightning-ingest-monitor")
     assert any(c["id"] == "li-14-cmb-strikes-biz" and not c.get("skip") for c in li_mon)
     assert any(c["id"] == "li-15-open-strikes-sign" and c.get("skip") for c in li_mon)
+    assert any(c["id"] == "li-16-page-all" and not c.get("expandByNetwork") for c in li_mon)
+    assert any(c["id"] == "li-17-span-reject" for c in li_mon)
+    assert any(c["id"] == "li-18-filter-smoke" for c in li_mon)
     from runner import expand_case_refs
 
     expanded = expand_case_refs(

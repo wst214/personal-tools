@@ -61,6 +61,21 @@ contextBridge.exposeInMainWorld('toolbox', {
     ipcRenderer.on('deploy:output', handler);
     return () => ipcRenderer.removeListener('deploy:output', handler);
   },
+  dsh: {
+    status: () => ipcRenderer.invoke('dsh:status'),
+    getConfig: () => ipcRenderer.invoke('dsh:getConfig'),
+    setInstallDir: (dir) => ipcRenderer.invoke('dsh:setInstallDir', dir),
+    pickDir: () => ipcRenderer.invoke('dsh:pickDir'),
+    start: () => ipcRenderer.invoke('dsh:start'),
+    stop: () => ipcRenderer.invoke('dsh:stop'),
+    open: () => ipcRenderer.invoke('dsh:open'),
+    openInstallDir: () => ipcRenderer.invoke('dsh:openInstallDir'),
+  },
+  onDshOutput: (cb) => {
+    const handler = (_e, msg) => cb(msg);
+    ipcRenderer.on('dsh:output', handler);
+    return () => ipcRenderer.removeListener('dsh:output', handler);
+  },
   // 全局快捷键唤起后：新建一条笔记并进入编辑
   onQuickCapture: (cb) => {
     const handler = () => cb();

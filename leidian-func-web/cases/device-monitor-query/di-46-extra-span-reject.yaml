@@ -1,0 +1,33 @@
+id: di-46-extra-span-reject
+name: 非大气类超跨度应拒
+description: |
+  断接卡默认 MONITOR_DISCONNECT_CARD_TREND_DAYS=7；SPD 默认 MONITOR_SPD_WAVEFORM_TREND_DAYS=30。
+  手动超跨度应业务 code=400；对外 HTTP 200。
+  使用占位 deviceId，跨度校验先于设备存在性。
+skip: false
+skipReason: ''
+steps:
+- name: 断接卡详情超跨度 8 天
+  method: GET
+  service: biz
+  path: /monitor/disconnect-card/devices/1000000000000080112?startTime=${localNow-8d}&endTime=${localNow-0s}
+  expect:
+    status: 200
+    fields:
+      code: 400
+- name: SPD 波形详情超跨度 31 天
+  method: GET
+  service: biz
+  path: /monitor/spd-waveform/devices/1000000000000080122?startTime=${localNow-31d}&endTime=${localNow-0s}
+  expect:
+    status: 200
+    fields:
+      code: 400
+- name: 断接卡列表超跨度 8 天
+  method: GET
+  service: biz
+  path: /monitor/disconnect-card/disconnect-cards?pageNum=1&pageSize=10&startTime=${localNow-8d}&endTime=${localNow-0s}
+  expect:
+    status: 200
+    fields:
+      code: 400

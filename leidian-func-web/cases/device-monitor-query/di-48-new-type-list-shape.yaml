@@ -1,0 +1,43 @@
+id: di-48-new-type-list-shape
+name: 新增类列表响应结构
+description: |
+  远程终端 / 避雷器 / 电源板列表契约：code=0，首条含主数据字段。
+  points 为时间窗内数组（可空），结构由详情用例覆盖；此处不强制 points=[]，避免有实时入库时误杀。
+  依赖 V1_010 演示设备种子。
+skip: false
+skipReason: ''
+steps:
+- name: 远程终端列表结构
+  method: GET
+  service: biz
+  path: /monitor/remote-terminal/remote-terminals?pageNum=1&pageSize=10
+  expect:
+    status: 200
+    fields:
+      code: 0
+      data.list.0.id: __not_empty__
+      data.list.0.deviceName: __not_empty__
+      data.list.0.deviceTypeName: __not_empty__
+      data.list.0.deviceAddr: __not_empty__
+- name: 避雷器列表结构
+  method: GET
+  service: biz
+  path: /monitor/surge-monitor/surge-monitors?pageNum=1&pageSize=10
+  expect:
+    status: 200
+    fields:
+      code: 0
+      data.list.0.id: __not_empty__
+      data.list.0.deviceName: __not_empty__
+      data.list.0.deviceTypeName: __not_empty__
+- name: 电源板列表结构
+  method: GET
+  service: biz
+  path: /monitor/power-board/power-boards?pageNum=1&pageSize=10
+  expect:
+    status: 200
+    fields:
+      code: 0
+      data.list.0.id: __not_empty__
+      data.list.0.deviceName: __not_empty__
+      data.list.0.deviceTypeName: __not_empty__

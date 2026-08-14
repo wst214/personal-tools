@@ -1,0 +1,38 @@
+id: li-18-filter-smoke
+name: 闪电列表筛选烟测
+description: |
+  全量列表带 keyword / administrativeRegionCode / 合法时间窗应成功返回（list 可空）。
+  不依赖演示落雷种子。
+skip: false
+skipReason: ''
+steps:
+- name: keyword 筛选
+  method: GET
+  service: biz
+  path: /monitor/lightning/lightnings?pageNum=1&pageSize=10&keyword=__NO_SUCH_LIGHTNING_SITE__
+  expect:
+    status: 200
+    fields:
+      code: 0
+    contains:
+    - path: data.list
+- name: 行政区划筛选
+  method: GET
+  service: biz
+  path: /monitor/lightning/lightnings?pageNum=1&pageSize=10&administrativeRegionCode=999999
+  expect:
+    status: 200
+    fields:
+      code: 0
+    contains:
+    - path: data.list
+- name: 合法 1 天时间窗
+  method: GET
+  service: biz
+  path: /monitor/lightning/lightnings?pageNum=1&pageSize=10&startTime=${localNow-1d}&endTime=${localNow-0s}
+  expect:
+    status: 200
+    fields:
+      code: 0
+    contains:
+    - path: data.list

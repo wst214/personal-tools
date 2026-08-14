@@ -1,0 +1,23 @@
+id: di-47-bad-time
+name: 监测时间参数非法应拒
+description: |
+  startTime 格式错误、开始晚于结束：业务 code=400；对外 HTTP 200。
+skip: false
+skipReason: ''
+steps:
+- name: startTime 格式错误
+  method: GET
+  service: biz
+  path: /monitor/disconnect-card/disconnect-cards?pageNum=1&pageSize=10&startTime=2026-01-01&endTime=${localNow-0s}
+  expect:
+    status: 200
+    fields:
+      code: 400
+- name: 开始晚于结束
+  method: GET
+  service: biz
+  path: /monitor/disconnect-card/disconnect-cards?pageNum=1&pageSize=10&startTime=${localNow-0s}&endTime=${localNow-1d}
+  expect:
+    status: 200
+    fields:
+      code: 400

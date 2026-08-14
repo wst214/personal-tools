@@ -1,0 +1,24 @@
+id: li-17-span-reject
+name: 闪电列表超跨度应拒
+description: |
+  MONITOR_LIGHTNING_TREND_DAYS 默认 7 天；手动传入超 7 天窗应业务 code=400。
+  对外 HTTP 固定 200（非 RPC）。
+skip: false
+skipReason: ''
+steps:
+- name: 全量列表超跨度 8 天
+  method: GET
+  service: biz
+  path: /monitor/lightning/lightnings?pageNum=1&pageSize=10&startTime=${localNow-8d}&endTime=${localNow-0s}
+  expect:
+    status: 200
+    fields:
+      code: 400
+- name: 大网列表超跨度 8 天
+  method: GET
+  service: biz
+  path: /monitor/lightning/cmb/lightnings?pageNum=1&pageSize=10&startTime=${localNow-8d}&endTime=${localNow-0s}
+  expect:
+    status: 200
+    fields:
+      code: 400

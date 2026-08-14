@@ -522,3 +522,44 @@ html, body, #app {
 .out-line.close { color: #94a3b8; }
 .out-line.done { color: #6ee7b7; font-weight: 600; }
 .out-line.cancelled { color: #fbbf24; font-weight: 600; }
+
+/* ============ DeepSeek Harness ============ */
+.dsh { display: flex; flex-direction: column; width: 100%; height: 100%; }
+.dsh-toolbar {
+  display: flex; align-items: center; gap: 10px; padding: 12px 16px;
+  border-bottom: 1px solid var(--border-soft); -webkit-app-region: no-drag;
+}
+.dsh-title { font-size: 14px; font-weight: 650; color: var(--text); }
+.dsh-spacer { flex: 1; }
+.dsh-badge {
+  font-size: 11.5px; font-weight: 600; padding: 3px 9px; border-radius: 999px;
+  border: 1px solid var(--border); color: var(--text-dim); background: var(--surface-2);
+}
+.dsh-badge.off { color: var(--text-faint); }
+.dsh-badge.run { color: #b45309; background: rgba(245, 158, 11, 0.12); border-color: rgba(245, 158, 11, 0.35); }
+.dsh-badge.ok { color: var(--accent); background: var(--accent-soft); border-color: rgba(13, 148, 136, 0.35); }
+.dsh-path-row {
+  display: flex; align-items: center; gap: 8px; padding: 12px 16px;
+  border-bottom: 1px solid var(--border-soft); -webkit-app-region: no-drag;
+}
+.dsh-label { font-size: 12px; color: var(--text-dim); flex-shrink: 0; }
+.dsh-path-input {
+  flex: 1; min-width: 0; border: 1px solid var(--border); background: var(--surface);
+  color: var(--text); font-family: var(--font-mono); font-size: 12.5px;
+  padding: 7px 10px; border-radius: var(--radius-sm); outline: none;
+}
+.dsh-tips {
+  padding: 12px 16px; color: var(--text-dim); font-size: 13px; line-height: 1.55;
+  border-bottom: 1px solid var(--border-soft);
+}
+.dsh-tips p + p { margin-top: 4px; }
+.dsh-tips code {
+  font-family: var(--font-mono); font-size: 12px; color: var(--accent);
+  background: var(--accent-soft); padding: 1px 6px; border-radius: 4px;
+}
+.dsh-hint { color: var(--accent); font-weight: 500; }
+.dsh-output-wrap { flex: 1; display: flex; flex-direction: column; min-height: 0; }
+.dsh-output { flex: 1; }
+.btn-ico { display: inline-flex; width: 14px; height: 14px; margin-right: 6px; vertical-align: -2px; }
+.btn-ico svg { width: 14px; height: 14px; }
+.btn[disabled] { opacity: 0.45; pointer-events: none; }

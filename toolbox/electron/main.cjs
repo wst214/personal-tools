@@ -93,6 +93,10 @@ app.on('window-all-closed', () => {
 
 app.on('will-quit', () => {
   globalShortcut.unregisterAll();
+  // dshChild 在文件后部声明；退出时尽量清掉本地 Harness 进程树。
+  try {
+    if (typeof killDshProcess === 'function') killDshProcess();
+  } catch {}
 });
 
 // ---- 树扫描：递归读取目录，返回 { folders, notes } ----
@@ -614,4 +618,153 @@ ipcMain.handle('deploy:stop', async () => {
   // 会让 UI 卡在"停止"按钮、输出也不再更新。先让 UI 响应，后台尽力清理。
   deployOut({ type: 'cancelled' });
   return true;
+});
+
+// ============ DeepSeek Harness (dsh) ============
+// 启动本机已安装的 @deepseek-ai/dsh Web UI（默认目录 D:\deepseek-ai）。
+
+const DSH_DEFAULT_DIR = 'D:\\deepseek-ai';
+const DSH_DEFAULT_URL = 'http://127.0.0.1:3080';
+
+let dshChild = null;
+let dshReady = false;
+
+function dshOut(msg) {
+  safeSend('dsh:output', msg);
+}
+
+function dshInstallDir() {
+  const cfg = readConfig();
+  return cfg.dshInstallDir || DSH_DEFAULT_DIR;
+}
+
+function dshResolveBin(dir) {
+  const cmd = process.platform === 'win32' ? 'dsh.cmd' : 'dsh';
+  const local = path.join(dir, 'node_modules', '.bin', cmd);
+  if (fs.existsSync(local)) return { bin: local, args: ['web'] };
+  const startCmd = path.join(dir, 'start-web.cmd');
+  if (process.platform === 'win32' && fs.existsSync(startCmd)) return { bin: startCmd, args: [] };
+  return null;
+}
+
+function dshStatusPayload() {
+  return {
+    running: !!(dshChild && dshChild.pid),
+    ready: dshReady,
+    installDir: dshInstallDir(),
+    url: DSH_DEFAULT_URL,
+    pid: dshChild?.pid || null,
+  };
+}
+
+function killDshProcess() {
+  const child = dshChild;
+  dshChild = null;
+  dshReady = false;
+  if (!child || !child.pid) return;
+  try {
+    if (process.platform === 'win32') {
+      spawnSync('taskkill', ['/T', '/F', '/PID', String(child.pid)], { stdio: 'ignore', windowsHide: true });
+    } else {
+      child.kill('SIGTERM');
+    }
+  } catch {}
+}
+
+ipcMain.handle('dsh:status', async () => dshStatusPayload());
+
+ipcMain.handle('dsh:getConfig', async () => ({
+  installDir: dshInstallDir(),
+  url: DSH_DEFAULT_URL,
+}));
+
+ipcMain.handle('dsh:setInstallDir', async (_e, dir) => {
+  if (!dir || typeof dir !== 'string') return { ok: false, msg: '路径无效' };
+  const cfg = readConfig();
+  cfg.dshInstallDir = dir;
+  writeConfig(cfg);
+  return { ok: true, installDir: dir };
+});
+
+ipcMain.handle('dsh:pickDir', async () => {
+  const result = await dialog.showOpenDialog(win, {
+    properties: ['openDirectory'],
+    title: '选择 DeepSeek Harness 安装目录',
+    defaultPath: dshInstallDir(),
+  });
+  if (result.canceled || !result.filePaths.length) return null;
+  return result.filePaths[0];
+});
+
+ipcMain.handle('dsh:open', async () => {
+  await shell.openExternal(DSH_DEFAULT_URL);
+  return true;
+});
+
+ipcMain.handle('dsh:openInstallDir', async () => {
+  const dir = dshInstallDir();
+  if (!fs.existsSync(dir)) return { ok: false, msg: '目录不存在：' + dir };
+  await shell.openPath(dir);
+  return { ok: true };
+});
+
+ipcMain.handle('dsh:start', async () => {
+  if (dshChild && dshChild.pid) return { ok: false, msg: '已在运行', ...dshStatusPayload() };
+  const dir = dshInstallDir();
+  if (!fs.existsSync(dir)) return { ok: false, msg: '安装目录不存在：' + dir };
+  const resolved = dshResolveBin(dir);
+  if (!resolved) {
+    return {
+      ok: false,
+      msg: '未找到 dsh。请确认目录下已执行 npm install @deepseek-ai/dsh',
+    };
+  }
+
+  dshReady = false;
+  dshOut({ type: 'cmd', text: `> ${resolved.bin} ${resolved.args.join(' ')}` });
+  dshOut({ type: 'out', text: `cwd: ${dir}\n` });
+
+  try {
+    const child = spawn(resolved.bin, resolved.args, {
+      cwd: dir,
+      env: { ...process.env },
+      windowsHide: true,
+      shell: process.platform === 'win32',
+    });
+    dshChild = child;
+    child.stdout.on('data', (d) => {
+      const text = d.toString();
+      dshOut({ type: 'out', text });
+      if (!dshReady && /127\.0\.0\.1:3080|localhost:3080/i.test(text)) {
+        dshReady = true;
+        dshOut({ type: 'ready', url: DSH_DEFAULT_URL });
+      }
+    });
+    child.stderr.on('data', (d) => dshOut({ type: 'err', text: d.toString() }));
+    child.on('close', (code) => {
+      dshChild = null;
+      dshReady = false;
+      dshOut({ type: 'close', code });
+    });
+    child.on('error', (e) => {
+      dshChild = null;
+      dshReady = false;
+      dshOut({ type: 'err', text: String(e.message || e) });
+      dshOut({ type: 'close', code: 1 });
+    });
+  } catch (e) {
+    return { ok: false, msg: String(e.message || e) };
+  }
+
+  return { ok: true, ...dshStatusPayload() };
+});
+
+ipcMain.handle('dsh:stop', async () => {
+  if (!dshChild) {
+    dshOut({ type: 'cancelled' });
+    return { ok: true, ...dshStatusPayload() };
+  }
+  killDshProcess();
+  dshOut({ type: 'cancelled' });
+  return { ok: true, ...dshStatusPayload() };
 });

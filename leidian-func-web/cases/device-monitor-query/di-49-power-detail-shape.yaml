@@ -1,0 +1,32 @@
+id: di-49-power-detail-shape
+name: 电源板详情响应结构
+description: |
+  电源控制板列表取首台 → 详情须含 basicInfo 关键字段，data.points 为数组（可空）。
+  抽样覆盖新增类详情契约（相对 di-38 断接卡）。
+skip: false
+skipReason: ''
+steps:
+- name: 列表取 deviceId
+  method: GET
+  service: biz
+  path: /monitor/power-board/power-boards?pageNum=1&pageSize=10
+  expect:
+    status: 200
+    fields:
+      code: 0
+      data.list.0.id: __not_empty__
+  capture:
+    deviceId: data.list.0.id
+- name: 详情结构
+  method: GET
+  service: biz
+  path: /monitor/power-board/devices/${deviceId}
+  expect:
+    status: 200
+    fields:
+      code: 0
+      data.basicInfo.deviceName: __not_empty__
+      data.basicInfo.deviceAddr: __not_empty__
+      data.basicInfo.deviceTypeName: __not_empty__
+    contains:
+    - path: data.points

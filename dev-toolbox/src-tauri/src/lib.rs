@@ -2224,6 +2224,109 @@ async fn anythingllm_ensure(app: tauri::AppHandle) -> Result<serde_json::Value, 
     .map_err(|e| e.to_string())?
 }
 
+fn dsh_root(app: &tauri::AppHandle) -> PathBuf {
+    if let Ok(p) = std::env::var("DSH_ROOT") {
+        let pb = PathBuf::from(p.trim());
+        if pb.is_dir() {
+            return pb;
+        }
+    }
+    let cfg = app
+        .path()
+        .app_config_dir()
+        .unwrap_or_else(|_| PathBuf::from("."))
+        .join("dsh-root.txt");
+    if let Ok(s) = fs::read_to_string(&cfg) {
+        let pb = PathBuf::from(s.trim());
+        if pb.is_dir() {
+            return pb;
+        }
+    }
+    PathBuf::from(r"D:\mytools\dev-toolbox\dsh")
+}
+
+/// 确保本机 DeepSeek Harness（dsh web :3080）已启动；已在跑则直接返回。
+#[tauri::command]
+async fn dsh_ensure(app: tauri::AppHandle) -> Result<serde_json::Value, String> {
+    tauri::async_runtime::spawn_blocking(move || {
+        if testhub_port_up(3080) {
+            return Ok(serde_json::json!({
+                "ok": true,
+                "started": false,
+                "message": "already running"
+            }));
+        }
+
+        let root = dsh_root(&app);
+        let script = root.join("ensure-dsh.ps1");
+        if !script.is_file() {
+            return Ok(serde_json::json!({
+                "ok": false,
+                "started": false,
+                "code": "no_script",
+                "message": format!("找不到 ensure-dsh.ps1：{}（可设置环境变量 DSH_ROOT）", script.display())
+            }));
+        }
+
+        #[cfg(windows)]
+        {
+            use std::os::windows::process::CommandExt;
+            const CREATE_NO_WINDOW: u32 = 0x08000000;
+            let out = Command::new("powershell")
+                .args([
+                    "-NoProfile",
+                    "-ExecutionPolicy",
+                    "Bypass",
+                    "-File",
+                    &script.to_string_lossy(),
+                ])
+                .current_dir(&root)
+                .creation_flags(CREATE_NO_WINDOW)
+                .stdout(Stdio::piped())
+                .stderr(Stdio::piped())
+                .output()
+                .map_err(|e| e.to_string())?;
+            let stdout = String::from_utf8_lossy(&out.stdout).trim().to_string();
+            let stderr = String::from_utf8_lossy(&out.stderr).trim().to_string();
+            if let Ok(v) = serde_json::from_str::<serde_json::Value>(&stdout) {
+                let ready = testhub_port_up(3080)
+                    || v.get("ok").and_then(|x| x.as_bool()).unwrap_or(false);
+                let mut obj = v;
+                if let Some(map) = obj.as_object_mut() {
+                    map.insert("ok".into(), serde_json::json!(ready));
+                    map.entry("started".to_string()).or_insert(serde_json::json!(true));
+                }
+                return Ok(obj);
+            }
+            let ready = testhub_port_up(3080);
+            let msg = if !stdout.is_empty() {
+                stdout
+            } else if !stderr.is_empty() {
+                stderr
+            } else if ready {
+                "ready".to_string()
+            } else {
+                format!("exit={}", out.status.code().unwrap_or(-1))
+            };
+            Ok(serde_json::json!({
+                "ok": ready,
+                "started": true,
+                "message": msg
+            }))
+        }
+        #[cfg(not(windows))]
+        {
+            Ok(serde_json::json!({
+                "ok": false,
+                "started": false,
+                "message": "dsh_ensure 当前打包仅实现了 Windows 启动脚本；请本机执行 dsh web"
+            }))
+        }
+    })
+    .await
+    .map_err(|e| e.to_string())?
+}
+
 /// 把 New API 令牌一键写入 CC Switch（Codex 供应商列表）。
 #[tauri::command]
 async fn newapi_push_ccswitch(app: tauri::AppHandle, activate: Option<String>) -> Result<serde_json::Value, String> {
@@ -2340,6 +2443,7 @@ pub fn run() {
             openacme_ensure,
             stirling_ensure,
             anythingllm_ensure,
+            dsh_ensure,
             newapi_push_ccswitch,
             open_external_url
         ])

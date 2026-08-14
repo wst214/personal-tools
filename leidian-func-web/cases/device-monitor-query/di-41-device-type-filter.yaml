@@ -1,8 +1,8 @@
 id: di-41-device-type-filter
 name: 新增类 deviceType 筛选
 description: |
-  断接卡 / SPD 波形列表参数名为 deviceType（device_type_code），不是 deviceCategory。
-  依赖 V1_010/V1_012 类型与演示设备种子。
+  新增类列表参数名为 deviceType（device_type_code），不是 deviceCategory。
+  依赖 V1_010 演示设备 + V1_013 SPD 类型/演示设备种子。
 skip: false
 skipReason: ''
 steps:
@@ -19,6 +19,45 @@ steps:
     - path: data.list
       match:
         deviceTypeName: 智能接地断接卡
+- name: 远程终端 deviceType=LIGHTNING_REMOTE_TERMINAL
+  method: GET
+  service: biz
+  path: /monitor/remote-terminal/remote-terminals?pageNum=1&pageSize=10&deviceType=LIGHTNING_REMOTE_TERMINAL
+  expect:
+    status: 200
+    fields:
+      code: 0
+      data.list.0.id: __not_empty__
+    contains:
+    - path: data.list
+      match:
+        deviceTypeName: 雷电监测远程终端
+- name: 避雷器 deviceType=MOA_ONLINE_MONITOR
+  method: GET
+  service: biz
+  path: /monitor/surge-monitor/surge-monitors?pageNum=1&pageSize=10&deviceType=MOA_ONLINE_MONITOR
+  expect:
+    status: 200
+    fields:
+      code: 0
+      data.list.0.id: __not_empty__
+    contains:
+    - path: data.list
+      match:
+        deviceTypeName: 金属氧化物避雷器在线监测仪
+- name: 电源板 deviceType=AC_POWER_CONTROL_BOARD
+  method: GET
+  service: biz
+  path: /monitor/power-board/power-boards?pageNum=1&pageSize=10&deviceType=AC_POWER_CONTROL_BOARD
+  expect:
+    status: 200
+    fields:
+      code: 0
+      data.list.0.id: __not_empty__
+    contains:
+    - path: data.list
+      match:
+        deviceTypeName: 交流电源控制板
 - name: SPD 波形 deviceType=SPD_WAVEFORM_MONITOR
   method: GET
   service: biz
